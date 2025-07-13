@@ -16,82 +16,16 @@ import {
   Clock,
   Users,
   Calendar,
-  DollarSign
+  DollarSign,
+  Loader2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useProposals } from '@/hooks/useProposals';
 
 const Propostas = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-
-  const propostas = [
-    {
-      id: 1,
-      title: 'Desenvolvimento Website Corporativo',
-      client: 'Empresa ABC Ltda',
-      value: 'R$ 8.500,00',
-      status: 'visualizada',
-      date: '2024-01-15',
-      validUntil: '2024-02-15',
-      views: 3,
-      lastViewed: '2024-01-16 14:30'
-    },
-    {
-      id: 2,
-      title: 'Consultoria Marketing Digital - Pacote Premium',
-      client: 'StartUp XYZ',
-      value: 'R$ 3.200,00',
-      status: 'aceita',
-      date: '2024-01-13',
-      validUntil: '2024-02-13',
-      views: 5,
-      lastViewed: '2024-01-14 09:15'
-    },
-    {
-      id: 3,
-      title: 'Criação de Identidade Visual Completa',
-      client: 'Loja Fashion Boutique',
-      value: 'R$ 2.800,00',
-      status: 'enviada',
-      date: '2024-01-12',
-      validUntil: '2024-02-12',
-      views: 0,
-      lastViewed: null
-    },
-    {
-      id: 4,
-      title: 'Desenvolvimento Sistema de Gestão Médica',
-      client: 'Clínica Médica São Paulo',
-      value: 'R$ 12.000,00',
-      status: 'perdida',
-      date: '2024-01-10',
-      validUntil: '2024-02-10',
-      views: 2,
-      lastViewed: '2024-01-11 16:45'
-    },
-    {
-      id: 5,
-      title: 'Campanha Publicitária Google Ads',
-      client: 'Restaurante Gourmet',
-      value: 'R$ 1.800,00',
-      status: 'visualizada',
-      date: '2024-01-08',
-      validUntil: '2024-02-08',
-      views: 1,
-      lastViewed: '2024-01-09 11:20'
-    },
-    {
-      id: 6,
-      title: 'Consultoria em Transformação Digital',
-      client: 'Indústria Metal Forte',
-      value: 'R$ 15.000,00',
-      status: 'enviada',
-      date: '2024-01-05',
-      validUntil: '2024-02-05',
-      views: 0,
-      lastViewed: null
-    }
-  ];
+  const { data: proposals, isLoading, error } = useProposals();
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -112,26 +46,31 @@ const Propostas = () => {
     );
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'aceita': return 'text-green-600';
-      case 'visualizada': return 'text-blue-600';
-      case 'enviada': return 'text-yellow-600';
-      case 'perdida': return 'text-red-600';
-      default: return 'text-gray-600';
-    }
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
-  const filteredPropostas = propostas.filter(proposta => {
-    const matchesSearch = proposta.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         proposta.client.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || proposta.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredPropostas = React.useMemo(() => {
+    if (!proposals) return [];
+    
+    return proposals.filter(proposta => {
+      const matchesSearch = proposta.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (proposta.companies?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || proposta.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [proposals, searchTerm, statusFilter]);
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-2">Erro ao carregar propostas</h1>
+          <p className="text-gray-600">Tente recarregar a página</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -180,6 +119,14 @@ const Propostas = () => {
         </CardContent>
       </Card>
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <span className="ml-2 text-gray-600">Carregando propostas...</span>
+        </div>
+      )}
+
       {/* Proposals List */}
       <div className="space-y-4">
         {filteredPropostas.map((proposta) => (
@@ -197,31 +144,33 @@ const Propostas = () => {
                   <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-3">
                     <div className="flex items-center gap-1">
                       <Users className="h-4 w-4" />
-                      {proposta.client}
+                      {proposta.companies?.name || 'Cliente não informado'}
                     </div>
                     <div className="flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
-                      Criada em {formatDate(proposta.date)}
+                      Criada em {formatDate(proposta.created_at)}
                     </div>
                     <div className="flex items-center gap-1">
                       <DollarSign className="h-4 w-4" />
-                      {proposta.value}
+                      {proposta.value ? `R$ ${Number(proposta.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'Valor não informado'}
                     </div>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-4 text-sm">
                     <div className="flex items-center gap-1">
                       <Eye className="h-4 w-4 text-gray-400" />
-                      <span>{proposta.views} visualizações</span>
+                      <span>{proposta.views || 0} visualizações</span>
                     </div>
-                    {proposta.lastViewed && (
+                    {proposta.last_viewed_at && (
                       <div className="text-gray-500">
-                        Última visualização: {new Date(proposta.lastViewed).toLocaleString('pt-BR')}
+                        Última visualização: {new Date(proposta.last_viewed_at).toLocaleString('pt-BR')}
                       </div>
                     )}
-                    <div className="text-gray-500">
-                      Válida até: {formatDate(proposta.validUntil)}
-                    </div>
+                    {proposta.validity_date && (
+                      <div className="text-gray-500">
+                        Válida até: {formatDate(proposta.validity_date)}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -242,7 +191,7 @@ const Propostas = () => {
         ))}
       </div>
 
-      {filteredPropostas.length === 0 && (
+      {!isLoading && filteredPropostas.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center">
             <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />

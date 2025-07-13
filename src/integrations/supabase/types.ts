@@ -14,7 +14,101 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      companies: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      proposals: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          delivery_time: string | null
+          detailed_description: string | null
+          id: string
+          last_viewed_at: string | null
+          observations: string | null
+          service_description: string | null
+          status: string | null
+          template_id: string | null
+          title: string
+          updated_at: string
+          user_id: string
+          validity_date: string | null
+          value: number | null
+          views: number | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          delivery_time?: string | null
+          detailed_description?: string | null
+          id?: string
+          last_viewed_at?: string | null
+          observations?: string | null
+          service_description?: string | null
+          status?: string | null
+          template_id?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+          validity_date?: string | null
+          value?: number | null
+          views?: number | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          delivery_time?: string | null
+          detailed_description?: string | null
+          id?: string
+          last_viewed_at?: string | null
+          observations?: string | null
+          service_description?: string | null
+          status?: string | null
+          template_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          validity_date?: string | null
+          value?: number | null
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
