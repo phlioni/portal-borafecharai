@@ -27,6 +27,9 @@ import { useUserPermissions } from '@/hooks/useUserPermissions';
 import PlanLimitGuard from '@/components/PlanLimitGuard';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import ProposalPreviewModal from '@/components/ProposalPreviewModal';
+import SendProposalModal from '@/components/SendProposalModal';
+import { useProposalSending } from '@/hooks/useProposalSending';
 
 const NovaPropostaPage = () => {
   const navigate = useNavigate();
@@ -35,9 +38,13 @@ const NovaPropostaPage = () => {
   const { canCreateProposal, canAccessPremiumTemplates, monthlyProposalCount, monthlyProposalLimit } = useUserPermissions();
   const createProposal = useCreateProposal();
   const createCompany = useCreateCompany();
+  const { sendProposal, isSending } = useProposalSending();
 
   const [selectedTemplate, setSelectedTemplate] = useState('moderno');
   const [showNewCompanyForm, setShowNewCompanyForm] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [currentProposal, setCurrentProposal] = useState<any>(null);
   const [formData, setFormData] = useState({
     titulo: '',
     cliente: '',
@@ -175,7 +182,7 @@ const NovaPropostaPage = () => {
         companyId = result.id;
       }
 
-      await createProposal.mutateAsync({
+      const proposalData = {
         user_id: user.id,
         company_id: companyId || null,
         title: formData.titulo,
@@ -186,14 +193,41 @@ const NovaPropostaPage = () => {
         validity_date: formData.validade || null,
         observations: formData.observacoes || null,
         template_id: selectedTemplate,
-        status: action === 'send' ? 'enviada' : 'rascunho'
-      });
+        status: 'rascunho'
+      };
 
-      toast.success(action === 'send' ? 'Proposta enviada com sucesso!' : 'Proposta salva como rascunho!');
-      navigate('/propostas');
+      const proposal = await createProposal.mutateAsync(proposalData);
+
+      if (action === 'send') {
+        // Buscar dados da empresa para o preview
+        const company = companyId ? companies?.find(c => c.id === companyId) : null;
+        setCurrentProposal({
+          ...proposal,
+          companies: company || {
+            name: formData.cliente,
+            email: formData.email,
+            phone: formData.telefone
+          }
+        });
+        setShowPreviewModal(true);
+      } else {
+        toast.success('Proposta salva como rascunho!');
+        navigate('/propostas');
+      }
     } catch (error) {
       console.error('Erro ao salvar proposta:', error);
       toast.error('Erro ao salvar proposta');
+    }
+  };
+
+  const handleSendProposal = async (emailData: any) => {
+    if (!currentProposal) return;
+
+    const success = await sendProposal(currentProposal, emailData);
+    if (success) {
+      setShowSendModal(false);
+      setShowPreviewModal(false);
+      navigate('/propostas');
     }
   };
 
@@ -583,6 +617,33 @@ const NovaPropostaPage = () => {
           </Card>
         </div>
         </div>
+
+        {/* Preview Modal */}
+        {currentProposal && (
+          <ProposalPreviewModal
+            isOpen={showPreviewModal}
+            onClose={() => setShowPreviewModal(false)}
+            onContinue={() => {
+              setShowPreviewModal(false);
+              setShowSendModal(true);
+            }}
+            proposal={currentProposal}
+            companyLogo={localStorage.getItem('company_logo') || ''}
+          />
+        )}
+
+        {/* Send Modal */}
+        {currentProposal && (
+          <SendProposalModal
+            isOpen={showSendModal}
+            onClose={() => setShowSendModal(false)}
+            onSend={handleSendProposal}
+            proposalTitle={currentProposal.title}
+            clientName={currentProposal.companies?.name}
+            clientEmail={currentProposal.companies?.email}
+            isLoading={isSending}
+          />
+        )}
       </div>
     </PlanLimitGuard>
   );
