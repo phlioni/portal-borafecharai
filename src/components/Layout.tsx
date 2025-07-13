@@ -13,10 +13,12 @@ import {
   CreditCard
 } from 'lucide-react';
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const { user, signOut } = useAuth();
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
@@ -26,6 +28,10 @@ const Layout = () => {
   ];
 
   const isActive = (path: string) => location.pathname === path;
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -63,9 +69,9 @@ const Layout = () => {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-900">Usuário</p>
-                <p className="text-xs text-gray-500">usuario@empresa.com</p>
+                <p className="text-xs text-gray-500">{user?.email}</p>
               </div>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
@@ -102,9 +108,9 @@ const Layout = () => {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-900">Usuário</p>
-                <p className="text-xs text-gray-500">usuario@empresa.com</p>
+                <p className="text-xs text-gray-500">{user?.email}</p>
               </div>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>

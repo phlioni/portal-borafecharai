@@ -16,15 +16,28 @@ import {
   FileText,
   DollarSign,
   Calendar,
-  User
+  User,
+  Plus
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useCreateProposal } from '@/hooks/useProposals';
+import { useCreateCompany, useCompanies } from '@/hooks/useCompanies';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 const NovaPropostaPage = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { data: companies } = useCompanies();
+  const createProposal = useCreateProposal();
+  const createCompany = useCreateCompany();
+
   const [selectedTemplate, setSelectedTemplate] = useState('moderno');
+  const [showNewCompanyForm, setShowNewCompanyForm] = useState(false);
   const [formData, setFormData] = useState({
     titulo: '',
     cliente: '',
+    clienteExistente: '',
     email: '',
     telefone: '',
     servico: '',
@@ -33,6 +46,12 @@ const NovaPropostaPage = () => {
     prazo: '',
     validade: '',
     observacoes: ''
+  });
+
+  const [newCompanyData, setNewCompanyData] = useState({
+    nome: '',
+    email: '',
+    telefone: ''
   });
 
   const templates = [
@@ -66,9 +85,81 @@ const NovaPropostaPage = () => {
     }));
   };
 
-  const handleSubmit = (action: 'save' | 'send') => {
-    // Implementar lógica de salvamento ou envio
-    console.log('Ação:', action, 'Dados:', formData, 'Template:', selectedTemplate);
+  const handleNewCompanyChange = (field: string, value: string) => {
+    setNewCompanyData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleCreateCompany = async () => {
+    if (!user || !newCompanyData.nome) return;
+
+    try {
+      const result = await createCompany.mutateAsync({
+        user_id: user.id,
+        name: newCompanyData.nome,
+        email: newCompanyData.email || null,
+        phone: newCompanyData.telefone || null
+      });
+
+      setFormData(prev => ({
+        ...prev,
+        clienteExistente: result.id,
+        cliente: result.name,
+        email: result.email || '',
+        telefone: result.phone || ''
+      }));
+
+      setNewCompanyData({ nome: '', email: '', telefone: '' });
+      setShowNewCompanyForm(false);
+      toast.success('Cliente criado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao criar cliente:', error);
+      toast.error('Erro ao criar cliente');
+    }
+  };
+
+  const handleSubmit = async (action: 'save' | 'send') => {
+    if (!user || !formData.titulo) {
+      toast.error('Título é obrigatório');
+      return;
+    }
+
+    try {
+      let companyId = formData.clienteExistente;
+
+      // Se não há cliente selecionado e há dados de cliente preenchidos, criar novo cliente
+      if (!companyId && formData.cliente) {
+        const result = await createCompany.mutateAsync({
+          user_id: user.id,
+          name: formData.cliente,
+          email: formData.email || null,
+          phone: formData.telefone || null
+        });
+        companyId = result.id;
+      }
+
+      await createProposal.mutateAsync({
+        user_id: user.id,
+        company_id: companyId || null,
+        title: formData.titulo,
+        service_description: formData.servico || null,
+        detailed_description: formData.descricao || null,
+        value: formData.valor ? parseFloat(formData.valor.replace(/[^\d,]/g, '').replace(',', '.')) : null,
+        delivery_time: formData.prazo || null,
+        validity_date: formData.validade || null,
+        observations: formData.observacoes || null,
+        template_id: selectedTemplate,
+        status: action === 'send' ? 'enviada' : 'rascunho'
+      });
+
+      toast.success(action === 'send' ? 'Proposta enviada com sucesso!' : 'Proposta salva como rascunho!');
+      navigate('/propostas');
+    } catch (error) {
+      console.error('Erro ao salvar proposta:', error);
+      toast.error('Erro ao salvar proposta');
+    }
   };
 
   return (
@@ -86,11 +177,11 @@ const NovaPropostaPage = () => {
           <p className="text-gray-600 mt-1">Crie uma proposta profissional em minutos</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => handleSubmit('save')}>
+          <Button variant="outline" onClick={() => handleSubmit('save')} disabled={createProposal.isPending}>
             <Save className="h-4 w-4 mr-2" />
             Salvar Rascunho
           </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => handleSubmit('send')}>
+          <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => handleSubmit('send')} disabled={createProposal.isPending}>
             <Send className="h-4 w-4 mr-2" />
             Enviar Proposta
           </Button>
@@ -112,35 +203,133 @@ const NovaPropostaPage = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div>
-                  <Label htmlFor="cliente">Nome da Empresa/Cliente</Label>
-                  <Input
-                    id="cliente"
-                    placeholder="Ex: Empresa ABC Ltda"
-                    value={formData.cliente}
-                    onChange={(e) => handleInputChange('cliente', e.target.value)}
-                  />
+                  <Label htmlFor="clienteExistente">Cliente Existente</Label>
+                  <select
+                    id="clienteExistente"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={formData.clienteExistente}
+                    onChange={(e) => {
+                      const selectedCompany = companies?.find(c => c.id === e.target.value);
+                      setFormData(prev => ({
+                        ...prev,
+                        clienteExistente: e.target.value,
+                        cliente: selectedCompany?.name || '',
+                        email: selectedCompany?.email || '',
+                        telefone: selectedCompany?.phone || ''
+                      }));
+                    }}
+                  >
+                    <option value="">Selecione um cliente existente ou crie novo</option>
+                    {companies?.map((company) => (
+                      <option key={company.id} value={company.id}>
+                        {company.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <div>
-                  <Label htmlFor="email">E-mail do Cliente</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="cliente@empresa.com"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                  />
+
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">ou</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowNewCompanyForm(!showNewCompanyForm)}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Novo Cliente
+                  </Button>
                 </div>
-              </div>
-              <div>
-                <Label htmlFor="telefone">Telefone (Opcional)</Label>
-                <Input
-                  id="telefone"
-                  placeholder="(11) 99999-9999"
-                  value={formData.telefone}
-                  onChange={(e) => handleInputChange('telefone', e.target.value)}
-                />
+
+                {showNewCompanyForm && (
+                  <Card className="p-4 bg-blue-50 border-blue-200">
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor="novoClienteNome">Nome da Empresa/Cliente *</Label>
+                        <Input
+                          id="novoClienteNome"
+                          placeholder="Ex: Empresa ABC Ltda"
+                          value={newCompanyData.nome}
+                          onChange={(e) => handleNewCompanyChange('nome', e.target.value)}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label htmlFor="novoClienteEmail">E-mail</Label>
+                          <Input
+                            id="novoClienteEmail"
+                            type="email"
+                            placeholder="cliente@empresa.com"
+                            value={newCompanyData.email}
+                            onChange={(e) => handleNewCompanyChange('email', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="novoClienteTelefone">Telefone</Label>
+                          <Input
+                            id="novoClienteTelefone"
+                            placeholder="(11) 99999-9999"
+                            value={newCompanyData.telefone}
+                            onChange={(e) => handleNewCompanyChange('telefone', e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={handleCreateCompany}
+                          disabled={!newCompanyData.nome || createCompany.isPending}
+                        >
+                          Criar Cliente
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowNewCompanyForm(false)}
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
+                {!formData.clienteExistente && !showNewCompanyForm && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="cliente">Nome da Empresa/Cliente</Label>
+                      <Input
+                        id="cliente"
+                        placeholder="Ex: Empresa ABC Ltda"
+                        value={formData.cliente}
+                        onChange={(e) => handleInputChange('cliente', e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="email">E-mail do Cliente</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="cliente@empresa.com"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label htmlFor="telefone">Telefone (Opcional)</Label>
+                      <Input
+                        id="telefone"
+                        placeholder="(11) 99999-9999"
+                        value={formData.telefone}
+                        onChange={(e) => handleInputChange('telefone', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -158,7 +347,7 @@ const NovaPropostaPage = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="titulo">Título da Proposta</Label>
+                <Label htmlFor="titulo">Título da Proposta *</Label>
                 <Input
                   id="titulo"
                   placeholder="Ex: Desenvolvimento de Website Institucional"
@@ -297,7 +486,7 @@ const NovaPropostaPage = () => {
                   {formData.titulo || 'Título da Proposta'}
                 </h3>
                 <p className="text-sm text-gray-600 mb-4">
-                  Para: {formData.cliente || 'Nome do Cliente'}
+                  Para: {formData.cliente || formData.clienteExistente ? companies?.find(c => c.id === formData.clienteExistente)?.name : 'Nome do Cliente'}
                 </p>
                 <div className="text-2xl font-bold text-blue-600 mb-2">
                   {formData.valor || 'R$ 0,00'}
