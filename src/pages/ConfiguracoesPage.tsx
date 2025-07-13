@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,9 @@ import SubscriptionPlanCard from '@/components/SubscriptionPlanCard';
 import SubscriptionStatus from '@/components/SubscriptionStatus';
 
 const ConfiguracoesPage = () => {
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get('tab') || 'empresa';
+  
   const [companyLogo, setCompanyLogo] = useState<string>('');
   const [companyName, setCompanyName] = useState<string>('');
   const [isUploading, setIsUploading] = useState(false);
@@ -137,7 +141,7 @@ const ConfiguracoesPage = () => {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="empresa" className="w-full">
+      <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="empresa">Empresa</TabsTrigger>
           <TabsTrigger value="planos">
