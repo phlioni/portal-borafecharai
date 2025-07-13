@@ -26,6 +26,7 @@ import ProposalTemplatePreview from '@/components/ProposalTemplatePreview';
 type Message = {
   role: 'user' | 'assistant';
   content: string;
+  showGenerateButton?: boolean;
 };
 
 const ChatPropostaPage = () => {
@@ -100,7 +101,16 @@ const ChatPropostaPage = () => {
       }
 
       if (data?.content) {
-        setMessages([...newMessages, { role: 'assistant', content: data.content }]);
+        // Verificar se a IA sugeriu gerar a proposta com a frase específica
+        const showGenerateButton = data.content.includes('Parece que já temos as informações principais! Quer que eu gere a proposta para você revisar?');
+        
+        const assistantMessage = { 
+          role: 'assistant' as const, 
+          content: data.content,
+          showGenerateButton 
+        };
+        
+        setMessages([...newMessages, assistantMessage]);
       } else {
         throw new Error('Resposta vazia da IA');
       }
@@ -276,13 +286,35 @@ const ChatPropostaPage = () => {
                           <Bot className="h-4 w-4 text-gray-600" />
                         )}
                       </div>
-                      <div className={`rounded-lg p-3 ${
-                        message.role === 'user' 
-                          ? 'bg-blue-600 text-white' 
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                      </div>
+                       <div className={`rounded-lg p-3 ${
+                         message.role === 'user' 
+                           ? 'bg-blue-600 text-white' 
+                           : 'bg-gray-100 text-gray-800'
+                       }`}>
+                         <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                         {message.showGenerateButton && (
+                           <div className="mt-3 pt-3 border-t border-gray-200">
+                             <Button
+                               onClick={generateProposalPreview}
+                               disabled={isGenerating}
+                               className="w-full bg-green-600 hover:bg-green-700 text-white"
+                               size="sm"
+                             >
+                               {isGenerating ? (
+                                 <>
+                                   <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2"></div>
+                                   Gerando Proposta...
+                                 </>
+                               ) : (
+                                 <>
+                                   <Wand2 className="h-3 w-3 mr-2" />
+                                   ✨ Gerar Proposta Agora
+                                 </>
+                               )}
+                             </Button>
+                           </div>
+                         )}
+                       </div>
                     </div>
                   </div>
                 ))}
@@ -371,7 +403,7 @@ const ChatPropostaPage = () => {
               <CardContent>
                 <Button
                   onClick={generateProposalPreview}
-                  disabled={isGenerating || messages.length < 2}
+                  disabled={isGenerating || messages.length < 3}
                   className="w-full bg-purple-600 hover:bg-purple-700"
                 >
                   {isGenerating ? (
@@ -386,9 +418,14 @@ const ChatPropostaPage = () => {
                     </>
                   )}
                 </Button>
-                {messages.length < 2 && (
+                {messages.length < 3 && (
                   <p className="text-xs text-gray-500 mt-2">
                     Continue conversando para coletar mais informações
+                  </p>
+                )}
+                {messages.length >= 3 && (
+                  <p className="text-xs text-green-700 mt-2 font-medium">
+                    ✅ Pronto para gerar proposta!
                   </p>
                 )}
               </CardContent>

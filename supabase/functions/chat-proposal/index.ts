@@ -34,7 +34,10 @@ serve(async (req) => {
       
       Seja amigável, profissional e faça perguntas inteligentes para entender o contexto do negócio.
       
-      Quando tiver todas as informações necessárias, pergunte se o usuário quer que você gere a proposta automaticamente.`;
+      IMPORTANTE: Quando tiver coletado pelo menos as informações básicas (cliente, serviço, valor e prazo), 
+      termine sua resposta com EXATAMENTE: "Parece que já temos as informações principais! Quer que eu gere a proposta para você revisar?"
+      
+      Essa frase específica irá ativar automaticamente um botão especial para gerar a proposta.`;
     } else if (action === 'generate') {
       systemPrompt = `Você é um especialista em gerar propostas comerciais estruturadas.
       
