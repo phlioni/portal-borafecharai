@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -10,13 +11,13 @@ interface UserPermissions {
   canAccessPremiumTemplates: boolean;
   canCollaborate: boolean;
   monthlyProposalCount: number;
-  monthlyProposalLimit: number | null; // null means unlimited
+  monthlyProposalLimit: number | null;
   loading: boolean;
 }
 
 export const useUserPermissions = () => {
   const { user } = useAuth();
-  const { subscribed, subscription_tier } = useSubscription();
+  const { subscribed, subscription_tier, loading: subscriptionLoading } = useSubscription();
   const [permissions, setPermissions] = useState<UserPermissions>({
     isAdmin: false,
     canCreateProposal: false,
@@ -50,6 +51,11 @@ export const useUserPermissions = () => {
   const checkPermissions = async () => {
     if (!user) {
       setPermissions(prev => ({ ...prev, loading: false }));
+      return;
+    }
+
+    // Se ainda está carregando a assinatura, aguarda
+    if (subscriptionLoading) {
       return;
     }
 
@@ -200,7 +206,7 @@ export const useUserPermissions = () => {
 
   useEffect(() => {
     checkPermissions();
-  }, [user, subscribed, subscription_tier]);
+  }, [user, subscribed, subscription_tier, subscriptionLoading]);
 
   return {
     ...permissions,

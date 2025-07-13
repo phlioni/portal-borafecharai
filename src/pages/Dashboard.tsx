@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,7 +44,7 @@ const Dashboard = () => {
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       <div className="text-2xl font-bold">Dashboard</div>
 
-      {/* Trial Call to Action com wrapper para evitar flicker */}
+      {/* Trial Call to Action - agora com verificação otimizada */}
       <TrialCallToActionWrapper />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -117,7 +118,7 @@ const Dashboard = () => {
             <div className="flex items-center justify-between">
               <p>Criar uma nova proposta</p>
               <Button asChild>
-                <Link to="/nova-proposta">Criar</Link>
+                <Link to="/propostas/nova">Criar</Link>
               </Button>
             </div>
             <div className="flex items-center justify-between">
