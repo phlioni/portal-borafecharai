@@ -24,41 +24,45 @@ serve(async (req) => {
     });
 
     // Product IDs fornecidos pelo usuário
-    const productIds = [
-      'prod_SfuTlv2mX4TfJe', // Essencial
-      'prod_SfuTErakRcHMsq', // Professional
-      'prod_SfuTPAmInfb3sD'  // Equipe
-    ];
+    const productMap = {
+      'prod_SfuTlv2mX4TfJe': 'basico',     // Essencial
+      'prod_SfuTErakRcHMsq': 'profissional', // Professional  
+      'prod_SfuTPAmInfb3sD': 'equipes'     // Equipe
+    };
 
-    const productPrices: Record<string, { priceId: string; amount: number; currency: string }> = {};
+    const planPrices: Record<string, { priceId: string; amount: number; currency: string; productId: string }> = {};
 
     // Buscar preços para cada produto
-    for (const productId of productIds) {
-      logStep("Fetching prices for product", { productId });
+    for (const [productId, planTier] of Object.entries(productMap)) {
+      logStep("Fetching prices for product", { productId, planTier });
       
       const prices = await stripe.prices.list({
         product: productId,
         active: true,
         type: 'recurring',
-        limit: 1
+        limit: 10
       });
 
+      logStep("Found prices", { productId, count: prices.data.length });
+
       if (prices.data.length > 0) {
+        // Pegar o primeiro preço ativo encontrado
         const price = prices.data[0];
-        productPrices[productId] = {
+        planPrices[planTier] = {
           priceId: price.id,
           amount: price.unit_amount || 0,
-          currency: price.currency
+          currency: price.currency,
+          productId: productId
         };
-        logStep("Price found", { productId, priceId: price.id, amount: price.unit_amount });
+        logStep("Price found", { planTier, priceId: price.id, amount: price.unit_amount });
       } else {
-        logStep("No price found for product", { productId });
+        logStep("No price found for product", { productId, planTier });
       }
     }
 
-    logStep("All prices fetched", { productPrices });
+    logStep("All prices fetched", { planPrices });
 
-    return new Response(JSON.stringify({ productPrices }), {
+    return new Response(JSON.stringify({ planPrices }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });

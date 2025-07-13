@@ -4,62 +4,92 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Check, X } from 'lucide-react';
 import SubscriptionPlanCard from '@/components/SubscriptionPlanCard';
+import { useStripePrices } from '@/hooks/useStripePrices';
+import { ModernLoader } from '@/components/ModernLoader';
 
 const Planos = () => {
-  const plans = [
-    {
-      title: 'Essencial',
-      description: 'Ideal para freelancers e pequenos projetos',
-      price: 'R$ 49,90',
-      productId: 'prod_SfuTlv2mX4TfJe', // Product ID do Stripe para o plano básico
-      priceId: 'price_1QWj6DInZ9ScpgFJMHLfxrZR', // Temporário - será substituído por busca dinâmica
-      planTier: 'basico' as const,
-      features: [
-        { text: 'Até 10 propostas por mês', included: true },
-        { text: 'Templates básicos', included: true },
-        { text: 'Gestão de clientes', included: true },
-        { text: 'Suporte por email', included: true },
-        { text: 'Analytics básico', included: false },
-        { text: 'Templates premium', included: false },
-        { text: 'Suporte prioritário', included: false },
-      ],
-    },
-    {
-      title: 'Profissional',
-      description: 'Para empresas que precisam de mais recursos',
-      price: 'R$ 89,90',
-      productId: 'prod_SfuTErakRcHMsq', // Product ID do Stripe para o plano profissional
-      priceId: 'price_1QWj6fInZ9ScpgFJ8vYNwxDL', // Temporário - será substituído por busca dinâmica
-      planTier: 'profissional' as const,
-      popular: true,
-      features: [
-        { text: 'Propostas ilimitadas', included: true },
-        { text: 'Templates básicos', included: true },
-        { text: 'Templates premium', included: true },
-        { text: 'Gestão avançada de clientes', included: true },
-        { text: 'Analytics completo', included: true },
-        { text: 'Suporte prioritário', included: true },
-        { text: 'Colaboração em equipe', included: false },
-      ],
-    },
-    {
-      title: 'Equipes',
-      description: 'Para equipes que precisam colaborar',
-      price: 'R$ 149,90',
-      productId: 'prod_SfuTPAmInfb3sD', // Product ID do Stripe para o plano equipes
-      priceId: 'price_1QWj6xInZ9ScpgFJvL8cNqhY', // Temporário - será substituído por busca dinâmica
-      planTier: 'equipes' as const,
-      features: [
-        { text: 'Propostas ilimitadas', included: true },
-        { text: 'Todos os templates', included: true },
-        { text: 'Gestão avançada de clientes', included: true },
-        { text: 'Analytics completo', included: true },
-        { text: 'Colaboração em equipe', included: true },
-        { text: 'Usuários ilimitados', included: true },
-        { text: 'Suporte premium 24/7', included: true },
-      ],
-    },
-  ];
+  const { prices, loading, error } = useStripePrices();
+
+  const getPlansWithRealPrices = () => {
+    const basePlans = [
+      {
+        title: 'Essencial',
+        description: 'Ideal para freelancers e pequenos projetos',
+        price: 'R$ 49,90',
+        productId: 'prod_SfuTlv2mX4TfJe',
+        planTier: 'basico' as const,
+        features: [
+          { text: 'Até 10 propostas por mês', included: true },
+          { text: 'Templates básicos', included: true },
+          { text: 'Gestão de clientes', included: true },
+          { text: 'Suporte por email', included: true },
+          { text: 'Analytics básico', included: false },
+          { text: 'Templates premium', included: false },
+          { text: 'Suporte prioritário', included: false },
+        ],
+      },
+      {
+        title: 'Profissional',
+        description: 'Para empresas que precisam de mais recursos',
+        price: 'R$ 89,90',
+        productId: 'prod_SfuTErakRcHMsq',
+        planTier: 'profissional' as const,
+        popular: true,
+        features: [
+          { text: 'Propostas ilimitadas', included: true },
+          { text: 'Templates básicos', included: true },
+          { text: 'Templates premium', included: true },
+          { text: 'Gestão avançada de clientes', included: true },
+          { text: 'Analytics completo', included: true },
+          { text: 'Suporte prioritário', included: true },
+          { text: 'Colaboração em equipe', included: false },
+        ],
+      },
+      {
+        title: 'Equipes',
+        description: 'Para equipes que precisam colaborar',
+        price: 'R$ 149,90',
+        productId: 'prod_SfuTPAmInfb3sD',
+        planTier: 'equipes' as const,
+        features: [
+          { text: 'Propostas ilimitadas', included: true },
+          { text: 'Todos os templates', included: true },
+          { text: 'Gestão avançada de clientes', included: true },
+          { text: 'Analytics completo', included: true },
+          { text: 'Colaboração em equipe', included: true },
+          { text: 'Usuários ilimitados', included: true },
+          { text: 'Suporte premium 24/7', included: true },
+        ],
+      },
+    ];
+
+    // Adicionar os price IDs reais se disponíveis
+    return basePlans.map(plan => ({
+      ...plan,
+      priceId: prices[plan.planTier]?.priceId || 'loading...'
+    }));
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 flex items-center justify-center">
+        <ModernLoader />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Erro ao carregar planos</h2>
+          <p className="text-gray-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const plans = getPlansWithRealPrices();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100">
