@@ -20,6 +20,7 @@ import { useCreateCompany } from '@/hooks/useCompanies';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import ProposalTemplatePreview from '@/components/ProposalTemplatePreview';
 
 type Message = {
   role: 'user' | 'assistant';
