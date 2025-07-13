@@ -4,13 +4,68 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Upload, Settings, Image, Save, Trash2 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Upload, Settings, Image, Save, Trash2, Crown } from 'lucide-react';
 import { toast } from 'sonner';
+import SubscriptionPlanCard from '@/components/SubscriptionPlanCard';
+import SubscriptionStatus from '@/components/SubscriptionStatus';
 
 const ConfiguracoesPage = () => {
   const [companyLogo, setCompanyLogo] = useState<string>('');
   const [companyName, setCompanyName] = useState<string>('');
   const [isUploading, setIsUploading] = useState(false);
+
+  const plans = [
+    {
+      title: 'Essencial',
+      description: 'Ideal para freelancers e pequenos projetos',
+      price: 'R$ 49,90',
+      priceId: 'price_1234567890',
+      planTier: 'basico' as const,
+      features: [
+        { text: 'Até 10 propostas por mês', included: true },
+        { text: 'Templates básicos', included: true },
+        { text: 'Gestão de clientes', included: true },
+        { text: 'Suporte por email', included: true },
+        { text: 'Analytics básico', included: false },
+        { text: 'Templates premium', included: false },
+        { text: 'Suporte prioritário', included: false },
+      ],
+    },
+    {
+      title: 'Profissional',
+      description: 'Para empresas que precisam de mais recursos',
+      price: 'R$ 89,90',
+      priceId: 'price_0987654321',
+      planTier: 'profissional' as const,
+      popular: true,
+      features: [
+        { text: 'Propostas ilimitadas', included: true },
+        { text: 'Templates básicos', included: true },
+        { text: 'Templates premium', included: true },
+        { text: 'Gestão avançada de clientes', included: true },
+        { text: 'Analytics completo', included: true },
+        { text: 'Suporte prioritário', included: true },
+        { text: 'Colaboração em equipe', included: false },
+      ],
+    },
+    {
+      title: 'Equipes',
+      description: 'Para equipes que precisam colaborar',
+      price: 'R$ 149,90',
+      priceId: 'price_1122334455',
+      planTier: 'equipes' as const,
+      features: [
+        { text: 'Propostas ilimitadas', included: true },
+        { text: 'Todos os templates', included: true },
+        { text: 'Gestão avançada de clientes', included: true },
+        { text: 'Analytics completo', included: true },
+        { text: 'Colaboração em equipe', included: true },
+        { text: 'Usuários ilimitados', included: true },
+        { text: 'Suporte premium 24/7', included: true },
+      ],
+    },
+  ];
 
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -69,7 +124,7 @@ const ConfiguracoesPage = () => {
   }, []);
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="p-6 max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <div className="flex-1">
@@ -77,119 +132,189 @@ const ConfiguracoesPage = () => {
             <Settings className="h-8 w-8" />
             Configurações
           </h1>
-          <p className="text-gray-600 mt-1">Personalize sua empresa e propostas</p>
+          <p className="text-gray-600 mt-1">Gerencie sua empresa, planos e configurações</p>
         </div>
       </div>
 
-      {/* Company Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Informações da Empresa</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div>
-            <Label htmlFor="companyName">Nome da Empresa</Label>
-            <Input
-              id="companyName"
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              placeholder="Digite o nome da sua empresa"
-            />
-          </div>
+      {/* Tabs */}
+      <Tabs defaultValue="empresa" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="empresa">Empresa</TabsTrigger>
+          <TabsTrigger value="planos">
+            <Crown className="h-4 w-4 mr-2" />
+            Planos
+          </TabsTrigger>
+        </TabsList>
 
-          <div>
-            <Label>Logo da Empresa</Label>
-            <div className="mt-2 space-y-4">
-              {/* Logo Preview */}
-              {companyLogo && (
-                <div className="relative inline-block">
-                  <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-4">
+        {/* Empresa Tab */}
+        <TabsContent value="empresa" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Informações da Empresa</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <Label htmlFor="companyName">Nome da Empresa</Label>
+                <Input
+                  id="companyName"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  placeholder="Digite o nome da sua empresa"
+                />
+              </div>
+
+              <div>
+                <Label>Logo da Empresa</Label>
+                <div className="mt-2 space-y-4">
+                  {/* Logo Preview */}
+                  {companyLogo && (
+                    <div className="relative inline-block">
+                      <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-4">
+                        <img
+                          src={companyLogo}
+                          alt="Logo da empresa"
+                          className="h-24 w-auto object-contain"
+                        />
+                      </div>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="absolute -top-2 -right-2"
+                        onClick={handleRemoveLogo}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Upload Area */}
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                      id="logo-upload"
+                      disabled={isUploading}
+                    />
+                    <label
+                      htmlFor="logo-upload"
+                      className="cursor-pointer flex flex-col items-center gap-2"
+                    >
+                      {isUploading ? (
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      ) : (
+                        <Upload className="h-8 w-8 text-gray-400" />
+                      )}
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {companyLogo ? 'Clique para alterar a logo' : 'Clique para fazer upload da logo'}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          PNG, JPG até 5MB
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-500 mt-2">
+                  Esta logo aparecerá em todas as suas propostas
+                </p>
+              </div>
+
+              <Button onClick={handleSaveSettings} className="w-full">
+                <Save className="h-4 w-4 mr-2" />
+                Salvar Configurações
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Template Preview */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Pré-visualização</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-gray-50 rounded-lg p-6 text-center">
+                <Image className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="font-medium text-gray-900 mb-2">
+                  Exemplo de Proposta
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Para: Cliente Exemplo
+                </p>
+                {companyLogo && (
+                  <div className="mt-4 p-4 bg-white rounded border">
+                    <p className="text-sm text-gray-600 mb-2">Sua logo aparecerá assim:</p>
                     <img
                       src={companyLogo}
-                      alt="Logo da empresa"
-                      className="h-24 w-auto object-contain"
+                      alt="Preview da logo"
+                      className="h-12 w-auto mx-auto"
                     />
                   </div>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="absolute -top-2 -right-2"
-                    onClick={handleRemoveLogo}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Planos Tab */}
+        <TabsContent value="planos" className="space-y-6">
+          {/* Subscription Status */}
+          <SubscriptionStatus />
+          
+          {/* Plans Grid */}
+          <div className="grid md:grid-cols-3 gap-6">
+            {plans.map((plan, index) => (
+              <SubscriptionPlanCard
+                key={index}
+                title={plan.title}
+                description={plan.description}
+                price={plan.price}
+                priceId={plan.priceId}
+                planTier={plan.planTier}
+                features={plan.features}
+                popular={plan.popular}
+              />
+            ))}
+          </div>
+
+          {/* FAQ Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Perguntas Frequentes</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-4">
+                <div className="border-l-4 border-blue-500 pl-4">
+                  <h4 className="font-semibold text-gray-900 mb-1">
+                    Posso cancelar minha assinatura a qualquer momento?
+                  </h4>
+                  <p className="text-gray-600 text-sm">
+                    Sim, você pode cancelar sua assinatura a qualquer momento através do portal do cliente.
+                  </p>
                 </div>
-              )}
-
-              {/* Upload Area */}
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoUpload}
-                  className="hidden"
-                  id="logo-upload"
-                  disabled={isUploading}
-                />
-                <label
-                  htmlFor="logo-upload"
-                  className="cursor-pointer flex flex-col items-center gap-2"
-                >
-                  {isUploading ? (
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  ) : (
-                    <Upload className="h-8 w-8 text-gray-400" />
-                  )}
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {companyLogo ? 'Clique para alterar a logo' : 'Clique para fazer upload da logo'}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      PNG, JPG até 5MB
-                    </p>
-                  </div>
-                </label>
+                <div className="border-l-4 border-green-500 pl-4">
+                  <h4 className="font-semibold text-gray-900 mb-1">
+                    Existe período de teste gratuito?
+                  </h4>
+                  <p className="text-gray-600 text-sm">
+                    Sim, oferecemos 15 dias de teste gratuito com até 20 propostas para novos usuários.
+                  </p>
+                </div>
+                <div className="border-l-4 border-purple-500 pl-4">
+                  <h4 className="font-semibold text-gray-900 mb-1">
+                    Posso alterar meu plano depois?
+                  </h4>
+                  <p className="text-gray-600 text-sm">
+                    Claro! Você pode fazer upgrade ou downgrade do seu plano a qualquer momento.
+                  </p>
+                </div>
               </div>
-            </div>
-            <p className="text-sm text-gray-500 mt-2">
-              Esta logo aparecerá em todas as suas propostas
-            </p>
-          </div>
-
-          <Button onClick={handleSaveSettings} className="w-full">
-            <Save className="h-4 w-4 mr-2" />
-            Salvar Configurações
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Template Preview */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Pré-visualização</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="bg-gray-50 rounded-lg p-6 text-center">
-            <Image className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="font-medium text-gray-900 mb-2">
-              Exemplo de Proposta
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Para: Cliente Exemplo
-            </p>
-            {companyLogo && (
-              <div className="mt-4 p-4 bg-white rounded border">
-                <p className="text-sm text-gray-600 mb-2">Sua logo aparecerá assim:</p>
-                <img
-                  src={companyLogo}
-                  alt="Preview da logo"
-                  className="h-12 w-auto mx-auto"
-                />
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

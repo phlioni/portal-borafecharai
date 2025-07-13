@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import SubscriptionStatus from '@/components/SubscriptionStatus';
+import TrialCallToAction from '@/components/TrialCallToAction';
 import { toast } from 'sonner';
 
 const Dashboard = () => {
@@ -161,8 +161,8 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Subscription Status */}
-      <SubscriptionStatus />
+      {/* Trial Call to Action */}
+      <TrialCallToAction />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

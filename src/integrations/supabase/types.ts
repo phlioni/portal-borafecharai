@@ -118,6 +118,9 @@ export type Database = {
           subscribed: boolean
           subscription_end: string | null
           subscription_tier: string | null
+          trial_end_date: string | null
+          trial_proposals_used: number | null
+          trial_start_date: string | null
           updated_at: string
           user_id: string | null
         }
@@ -129,6 +132,9 @@ export type Database = {
           subscribed?: boolean
           subscription_end?: string | null
           subscription_tier?: string | null
+          trial_end_date?: string | null
+          trial_proposals_used?: number | null
+          trial_start_date?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -140,6 +146,9 @@ export type Database = {
           subscribed?: boolean
           subscription_end?: string | null
           subscription_tier?: string | null
+          trial_end_date?: string | null
+          trial_proposals_used?: number | null
+          trial_start_date?: string | null
           updated_at?: string
           user_id?: string | null
         }
