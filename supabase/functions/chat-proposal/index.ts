@@ -41,19 +41,28 @@ serve(async (req) => {
     } else if (action === 'generate') {
       systemPrompt = `Você é um especialista em gerar propostas comerciais estruturadas.
       
-      Com base na conversa anterior, extraia as informações e retorne APENAS um JSON válido no seguinte formato:
+      Analise CUIDADOSAMENTE toda a conversa anterior e extraia as informações específicas mencionadas pelo usuário.
+      
+      Retorne APENAS um JSON válido no seguinte formato, usando as informações EXATAS da conversa:
       
       {
-        "titulo": "título da proposta",
-        "cliente": "nome do cliente/empresa",
-        "email": "email se mencionado ou string vazia",
-        "telefone": "telefone se mencionado ou string vazia", 
-        "servico": "resumo do serviço",
-        "descricao": "descrição detalhada do que será entregue",
-        "valor": "valor em formato R$ 0,00",
-        "prazo": "prazo de entrega",
-        "observacoes": "observações adicionais se houver"
+        "titulo": "título específico mencionado pelo usuário ou 'Proposta para [nome do serviço/projeto]'",
+        "cliente": "nome exato do cliente/empresa mencionado",
+        "email": "email mencionado ou ''",
+        "telefone": "telefone mencionado ou ''", 
+        "servico": "resumo do serviço/produto específico mencionado",
+        "descricao": "descrição detalhada do que será entregue baseada exatamente no que foi conversado",
+        "valor": "valor exato mencionado em formato R$ X.XXX,XX",
+        "prazo": "prazo específico mencionado pelo usuário",
+        "observacoes": "observações específicas mencionadas ou ''"
       }
+      
+      IMPORTANTE: 
+      - Use APENAS informações que foram explicitamente mencionadas na conversa
+      - Se uma informação não foi mencionada, use um valor vazio ou padrão apropriado
+      - NÃO invente dados que não foram discutidos
+      - Para o valor, sempre use formato brasileiro (R$ 1.000,00)
+      - Seja específico e preciso com as informações extraídas
       
       Certifique-se de que o JSON seja válido e contenha todas as informações extraídas da conversa.`;
     }
@@ -70,7 +79,8 @@ serve(async (req) => {
           { role: 'system', content: systemPrompt },
           ...messages
         ],
-        temperature: action === 'generate' ? 0.1 : 0.7,
+        temperature: action === 'generate' ? 0.0 : 0.7,
+        max_tokens: action === 'generate' ? 1000 : 2000,
       }),
     });
 

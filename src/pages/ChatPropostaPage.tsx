@@ -132,7 +132,9 @@ const ChatPropostaPage = () => {
     setIsGenerating(true);
     
     try {
-      console.log('Gerando preview com mensagens:', messages);
+      console.log('=== INICIANDO GERAÇÃO DE PROPOSTA ===');
+      console.log('Mensagens para análise:', messages);
+      console.log('Total de mensagens:', messages.length);
       
       const { data, error } = await supabase.functions.invoke('chat-proposal', {
         body: { 
@@ -150,8 +152,27 @@ const ChatPropostaPage = () => {
 
       if (data?.content) {
         try {
-          const parsedData = JSON.parse(data.content);
-          console.log('Dados parseados:', parsedData);
+          console.log('Conteúdo bruto recebido da IA:', data.content);
+          
+          // Tentar extrair JSON da resposta (às vezes a IA adiciona texto extra)
+          let jsonContent = data.content;
+          
+          // Procurar por JSON válido na resposta
+          const jsonMatch = data.content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            jsonContent = jsonMatch[0];
+          }
+          
+          console.log('JSON extraído para parse:', jsonContent);
+          
+          const parsedData = JSON.parse(jsonContent);
+          console.log('Dados parseados com sucesso:', parsedData);
+          
+          // Validar se temos dados mínimos
+          if (!parsedData.cliente || !parsedData.servico) {
+            console.warn('Dados incompletos detectados:', parsedData);
+            toast.warning('Alguns dados importantes podem estar faltando. Revise o preview.');
+          }
           
           setProposalData(parsedData);
           setShowPreview(true);
@@ -160,19 +181,7 @@ const ChatPropostaPage = () => {
           console.error('Erro ao processar dados:', parseError);
           console.log('Conteúdo que falhou no parse:', data.content);
           
-          // Tentar criar dados de fallback baseados na conversa
-          const fallbackData = {
-            titulo: 'Proposta Comercial',
-            cliente: 'Cliente',
-            servico: 'Serviço solicitado',
-            descricao: 'Descrição baseada na conversa',
-            valor: '0',
-            prazo: 'A definir'
-          };
-          
-          setProposalData(fallbackData);
-          setShowPreview(true);
-          toast.warning('Preview gerado com dados básicos. Revise e ajuste conforme necessário.');
+          toast.error('Erro ao processar os dados da conversa. Tente conversar mais com a IA para obter informações mais claras.');
         }
       } else {
         throw new Error('Resposta vazia da função de geração');
