@@ -1,295 +1,142 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Plus, 
-  Eye, 
-  Edit, 
-  Trash2, 
-  Send, 
-  Calendar,
-  DollarSign,
-  Building,
-  MessageSquare,
-  Bot
-} from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useProposals, useUpdateProposal } from '@/hooks/useProposals';
+import { FileText, Plus, Eye, Calendar, DollarSign, Building } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useProposals } from '@/hooks/useProposals';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { toast } from 'sonner';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { ModernLoader } from '@/components/ModernLoader';
 
 const Propostas = () => {
-  const { data: proposals, isLoading } = useProposals();
-  const updateProposal = useUpdateProposal();
-  const navigate = useNavigate();
+  const { data: proposals, isLoading, error } = useProposals();
 
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      'rascunho': 'bg-gray-100 text-gray-800',
-      'enviada': 'bg-blue-100 text-blue-800',
-      'aceita': 'bg-green-100 text-green-800',
-      'rejeitada': 'bg-red-100 text-red-800'
-    };
-    
-    return variants[status as keyof typeof variants] || variants.rascunho;
-  };
+  if (isLoading) {
+    return <ModernLoader message="Carregando propostas..." />;
+  }
 
-  const getStatusLabel = (status: string) => {
-    const labels = {
-      'rascunho': 'Rascunho',
-      'enviada': 'Enviada',
-      'aceita': 'Aceita',
-      'rejeitada': 'Rejeitada'
-    };
-    
-    return labels[status as keyof typeof labels] || 'Rascunho';
-  };
+  if (error) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto">
+        <div className="rounded-md bg-red-50 p-4">
+          <div className="flex">
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">
+                Erro ao carregar propostas
+              </h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p>Ocorreu um erro ao carregar as propostas. Por favor, tente novamente mais tarde.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  const handleViewProposal = (proposalId: string) => {
-    navigate(`/propostas/${proposalId}`);
-  };
-
-  const handleEditProposal = (proposalId: string) => {
-    navigate(`/propostas/editar/${proposalId}`);
-  };
-
-  const handleDeleteProposal = async (proposalId: string) => {
-    if (!confirm('Tem certeza que deseja excluir esta proposta?')) return;
-
-    try {
-      // Implementar delete quando necessário
-      toast.success('Proposta excluída com sucesso!');
-    } catch (error) {
-      console.error('Erro ao excluir proposta:', error);
-      toast.error('Erro ao excluir proposta');
+  const getStatusBadge = (status: string | null) => {
+    switch (status) {
+      case 'enviada':
+        return <Badge variant="secondary">Enviada</Badge>;
+      case 'visualizada':
+        return <Badge variant="outline">Visualizada</Badge>;
+      case 'aceita':
+        return <Badge className="bg-green-100 text-green-800">Aceita</Badge>;
+      case 'perdida':
+        return <Badge variant="destructive">Perdida</Badge>;
+      default:
+        return <Badge variant="outline">Rascunho</Badge>;
     }
   };
 
-  const handleSendProposal = (proposalId: string) => {
-    navigate(`/propostas/${proposalId}`);
-  };
-
-  if (isLoading) {
-    return <LoadingSpinner message="Carregando propostas..." />;
-  }
-
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Propostas</h1>
-          <p className="text-gray-600 mt-1">Gerencie suas propostas comerciais</p>
-        </div>
-        <div className="flex gap-3">
-          <Button asChild variant="outline" className="border-purple-200 text-purple-700 hover:bg-purple-50">
-            <Link to="/propostas/chat" className="flex items-center gap-2">
-              <Bot className="h-4 w-4" />
-              Chat IA
-            </Link>
-          </Button>
-          <Button asChild className="bg-blue-600 hover:bg-blue-700">
-            <Link to="/propostas/nova" className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Nova Proposta
-            </Link>
-          </Button>
-        </div>
+    <div className="p-6 max-w-6xl mx-auto space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Propostas</h1>
+        <Button asChild>
+          <Link to="/propostas/nova">
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Proposta
+          </Link>
+        </Button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {proposals && proposals.length === 0 ? (
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                <Edit className="h-4 w-4 text-gray-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Rascunhos</p>
-                <p className="text-xl font-bold">
-                  {proposals?.filter(p => p.status === 'rascunho').length || 0}
-                </p>
-              </div>
-            </div>
+          <CardContent className="p-12 text-center">
+            <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Nenhuma proposta encontrada
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Comece criando sua primeira proposta para seus clientes.
+            </p>
+            <Button asChild>
+              <Link to="/propostas/nova">
+                <Plus className="h-4 w-4 mr-2" />
+                Criar primeira proposta
+              </Link>
+            </Button>
           </CardContent>
         </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Send className="h-4 w-4 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Enviadas</p>
-                <p className="text-xl font-bold">
-                  {proposals?.filter(p => p.status === 'enviada').length || 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                <DollarSign className="h-4 w-4 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Aceitas</p>
-                <p className="text-xl font-bold">
-                  {proposals?.filter(p => p.status === 'aceita').length || 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <DollarSign className="h-4 w-4 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Valor Total</p>
-                <p className="text-xl font-bold">
-                  R$ {proposals?.reduce((acc, p) => acc + (p.value || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Proposals List */}
-      <div className="space-y-4">
-        {!proposals || proposals.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Plus className="h-8 w-8 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Nenhuma proposta criada
-              </h3>
-              <p className="text-gray-600 mb-6">
-                Comece criando sua primeira proposta comercial
-              </p>
-              <div className="flex gap-3 justify-center">
-                <Button asChild variant="outline" className="border-purple-200 text-purple-700 hover:bg-purple-50">
-                  <Link to="/propostas/chat" className="flex items-center gap-2">
-                    <Bot className="h-4 w-4" />
-                    Usar Chat IA
-                  </Link>
-                </Button>
-                <Button asChild>
-                  <Link to="/propostas/nova" className="flex items-center gap-2">
-                    <Plus className="h-4 w-4" />
-                    Nova Proposta
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          proposals.map((proposal) => (
+      ) : (
+        <div className="grid gap-4">
+          {proposals?.map((proposal) => (
             <Card key={proposal.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {proposal.title}
-                      </h3>
-                      <Badge className={getStatusBadge(proposal.status || 'rascunho')}>
-                        {getStatusLabel(proposal.status || 'rascunho')}
-                      </Badge>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                      {proposal.companies && (
-                        <div className="flex items-center gap-2">
-                          <Building className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm text-gray-600">
-                            {proposal.companies.name}
-                          </span>
-                        </div>
-                      )}
-                      
-                      {proposal.value && (
-                        <div className="flex items-center gap-2">
-                          <DollarSign className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm text-gray-600">
-                            R$ {proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                          </span>
-                        </div>
-                      )}
-                      
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm text-gray-600">
-                          {format(new Date(proposal.created_at), 'dd/MM/yyyy', { locale: ptBR })}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {proposal.service_description && (
-                      <p className="text-sm text-gray-600 mb-4">
-                        {proposal.service_description}
-                      </p>
-                    )}
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
+                    <CardTitle className="text-lg">{proposal.title}</CardTitle>
+                    <CardDescription className="flex items-center gap-2">
+                      <Building className="h-4 w-4" />
+                      {proposal.companies?.name || 'Cliente não informado'}
+                    </CardDescription>
                   </div>
-                  
-                  <div className="flex gap-2 ml-4">
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => handleViewProposal(proposal.id)}
-                      title="Visualizar proposta"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => handleEditProposal(proposal.id)}
-                      title="Editar proposta"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    {proposal.status === 'rascunho' && (
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        className="text-blue-600 hover:text-blue-700"
-                        onClick={() => handleSendProposal(proposal.id)}
-                        title="Enviar proposta"
-                      >
-                        <Send className="h-4 w-4" />
-                      </Button>
-                    )}
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="text-red-600 hover:text-red-700"
-                      onClick={() => handleDeleteProposal(proposal.id)}
-                      title="Excluir proposta"
-                    >
-                      <Trash2 className="h-4 w-4" />
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(proposal.status)}
+                    <Button variant="outline" size="sm" asChild>
+                      <Link to={`/propostas/${proposal.id}`}>
+                        <Eye className="h-4 w-4 mr-1" />
+                        Ver
+                      </Link>
                     </Button>
                   </div>
                 </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-green-600" />
+                    <span className="font-medium">
+                      {proposal.value 
+                        ? `R$ ${proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                        : 'Valor não informado'
+                      }
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-blue-600" />
+                    <span>
+                      Criada em {format(new Date(proposal.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-gray-600" />
+                    <span>{proposal.views || 0} visualizações</span>
+                  </div>
+                </div>
+                {proposal.service_description && (
+                  <p className="mt-3 text-gray-600 line-clamp-2">
+                    {proposal.service_description}
+                  </p>
+                )}
               </CardContent>
             </Card>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

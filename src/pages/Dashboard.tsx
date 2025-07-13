@@ -6,13 +6,14 @@ import { Link } from 'react-router-dom';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { ModernLoader } from '@/components/ModernLoader';
+import { TrialCallToActionWrapper } from '@/components/TrialCallToActionWrapper';
 
 const Dashboard = () => {
   const { data, isLoading, error } = useDashboardData();
 
   if (isLoading) {
-    return <LoadingSpinner message="Carregando dashboard..." />;
+    return <ModernLoader message="Carregando dashboard..." fullScreen />;
   }
 
   if (error) {
@@ -41,6 +42,9 @@ const Dashboard = () => {
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       <div className="text-2xl font-bold">Dashboard</div>
+
+      {/* Trial Call to Action com wrapper para evitar flicker */}
+      <TrialCallToActionWrapper />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
