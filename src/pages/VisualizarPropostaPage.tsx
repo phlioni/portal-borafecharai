@@ -1,30 +1,29 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
   ArrowLeft, 
-  Calendar,
-  DollarSign,
-  Building,
-  Mail,
-  Phone,
-  FileText,
   Send,
   Download,
-  Edit
+  Edit,
+  Eye,
+  ExternalLink
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { ModernoTemplate, ExecutivoTemplate, CriativoTemplate } from '@/components/ProposalTemplates';
+import SendProposalModal from '@/components/SendProposalModal';
 import { toast } from 'sonner';
 
 const VisualizarPropostaPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [companyLogo, setCompanyLogo] = useState<string>('');
 
   const { data: proposal, isLoading } = useQuery({
     queryKey: ['proposal', id],
@@ -51,63 +50,73 @@ const VisualizarPropostaPage = () => {
     enabled: !!id,
   });
 
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      'rascunho': 'bg-gray-100 text-gray-800',
-      'enviada': 'bg-blue-100 text-blue-800',
-      'aceita': 'bg-green-100 text-green-800',
-      'rejeitada': 'bg-red-100 text-red-800'
-    };
-    
-    return variants[status as keyof typeof variants] || variants.rascunho;
-  };
+  React.useEffect(() => {
+    // Carregar logo da empresa
+    const savedLogo = localStorage.getItem('company_logo');
+    if (savedLogo) {
+      setCompanyLogo(savedLogo);
+    }
+  }, []);
 
-  const getStatusLabel = (status: string) => {
-    const labels = {
-      'rascunho': 'Rascunho',
-      'enviada': 'Enviada',
-      'aceita': 'Aceita',
-      'rejeitada': 'Rejeitada'
-    };
-    
-    return labels[status as keyof typeof labels] || 'Rascunho';
-  };
-
-  const getTemplateStyle = (templateId: string) => {
-    const styles = {
-      'moderno': 'bg-gradient-to-br from-blue-50 to-indigo-100 border-blue-200',
-      'executivo': 'bg-gradient-to-br from-gray-50 to-gray-100 border-gray-300',
-      'criativo': 'bg-gradient-to-br from-purple-50 to-pink-100 border-purple-200'
-    };
-    
-    return styles[templateId as keyof typeof styles] || styles.moderno;
-  };
-
-  const handleSendProposal = async () => {
+  const handleSendProposal = async (emailData: any) => {
     if (!proposal) return;
 
+    setIsSending(true);
     try {
-      const response = await fetch('/functions/v1/send-proposal-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ proposalId: proposal.id })
+      // Criar token temporário para acesso público
+      const token = btoa(proposal.id);
+      const publicUrl = `${window.location.origin}/proposta/${token}`;
+
+      // Preparar dados para envio
+      const emailContent = emailData.emailMessage.replace('[LINK_DA_PROPOSTA]', publicUrl);
+
+      const response = await supabase.functions.invoke('send-proposal-email', {
+        body: {
+          proposalId: proposal.id,
+          recipientEmail: emailData.recipientEmail,
+          recipientName: emailData.recipientName,
+          emailSubject: emailData.emailSubject,
+          emailMessage: emailContent,
+          publicUrl: publicUrl
+        }
       });
 
-      if (response.ok) {
-        toast.success('Proposta enviada por email com sucesso!');
-      } else {
-        toast.error('Erro ao enviar proposta por email');
+      if (response.error) {
+        throw new Error(response.error.message);
       }
+
+      toast.success('Proposta enviada por email com sucesso!');
+      setShowSendModal(false);
+      
+      // Atualizar status da proposta
+      await supabase
+        .from('proposals')
+        .update({ status: 'enviada' })
+        .eq('id', proposal.id);
+
     } catch (error) {
       console.error('Erro ao enviar proposta:', error);
-      toast.error('Erro ao enviar proposta');
+      toast.error('Erro ao enviar proposta por email');
+    } finally {
+      setIsSending(false);
     }
   };
 
+  const handleViewPublic = () => {
+    if (!proposal) return;
+    
+    const token = btoa(proposal.id);
+    const publicUrl = `/proposta/${token}`;
+    window.open(publicUrl, '_blank');
+  };
+
   const handleDownloadPDF = () => {
-    toast.info('Funcionalidade de download em desenvolvimento');
+    if (!proposal) return;
+    
+    const token = btoa(proposal.id);
+    const publicUrl = `/proposta/${token}`;
+    window.open(publicUrl, '_blank');
+    toast.info('A proposta foi aberta em uma nova aba. Use Ctrl+P para imprimir/salvar como PDF');
   };
 
   if (isLoading) {
@@ -132,11 +141,46 @@ const VisualizarPropostaPage = () => {
     );
   }
 
+  const getStatusBadge = (status: string) => {
+    const variants = {
+      'rascunho': 'bg-gray-100 text-gray-800',
+      'enviada': 'bg-blue-100 text-blue-800',
+      'aceita': 'bg-green-100 text-green-800',
+      'rejeitada': 'bg-red-100 text-red-800'
+    };
+    
+    return variants[status as keyof typeof variants] || variants.rascunho;
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels = {
+      'rascunho': 'Rascunho',
+      'enviada': 'Enviada',
+      'aceita': 'Aceita',
+      'rejeitada': 'Rejeitada'
+    };
+    
+    return labels[status as keyof typeof labels] || 'Rascunho';
+  };
+
+  const renderTemplate = () => {
+    const templateId = proposal.template_id || 'moderno';
+    
+    switch (templateId) {
+      case 'executivo':
+        return <ExecutivoTemplate proposal={proposal} companyLogo={companyLogo} />;
+      case 'criativo':
+        return <CriativoTemplate proposal={proposal} companyLogo={companyLogo} />;
+      default:
+        return <ModernoTemplate proposal={proposal} companyLogo={companyLogo} />;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="p-6 max-w-4xl mx-auto space-y-6">
+      <div className="p-6 max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between bg-white rounded-lg p-4 shadow-sm">
           <div className="flex items-center gap-4">
             <Button variant="ghost" onClick={() => navigate('/propostas')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -144,10 +188,19 @@ const VisualizarPropostaPage = () => {
             </Button>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Visualizar Proposta</h1>
-              <p className="text-gray-600">#{proposal.id.substring(0, 8)}</p>
+              <div className="flex items-center gap-3 mt-1">
+                <p className="text-gray-600">#{proposal.id.substring(0, 8)}</p>
+                <Badge className={getStatusBadge(proposal.status || 'rascunho')}>
+                  {getStatusLabel(proposal.status || 'rascunho')}
+                </Badge>
+              </div>
             </div>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={handleViewPublic}>
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Ver Pública
+            </Button>
             <Button variant="outline" onClick={handleDownloadPDF}>
               <Download className="h-4 w-4 mr-2" />
               Baixar PDF
@@ -156,7 +209,10 @@ const VisualizarPropostaPage = () => {
               <Edit className="h-4 w-4 mr-2" />
               Editar
             </Button>
-            <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSendProposal}>
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700" 
+              onClick={() => setShowSendModal(true)}
+            >
               <Send className="h-4 w-4 mr-2" />
               Enviar
             </Button>
@@ -164,126 +220,23 @@ const VisualizarPropostaPage = () => {
         </div>
 
         {/* Proposal Preview */}
-        <Card className={`${getTemplateStyle(proposal.template_id || 'moderno')} border-2`}>
-          <CardHeader className="text-center pb-8">
-            <div className="flex justify-between items-start mb-6">
-              <Badge className={getStatusBadge(proposal.status || 'rascunho')}>
-                {getStatusLabel(proposal.status || 'rascunho')}
-              </Badge>
-              <div className="text-right text-sm text-gray-600">
-                <p>Data: {format(new Date(proposal.created_at), 'dd/MM/yyyy', { locale: ptBR })}</p>
-                {proposal.validity_date && (
-                  <p>Válida até: {format(new Date(proposal.validity_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
-                )}
-              </div>
-            </div>
-            
-            <CardTitle className="text-3xl font-bold text-gray-900 mb-2">
-              {proposal.title}
-            </CardTitle>
-            
-            {proposal.service_description && (
-              <p className="text-lg text-gray-700 mb-6">
-                {proposal.service_description}
-              </p>
-            )}
-          </CardHeader>
-
-          <CardContent className="space-y-8">
-            {/* Client Information */}
-            {proposal.companies && (
-              <div className="bg-white/50 rounded-lg p-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <Building className="h-5 w-5" />
-                  Informações do Cliente
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="font-medium text-gray-900">{proposal.companies.name}</p>
-                  </div>
-                  {proposal.companies.email && (
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-gray-500" />
-                      <span className="text-gray-700">{proposal.companies.email}</span>
-                    </div>
-                  )}
-                  {proposal.companies.phone && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-gray-500" />
-                      <span className="text-gray-700">{proposal.companies.phone}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Service Details */}
-            {proposal.detailed_description && (
-              <div className="bg-white/50 rounded-lg p-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Descrição do Serviço
-                </h3>
-                <div className="prose max-w-none">
-                  <p className="text-gray-700 whitespace-pre-line">
-                    {proposal.detailed_description}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Financial Information */}
-            <div className="bg-white/50 rounded-lg p-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
-                Informações Financeiras
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {proposal.value && (
-                  <div className="text-center md:text-left">
-                    <p className="text-sm text-gray-600 mb-1">Valor Total</p>
-                    <p className="text-3xl font-bold text-blue-600">
-                      R$ {proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                )}
-                
-                {proposal.delivery_time && (
-                  <div className="text-center md:text-left">
-                    <p className="text-sm text-gray-600 mb-1">Prazo de Entrega</p>
-                    <p className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      {proposal.delivery_time}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Observations */}
-            {proposal.observations && (
-              <div className="bg-white/50 rounded-lg p-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                  Observações Adicionais
-                </h3>
-                <p className="text-gray-700 whitespace-pre-line">
-                  {proposal.observations}
-                </p>
-              </div>
-            )}
-
-            {/* Footer */}
-            <div className="text-center pt-8 border-t border-gray-200">
-              <p className="text-gray-600">
-                Esta proposta foi gerada automaticamente pelo sistema
-              </p>
-              <p className="text-sm text-gray-500 mt-2">
-                Template: {proposal.template_id || 'Moderno'}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="bg-white rounded-lg shadow-sm p-1">
+          <div className="transform scale-75 origin-top">
+            {renderTemplate()}
+          </div>
+        </div>
       </div>
+
+      {/* Send Modal */}
+      <SendProposalModal
+        isOpen={showSendModal}
+        onClose={() => setShowSendModal(false)}
+        onSend={handleSendProposal}
+        proposalTitle={proposal.title}
+        clientName={proposal.companies?.name}
+        clientEmail={proposal.companies?.email}
+        isLoading={isSending}
+      />
     </div>
   );
 };

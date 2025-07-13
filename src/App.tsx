@@ -1,49 +1,67 @@
 
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from 'sonner';
-
+import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import Dashboard from '@/pages/Dashboard';
 import Login from '@/pages/Login';
-import Propostas from '@/pages/Propostas';
 import NovaPropostaPage from '@/pages/NovaPropostaPage';
-import ChatPropostaPage from '@/pages/ChatPropostaPage';
+import Propostas from '@/pages/Propostas';
 import VisualizarPropostaPage from '@/pages/VisualizarPropostaPage';
+import ChatPropostaPage from '@/pages/ChatPropostaPage';
 import ClientesPage from '@/pages/ClientesPage';
 import AnalyticsPage from '@/pages/AnalyticsPage';
-import Planos from '@/pages/Planos';
+import ConfiguracoesPage from '@/pages/ConfiguracoesPage';
+import PropostaPublicaPage from '@/pages/PropostaPublicaPage';
+import Index from '@/pages/Index';
 import NotFound from '@/pages/NotFound';
+import Planos from '@/pages/Planos';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <AuthProvider>
-          <Toaster />
+      <AuthProvider>
+        <Router>
           <Routes>
+            {/* Rota pública para visualizar propostas */}
+            <Route path="/proposta/:token" element={<PropostaPublicaPage />} />
+            
+            {/* Rotas públicas */}
+            <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/" element={<Layout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="propostas" element={<Propostas />} />
-              <Route path="propostas/nova" element={<NovaPropostaPage />} />
-              <Route path="propostas/chat" element={<ChatPropostaPage />} />
-              <Route path="propostas/:id" element={<VisualizarPropostaPage />} />
-              <Route path="propostas/editar/:id" element={<NovaPropostaPage />} />
-              <Route path="clientes" element={<ClientesPage />} />
-              <Route path="analytics" element={<AnalyticsPage />} />
-              <Route path="planos" element={<Planos />} />
-              <Route path="configuracoes" element={<div className="p-6"><h1 className="text-2xl font-bold">Configurações</h1><p>Página em desenvolvimento</p></div>} />
-            </Route>
+            <Route path="/planos" element={<Planos />} />
+            
+            {/* Rotas autenticadas */}
+            <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
+            <Route path="/propostas" element={<Layout><Propostas /></Layout>} />
+            <Route path="/propostas/nova" element={<Layout><NovaPropostaPage /></Layout>} />
+            <Route path="/propostas/visualizar/:id" element={<Layout><VisualizarPropostaPage /></Layout>} />
+            <Route path="/propostas/editar/:id" element={<Layout><NovaPropostaPage /></Layout>} />
+            <Route path="/propostas/chat" element={<Layout><ChatPropostaPage /></Layout>} />
+            <Route path="/clientes" element={<Layout><ClientesPage /></Layout>} />
+            <Route path="/analytics" element={<Layout><AnalyticsPage /></Layout>} />
+            <Route path="/configuracoes" element={<Layout><ConfiguracoesPage /></Layout>} />
+            
+            {/* Redirect */}
+            <Route path="/app" element={<Navigate to="/dashboard" replace />} />
+            
+            {/* 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </AuthProvider>
-      </Router>
+          <Toaster />
+        </Router>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

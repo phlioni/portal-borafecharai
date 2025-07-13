@@ -11,6 +11,9 @@ interface EmailRequest {
   proposalId: string;
   recipientEmail: string;
   recipientName: string;
+  emailSubject?: string;
+  emailMessage?: string;
+  publicUrl?: string;
 }
 
 const corsHeaders = {
@@ -24,7 +27,14 @@ serve(async (req) => {
   }
 
   try {
-    const { proposalId, recipientEmail, recipientName }: EmailRequest = await req.json();
+    const { 
+      proposalId, 
+      recipientEmail, 
+      recipientName,
+      emailSubject,
+      emailMessage,
+      publicUrl 
+    }: EmailRequest = await req.json();
 
     if (!resendApiKey) {
       throw new Error('RESEND_API_KEY não configurada');
@@ -50,62 +60,120 @@ serve(async (req) => {
       throw new Error('Proposta não encontrada');
     }
 
-    // Construir HTML da proposta
+    // URL pública da proposta
+    const proposalUrl = publicUrl || `${supabaseUrl}/proposta/${btoa(proposalId)}`;
+
+    // Template de email personalizado ou padrão
+    const defaultSubject = `Proposta: ${proposal.title}`;
+    const defaultMessage = `
+Olá ${recipientName},
+
+Estou enviando a proposta "${proposal.title}" para sua análise.
+
+Esta proposta é válida por tempo limitado. Clique no link abaixo para visualizar e baixar a proposta em PDF:
+
+${proposalUrl}
+
+Detalhes da proposta:
+- Valor: ${proposal.value ? `R$ ${proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'A definir'}
+- Prazo: ${proposal.delivery_time || 'A definir'}
+${proposal.validity_date ? `- Válida até: ${new Date(proposal.validity_date).toLocaleDateString('pt-BR')}` : ''}
+
+Fico à disposição para esclarecer qualquer dúvida.
+
+Atenciosamente,
+Equipe de Propostas
+    `.trim();
+
+    // Construir HTML da proposta para o email
     const proposalHtml = `
       <!DOCTYPE html>
       <html>
         <head>
           <meta charset="utf-8">
           <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 800px; margin: 0 auto; padding: 20px; }
-            .header { text-align: center; background: #f8f9fa; padding: 30px; border-radius: 8px; margin-bottom: 30px; }
-            .section { margin-bottom: 30px; padding: 20px; border: 1px solid #e9ecef; border-radius: 8px; }
-            .value { font-size: 24px; font-weight: bold; color: #2563eb; }
-            .footer { text-align: center; color: #666; font-size: 14px; margin-top: 40px; }
+            body { 
+              font-family: Arial, sans-serif; 
+              line-height: 1.6; 
+              color: #333; 
+              max-width: 600px; 
+              margin: 0 auto; 
+              padding: 20px; 
+            }
+            .header { 
+              text-align: center; 
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+              color: white; 
+              padding: 30px; 
+              border-radius: 8px; 
+              margin-bottom: 30px; 
+            }
+            .content { 
+              background: #f8f9fa; 
+              padding: 30px; 
+              border-radius: 8px; 
+              margin-bottom: 30px; 
+            }
+            .button { 
+              display: inline-block; 
+              background: #667eea; 
+              color: white; 
+              padding: 15px 30px; 
+              text-decoration: none; 
+              border-radius: 5px; 
+              font-weight: bold; 
+              margin: 20px 0; 
+            }
+            .footer { 
+              text-align: center; 
+              color: #666; 
+              font-size: 14px; 
+              margin-top: 40px; 
+              padding-top: 20px; 
+              border-top: 1px solid #eee; 
+            }
+            .proposal-details {
+              background: white;
+              padding: 20px;
+              border-radius: 5px;
+              margin: 20px 0;
+            }
           </style>
         </head>
         <body>
-          <div class="container">
-            <div class="header">
-              <h1>${proposal.title}</h1>
-              ${proposal.service_description ? `<p style="font-size: 18px; color: #666;">${proposal.service_description}</p>` : ''}
-            </div>
+          <div class="header">
+            <h1>${proposal.title}</h1>
+            <p>Proposta Comercial</p>
+          </div>
 
-            ${proposal.companies ? `
-            <div class="section">
-              <h2>Informações do Cliente</h2>
-              <p><strong>Cliente:</strong> ${proposal.companies.name}</p>
-              ${proposal.companies.email ? `<p><strong>Email:</strong> ${proposal.companies.email}</p>` : ''}
-              ${proposal.companies.phone ? `<p><strong>Telefone:</strong> ${proposal.companies.phone}</p>` : ''}
-            </div>
-            ` : ''}
-
-            ${proposal.detailed_description ? `
-            <div class="section">
-              <h2>Descrição do Serviço</h2>
-              <p>${proposal.detailed_description.replace(/\n/g, '<br>')}</p>
-            </div>
-            ` : ''}
-
-            <div class="section">
-              <h2>Informações Financeiras</h2>
-              ${proposal.value ? `<p><strong>Valor Total:</strong> <span class="value">R$ ${proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></p>` : ''}
-              ${proposal.delivery_time ? `<p><strong>Prazo de Entrega:</strong> ${proposal.delivery_time}</p>` : ''}
+          <div class="content">
+            <p>Olá <strong>${recipientName}</strong>,</p>
+            
+            <p>${emailMessage ? emailMessage.replace(/\n/g, '<br>') : defaultMessage.replace(/\n/g, '<br>')}</p>
+            
+            <div class="proposal-details">
+              <h3>Resumo da Proposta</h3>
+              ${proposal.service_description ? `<p><strong>Serviço:</strong> ${proposal.service_description}</p>` : ''}
+              ${proposal.value ? `<p><strong>Valor:</strong> R$ ${proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>` : ''}
+              ${proposal.delivery_time ? `<p><strong>Prazo:</strong> ${proposal.delivery_time}</p>` : ''}
               ${proposal.validity_date ? `<p><strong>Válida até:</strong> ${new Date(proposal.validity_date).toLocaleDateString('pt-BR')}</p>` : ''}
             </div>
 
-            ${proposal.observations ? `
-            <div class="section">
-              <h2>Observações</h2>
-              <p>${proposal.observations.replace(/\n/g, '<br>')}</p>
+            <div style="text-align: center;">
+              <a href="${proposalUrl}" class="button">
+                📄 Visualizar Proposta Completa
+              </a>
             </div>
-            ` : ''}
 
-            <div class="footer">
-              <p>Esta proposta foi gerada automaticamente pelo sistema</p>
-              <p>Data: ${new Date().toLocaleDateString('pt-BR')}</p>
-            </div>
+            <p style="font-size: 14px; color: #666; margin-top: 20px;">
+              💡 <strong>Dica:</strong> Na página da proposta, você pode baixar o arquivo em PDF para guardar ou imprimir.
+            </p>
+          </div>
+
+          <div class="footer">
+            <p>Esta proposta foi gerada automaticamente pelo sistema</p>
+            <p>Data: ${new Date().toLocaleDateString('pt-BR')}</p>
+            ${proposal.validity_date ? `<p><strong>⚠️ Atenção:</strong> Esta proposta expira em ${new Date(proposal.validity_date).toLocaleDateString('pt-BR')}</p>` : ''}
           </div>
         </body>
       </html>
@@ -121,7 +189,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: 'Propostas <onboarding@resend.dev>',
         to: [recipientEmail],
-        subject: `Proposta: ${proposal.title}`,
+        subject: emailSubject || defaultSubject,
         html: proposalHtml,
       }),
     });
@@ -145,7 +213,8 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       success: true,
       emailId: emailResult.id,
-      message: 'Proposta enviada com sucesso!'
+      message: 'Proposta enviada com sucesso!',
+      publicUrl: proposalUrl
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
