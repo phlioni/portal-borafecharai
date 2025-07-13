@@ -1,11 +1,11 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Mail, Send, X } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface SendProposalModalProps {
   isOpen: boolean;
@@ -27,11 +27,21 @@ const SendProposalModal = ({
   isLoading = false 
 }: SendProposalModalProps) => {
   const [formData, setFormData] = useState({
-    recipientEmail: clientEmail,
-    recipientName: clientName,
-    emailSubject: `Nova Proposta Comercial - ${proposalTitle}`,
-    emailMessage: `Olá ${clientName || 'Cliente'},\n\nEspero que esteja bem!\n\nTenho o prazer de apresentar nossa proposta comercial para "${proposalTitle}".\n\nPrepareamos esta proposta especialmente para atender às suas necessidades. Clique no link abaixo para visualizar todos os detalhes:\n\n[LINK_DA_PROPOSTA]\n\nDestaco alguns pontos importantes:\n• Proposta elaborada especificamente para seu projeto\n• Valores competitivos e condições facilitadas\n• Prazo de entrega otimizado\n• Suporte completo durante todo o processo\n\nEstou à disposição para esclarecer qualquer dúvida e discutir os próximos passos.\n\nAguardo seu retorno!\n\nAtenciosamente,\nEquipe Comercial\nBora Fechar AI`
+    recipientEmail: '',
+    recipientName: '',
+    emailSubject: '',
+    emailMessage: ''
   });
+
+  // Atualizar dados do formulário quando props mudarem
+  useEffect(() => {
+    setFormData({
+      recipientEmail: clientEmail || '',
+      recipientName: clientName || '',
+      emailSubject: `Nova Proposta Comercial - ${proposalTitle}`,
+      emailMessage: `Olá ${clientName || 'Cliente'},\n\nEspero que esteja bem!\n\nTenho o prazer de apresentar nossa proposta comercial para "${proposalTitle}".\n\nPrepareamos esta proposta especialmente para atender às suas necessidades. Clique no link abaixo para visualizar todos os detalhes:\n\n[LINK_DA_PROPOSTA]\n\nDestaco alguns pontos importantes:\n• Proposta elaborada especificamente para seu projeto\n• Valores competitivos e condições facilitadas\n• Prazo de entrega otimizado\n• Suporte completo durante todo o processo\n\nEstou à disposição para esclarecer qualquer dúvida e discutir os próximos passos.\n\nAguardo seu retorno!\n\nAtenciosamente,\nEquipe Comercial\nBora Fechar AI`
+    });
+  }, [proposalTitle, clientName, clientEmail]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -41,9 +51,22 @@ const SendProposalModal = ({
   };
 
   const handleSend = () => {
-    if (!formData.recipientEmail || !formData.recipientName) return;
+    console.log('Tentando enviar proposta com dados:', formData);
+    
+    if (!formData.recipientEmail.trim()) {
+      toast.error('Email do destinatário é obrigatório');
+      return;
+    }
+    
+    if (!formData.recipientName.trim()) {
+      toast.error('Nome do destinatário é obrigatório');
+      return;
+    }
+
     onSend(formData);
   };
+
+  const isFormValid = formData.recipientEmail.trim() && formData.recipientName.trim();
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -66,6 +89,7 @@ const SendProposalModal = ({
                   value={formData.recipientName}
                   onChange={(e) => handleInputChange('recipientName', e.target.value)}
                   placeholder="Nome do cliente"
+                  disabled={isLoading}
                 />
               </div>
               <div>
@@ -76,6 +100,7 @@ const SendProposalModal = ({
                   value={formData.recipientEmail}
                   onChange={(e) => handleInputChange('recipientEmail', e.target.value)}
                   placeholder="cliente@empresa.com"
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -87,6 +112,7 @@ const SendProposalModal = ({
                 value={formData.emailSubject}
                 onChange={(e) => handleInputChange('emailSubject', e.target.value)}
                 placeholder="Assunto do email"
+                disabled={isLoading}
               />
             </div>
             
@@ -99,6 +125,7 @@ const SendProposalModal = ({
                 placeholder="Mensagem personalizada"
                 rows={8}
                 className="resize-none"
+                disabled={isLoading}
               />
               <p className="text-sm text-gray-500 mt-1">
                 O link da proposta será inserido automaticamente onde estiver escrito [LINK_DA_PROPOSTA]
@@ -130,7 +157,7 @@ const SendProposalModal = ({
           </Button>
           <Button 
             onClick={handleSend} 
-            disabled={!formData.recipientEmail || !formData.recipientName || isLoading}
+            disabled={!isFormValid || isLoading}
             className="bg-blue-600 hover:bg-blue-700 order-1 sm:order-2"
           >
             <Send className="h-4 w-4 mr-2" />

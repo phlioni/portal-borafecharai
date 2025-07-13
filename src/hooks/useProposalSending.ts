@@ -9,14 +9,17 @@ export const useProposalSending = () => {
   const sendProposal = async (proposal: any, emailData: any) => {
     setIsSending(true);
     try {
+      console.log('Iniciando envio da proposta:', proposal.id);
+
       // Usar o hash público se existir, senão criar um baseado no ID
       let publicHash = proposal.public_hash;
       
       if (!publicHash) {
+        console.log('Hash público não encontrado, criando um novo...');
         // Se não tiver hash público, atualizar a proposta para ter um
         const { data: updatedProposal, error: updateError } = await supabase
           .from('proposals')
-          .update({})
+          .update({ updated_at: new Date().toISOString() })
           .eq('id', proposal.id)
           .select()
           .single();
@@ -36,13 +39,13 @@ export const useProposalSending = () => {
       // Preparar dados para envio
       const emailContent = emailData.emailMessage.replace('[LINK_DA_PROPOSTA]', publicUrl);
 
-      console.log('Enviando proposta:', {
+      console.log('Dados para envio:', {
         proposalId: proposal.id,
         recipientEmail: emailData.recipientEmail,
         publicUrl
       });
 
-      const response = await supabase.functions.invoke('send-proposal-email', {
+      const { data, error } = await supabase.functions.invoke('send-proposal-email', {
         body: {
           proposalId: proposal.id,
           recipientEmail: emailData.recipientEmail,
@@ -53,25 +56,32 @@ export const useProposalSending = () => {
         }
       });
 
-      console.log('Resposta do envio:', response);
+      console.log('Resposta da função:', { data, error });
 
-      if (response.error) {
-        console.error('Erro no envio:', response.error);
-        throw new Error(response.error.message);
+      if (error) {
+        console.error('Erro no envio:', error);
+        throw new Error(error.message || 'Erro ao enviar proposta');
       }
 
       toast.success('Proposta enviada por email com sucesso!');
       
       // Atualizar status da proposta
-      await supabase
+      const { error: updateError } = await supabase
         .from('proposals')
-        .update({ status: 'enviada' })
+        .update({ 
+          status: 'enviada',
+          updated_at: new Date().toISOString()
+        })
         .eq('id', proposal.id);
+
+      if (updateError) {
+        console.error('Erro ao atualizar status:', updateError);
+      }
 
       return true;
     } catch (error) {
       console.error('Erro ao enviar proposta:', error);
-      toast.error('Erro ao enviar proposta por email');
+      toast.error('Erro ao enviar proposta por email: ' + error.message);
       return false;
     } finally {
       setIsSending(false);
