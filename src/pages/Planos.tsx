@@ -8,9 +8,9 @@ import SubscriptionPlanCard from '@/components/SubscriptionPlanCard';
 const Planos = () => {
   const plans = [
     {
-      title: 'Básico',
+      title: 'Essencial',
       description: 'Ideal para freelancers e pequenos projetos',
-      price: 'R$ 29',
+      price: 'R$ 49,90',
       priceId: 'price_1234567890', // Substitua pelo price_id real do Stripe
       planTier: 'basico' as const,
       features: [
@@ -26,7 +26,7 @@ const Planos = () => {
     {
       title: 'Profissional',
       description: 'Para empresas que precisam de mais recursos',
-      price: 'R$ 49',
+      price: 'R$ 89,90',
       priceId: 'price_0987654321', // Substitua pelo price_id real do Stripe
       planTier: 'profissional' as const,
       popular: true,
@@ -43,7 +43,7 @@ const Planos = () => {
     {
       title: 'Equipes',
       description: 'Para equipes que precisam colaborar',
-      price: 'R$ 79',
+      price: 'R$ 149,90',
       priceId: 'price_1122334455', // Substitua pelo price_id real do Stripe
       planTier: 'equipes' as const,
       features: [
