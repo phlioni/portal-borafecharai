@@ -50,7 +50,7 @@ const Layout = ({ children }: LayoutProps) => {
       <div className="w-64 bg-white shadow-sm border-r border-gray-200 flex flex-col">
         {/* Logo/Brand */}
         <div className="p-6 border-b border-gray-200">
-          <h1 className="text-xl font-bold text-gray-900">Sistema de Propostas</h1>
+          <h1 className="text-xl font-bold text-gray-900">BoraFecharAI</h1>
         </div>
 
         {/* Navigation */}

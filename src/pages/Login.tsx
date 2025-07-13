@@ -160,17 +160,17 @@ const Login = () => {
                 <FileText className="h-8 w-8 text-white" />
               </div>
               <div className="ml-4">
-                <h1 className="text-3xl font-bold">Propostas Pro</h1>
-                <p className="text-blue-100">Sua ferramenta de vendas</p>
+                <h1 className="text-3xl font-bold">BoraFecharAI</h1>
+                <p className="text-blue-100">Propostas Inteligentes</p>
               </div>
             </div>
             
             <h2 className="text-4xl font-bold mb-4 leading-tight">
-              Transforme suas propostas em
-              <span className="text-blue-200 block">vendas de sucesso</span>
+              A inteligência que falta para suas
+              <span className="text-blue-200 block">propostas fecharem de vez</span>
             </h2>
             <p className="text-xl text-blue-100 leading-relaxed">
-              A plataforma completa para criar, gerenciar e acompanhar suas propostas comerciais de forma profissional.
+              Propostas comerciais inteligentes com IA avançada para converter mais clientes.
             </p>
           </div>
 
@@ -213,8 +213,8 @@ const Login = () => {
                 <FileText className="h-8 w-8 text-white" />
               </div>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Propostas Pro</h1>
-            <p className="text-gray-600">Gerencie suas propostas com facilidade</p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">BoraFecharAI</h1>
+            <p className="text-gray-600">A inteligência que falta para suas propostas</p>
           </div>
 
           <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
