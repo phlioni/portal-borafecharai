@@ -13,6 +13,7 @@ import {
   Home
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -25,10 +26,14 @@ const Layout = ({ children }: LayoutProps) => {
 
   const handleSignOut = async () => {
     try {
+      console.log('Logout button clicked');
       await signOut();
-      navigate('/login');
+      console.log('Sign out completed, redirecting to login');
+      navigate('/login', { replace: true });
+      toast.success('Logout realizado com sucesso');
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
+      toast.error('Erro ao fazer logout. Tente novamente.');
     }
   };
 

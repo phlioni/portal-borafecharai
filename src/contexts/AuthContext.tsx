@@ -2,7 +2,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
 
 interface AuthContextType {
   user: User | null;
@@ -81,6 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // Clear subscription data when user logs out
         if (event === 'SIGNED_OUT') {
+          console.log('User signed out, clearing subscription data');
           setSubscription({
             subscribed: false,
             subscription_tier: null,
@@ -182,23 +182,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    console.log('Signing out...');
+    console.log('Starting sign out process...');
     try {
+      // Clear local state immediately
+      setUser(null);
+      setSession(null);
+      setSubscription({
+        subscribed: false,
+        subscription_tier: null,
+        subscription_end: null,
+      });
+
+      // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
+      
       if (error) {
         console.error('Error signing out:', error);
+        throw error;
       } else {
         console.log('Signed out successfully');
-        setUser(null);
-        setSession(null);
-        setSubscription({
-          subscribed: false,
-          subscription_tier: null,
-          subscription_end: null,
-        });
       }
     } catch (err) {
       console.error('Unexpected error during sign out:', err);
+      throw err;
     }
   };
 
