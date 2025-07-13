@@ -23,12 +23,15 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCreateProposal } from '@/hooks/useProposals';
 import { useCreateCompany, useCompanies } from '@/hooks/useCompanies';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserPermissions } from '@/hooks/useUserPermissions';
+import PlanLimitGuard from '@/components/PlanLimitGuard';
 import { toast } from 'sonner';
 
 const NovaPropostaPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: companies } = useCompanies();
+  const { canCreateProposal, canAccessPremiumTemplates, monthlyProposalCount, monthlyProposalLimit } = useUserPermissions();
   const createProposal = useCreateProposal();
   const createCompany = useCreateCompany();
 
@@ -60,21 +63,24 @@ const NovaPropostaPage = () => {
       name: 'Moderno',
       description: 'Design limpo e profissional para serviços de tecnologia',
       color: 'bg-blue-500',
-      preview: '/templates/moderno.jpg'
+      preview: '/templates/moderno.jpg',
+      isPremium: false
     },
     {
       id: 'executivo',
       name: 'Executivo',
       description: 'Estilo corporativo para grandes empresas',
       color: 'bg-gray-800',
-      preview: '/templates/executivo.jpg'
+      preview: '/templates/executivo.jpg',
+      isPremium: true
     },
     {
       id: 'criativo',
       name: 'Criativo',
       description: 'Visual diferenciado para agências e design',
       color: 'bg-purple-500',
-      preview: '/templates/criativo.jpg'
+      preview: '/templates/criativo.jpg',
+      isPremium: true
     }
   ];
 
@@ -126,6 +132,11 @@ const NovaPropostaPage = () => {
       return;
     }
 
+    if (!canCreateProposal && action === 'send') {
+      toast.error('Você atingiu o limite de propostas do seu plano');
+      return;
+    }
+
     try {
       let companyId = formData.clienteExistente;
 
@@ -163,32 +174,44 @@ const NovaPropostaPage = () => {
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" asChild>
-          <Link to="/propostas" className="flex items-center gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Voltar
-          </Link>
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold text-gray-900">Nova Proposta</h1>
-          <p className="text-gray-600 mt-1">Crie uma proposta profissional em minutos</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => handleSubmit('save')} disabled={createProposal.isPending}>
-            <Save className="h-4 w-4 mr-2" />
-            Salvar Rascunho
+    <PlanLimitGuard feature="createProposal">
+      <div className="p-6 max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" asChild>
+            <Link to="/propostas" className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Voltar
+            </Link>
           </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => handleSubmit('send')} disabled={createProposal.isPending}>
-            <Send className="h-4 w-4 mr-2" />
-            Enviar Proposta
-          </Button>
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold text-gray-900">Nova Proposta</h1>
+            <p className="text-gray-600 mt-1">
+              Crie uma proposta profissional em minutos
+              {monthlyProposalLimit && (
+                <span className="block text-sm text-orange-600 mt-1">
+                  {monthlyProposalCount} de {monthlyProposalLimit} propostas usadas este mês
+                </span>
+              )}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => handleSubmit('save')} disabled={createProposal.isPending}>
+              <Save className="h-4 w-4 mr-2" />
+              Salvar Rascunho
+            </Button>
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700" 
+              onClick={() => handleSubmit('send')} 
+              disabled={createProposal.isPending || !canCreateProposal}
+            >
+              <Send className="h-4 w-4 mr-2" />
+              Enviar Proposta
+            </Button>
+          </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Form Section */}
         <div className="lg:col-span-2 space-y-6">
           {/* Client Information */}
@@ -446,28 +469,48 @@ const NovaPropostaPage = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {templates.map((template) => (
-                <div
-                  key={template.id}
-                  className={`border rounded-lg p-4 cursor-pointer transition-all ${
-                    selectedTemplate === template.id 
-                      ? 'border-blue-500 bg-blue-50' 
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                  onClick={() => setSelectedTemplate(template.id)}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-4 h-4 rounded-full ${template.color}`} />
-                    <div className="flex-1">
-                      <h3 className="font-medium">{template.name}</h3>
-                      <p className="text-sm text-gray-600">{template.description}</p>
+              {templates.map((template) => {
+                const isDisabled = template.isPremium && !canAccessPremiumTemplates;
+                
+                return (
+                  <div
+                    key={template.id}
+                    className={`border rounded-lg p-4 cursor-pointer transition-all relative ${
+                      selectedTemplate === template.id 
+                        ? 'border-blue-500 bg-blue-50' 
+                        : isDisabled
+                          ? 'border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed'
+                          : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    onClick={() => !isDisabled && setSelectedTemplate(template.id)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-4 h-4 rounded-full ${template.color}`} />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium">{template.name}</h3>
+                          {template.isPremium && (
+                            <Badge variant="secondary" className="text-xs">Premium</Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-600">{template.description}</p>
+                      </div>
+                      {selectedTemplate === template.id && !isDisabled && (
+                        <Badge variant="default">Selecionado</Badge>
+                      )}
                     </div>
-                    {selectedTemplate === template.id && (
-                      <Badge variant="default">Selecionado</Badge>
+                    {isDisabled && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-gray-100/80 rounded-lg">
+                        <Link to="/planos">
+                          <Button size="sm" variant="outline">
+                            Upgrade para usar
+                          </Button>
+                        </Link>
+                      </div>
                     )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </CardContent>
           </Card>
 
@@ -515,8 +558,9 @@ const NovaPropostaPage = () => {
             </CardContent>
           </Card>
         </div>
+        </div>
       </div>
-    </div>
+    </PlanLimitGuard>
   );
 };
 
