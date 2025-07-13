@@ -102,7 +102,7 @@ const SubscriptionStatus: React.FC = () => {
               className="flex items-center space-x-2"
             >
               <CreditCard className="h-4 w-4" />
-              <span>Gerenciar Pagamento</span>
+              <span>Gerenciar Planos</span>
             </Button>
           </div>
         )}

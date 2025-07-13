@@ -29,8 +29,8 @@ const SendProposalModal = ({
   const [formData, setFormData] = useState({
     recipientEmail: clientEmail,
     recipientName: clientName,
-    emailSubject: `Proposta: ${proposalTitle}`,
-    emailMessage: `Olá ${clientName || 'Cliente'},\n\nEstou enviando a proposta "${proposalTitle}" para sua análise.\n\nEsta proposta é válida por tempo limitado. Clique no link abaixo para visualizar e baixar a proposta em PDF:\n\n[LINK_DA_PROPOSTA]\n\nFico à disposição para esclarecer qualquer dúvida.\n\nAtenciosamente,\n[SEU_NOME]`
+    emailSubject: `Nova Proposta Comercial - ${proposalTitle}`,
+    emailMessage: `Olá ${clientName || 'Cliente'},\n\nEspero que esteja bem!\n\nTenho o prazer de apresentar nossa proposta comercial para "${proposalTitle}".\n\nPrepareamos esta proposta especialmente para atender às suas necessidades. Clique no link abaixo para visualizar todos os detalhes:\n\n[LINK_DA_PROPOSTA]\n\nDestaco alguns pontos importantes:\n• Proposta elaborada especificamente para seu projeto\n• Valores competitivos e condições facilitadas\n• Prazo de entrega otimizado\n• Suporte completo durante todo o processo\n\nEstou à disposição para esclarecer qualquer dúvida e discutir os próximos passos.\n\nAguardo seu retorno!\n\nAtenciosamente,\nEquipe Comercial\nBora Fechar AI`
   });
 
   const handleInputChange = (field: string, value: string) => {

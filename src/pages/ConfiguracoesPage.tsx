@@ -1,12 +1,13 @@
 
 import React, { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useSearchParams, Link } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Upload, Settings, Image, Save, Trash2, Crown } from 'lucide-react';
+import { Upload, Settings, Image, Save, Trash2, Crown, Palette } from 'lucide-react';
 import { toast } from 'sonner';
 import SubscriptionPlanCard from '@/components/SubscriptionPlanCard';
 import SubscriptionStatus from '@/components/SubscriptionStatus';
@@ -282,6 +283,54 @@ const ConfiguracoesPage = () => {
               />
             ))}
           </div>
+
+          {/* Advanced Features */}
+          <Card className="border-purple-200 bg-gradient-to-r from-purple-50 to-blue-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="h-5 w-5 text-purple-600" />
+                Recursos Avançados
+              </CardTitle>
+              <CardDescription>
+                Recursos exclusivos para planos premium
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="flex items-center justify-between p-4 bg-white rounded-lg border">
+                  <div>
+                    <h4 className="font-medium">Templates Personalizados</h4>
+                    <p className="text-sm text-gray-600">
+                      Crie templates únicos para suas propostas
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary">Plano Equipes</Badge>
+                    <Button 
+                      asChild 
+                      variant="outline" 
+                      size="sm"
+                      className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                    >
+                      <Link to="/templates-personalizados">
+                        Acessar
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between p-4 bg-white rounded-lg border opacity-60">
+                  <div>
+                    <h4 className="font-medium">Integração API</h4>
+                    <p className="text-sm text-gray-600">
+                      Conecte com seus sistemas
+                    </p>
+                  </div>
+                  <Badge variant="outline">Em breve</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* FAQ Section */}
           <Card>

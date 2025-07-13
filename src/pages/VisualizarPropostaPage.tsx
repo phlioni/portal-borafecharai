@@ -16,11 +16,13 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ModernoTemplate, ExecutivoTemplate, CriativoTemplate } from '@/components/ProposalTemplates';
 import SendProposalModal from '@/components/SendProposalModal';
+import ProposalPreviewModal from '@/components/ProposalPreviewModal';
 import { toast } from 'sonner';
 
 const VisualizarPropostaPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [companyLogo, setCompanyLogo] = useState<string>('');
@@ -211,7 +213,7 @@ const VisualizarPropostaPage = () => {
             </Button>
             <Button 
               className="bg-blue-600 hover:bg-blue-700" 
-              onClick={() => setShowSendModal(true)}
+              onClick={() => setShowPreviewModal(true)}
             >
               <Send className="h-4 w-4 mr-2" />
               Enviar
@@ -226,6 +228,18 @@ const VisualizarPropostaPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Preview Modal */}
+      <ProposalPreviewModal
+        isOpen={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
+        onContinue={() => {
+          setShowPreviewModal(false);
+          setShowSendModal(true);
+        }}
+        proposal={proposal}
+        companyLogo={companyLogo}
+      />
 
       {/* Send Modal */}
       <SendProposalModal

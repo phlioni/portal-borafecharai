@@ -187,7 +187,7 @@ Equipe de Propostas
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Propostas <onboarding@resend.dev>',
+        from: 'Propostas <contato@borafecharai.com>',
         to: [recipientEmail],
         subject: emailSubject || defaultSubject,
         html: proposalHtml,

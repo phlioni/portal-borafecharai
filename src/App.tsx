@@ -19,6 +19,7 @@ import PropostaPublicaPage from '@/pages/PropostaPublicaPage';
 import Index from '@/pages/Index';
 import NotFound from '@/pages/NotFound';
 import Planos from '@/pages/Planos';
+import TemplatesPersonalizadosPage from '@/pages/TemplatesPersonalizadosPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -104,6 +105,13 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <ConfiguracoesPage />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/templates-personalizados" element={
+              <ProtectedRoute>
+                <Layout>
+                  <TemplatesPersonalizadosPage />
                 </Layout>
               </ProtectedRoute>
             } />
