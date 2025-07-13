@@ -53,6 +53,7 @@ export type Database = {
           id: string
           last_viewed_at: string | null
           observations: string | null
+          public_hash: string | null
           service_description: string | null
           status: string | null
           template_id: string | null
@@ -71,6 +72,7 @@ export type Database = {
           id?: string
           last_viewed_at?: string | null
           observations?: string | null
+          public_hash?: string | null
           service_description?: string | null
           status?: string | null
           template_id?: string | null
@@ -89,6 +91,7 @@ export type Database = {
           id?: string
           last_viewed_at?: string | null
           observations?: string | null
+          public_hash?: string | null
           service_description?: string | null
           status?: string | null
           template_id?: string | null

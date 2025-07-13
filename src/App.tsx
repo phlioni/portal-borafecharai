@@ -11,6 +11,7 @@ import Login from '@/pages/Login';
 import NovaPropostaPage from '@/pages/NovaPropostaPage';
 import Propostas from '@/pages/Propostas';
 import VisualizarPropostaPage from '@/pages/VisualizarPropostaPage';
+import EditarPropostaPage from '@/pages/EditarPropostaPage';
 import ChatPropostaPage from '@/pages/ChatPropostaPage';
 import ClientesPage from '@/pages/ClientesPage';
 import AnalyticsPage from '@/pages/AnalyticsPage';
@@ -37,7 +38,7 @@ function App() {
         <Router>
           <Routes>
             {/* Rota pública para visualizar propostas */}
-            <Route path="/proposta/:token" element={<PropostaPublicaPage />} />
+            <Route path="/proposta/:hash" element={<PropostaPublicaPage />} />
             
             {/* Rotas públicas */}
             <Route path="/" element={<Index />} />
@@ -66,7 +67,7 @@ function App() {
                 </Layout>
               </ProtectedRoute>
             } />
-            <Route path="/propostas/visualizar/:id" element={
+            <Route path="/propostas/:id" element={
               <ProtectedRoute>
                 <Layout>
                   <VisualizarPropostaPage />
@@ -76,7 +77,7 @@ function App() {
             <Route path="/propostas/editar/:id" element={
               <ProtectedRoute>
                 <Layout>
-                  <NovaPropostaPage />
+                  <EditarPropostaPage />
                 </Layout>
               </ProtectedRoute>
             } />

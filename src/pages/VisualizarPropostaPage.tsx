@@ -64,16 +64,14 @@ const VisualizarPropostaPage = () => {
   const handleViewPublic = () => {
     if (!proposal) return;
     
-    const token = btoa(proposal.id);
-    const publicUrl = `/proposta/${token}`;
+    const publicUrl = `/proposta/${proposal.public_hash || btoa(proposal.id)}`;
     window.open(publicUrl, '_blank');
   };
 
   const handleDownloadPDF = () => {
     if (!proposal) return;
     
-    const token = btoa(proposal.id);
-    const publicUrl = `/proposta/${token}`;
+    const publicUrl = `/proposta/${proposal.public_hash || btoa(proposal.id)}`;
     window.open(publicUrl, '_blank');
     toast.info('A proposta foi aberta em uma nova aba. Use Ctrl+P para imprimir/salvar como PDF');
   };

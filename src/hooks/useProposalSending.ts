@@ -8,9 +8,9 @@ export const useProposalSending = () => {
   const sendProposal = async (proposal: any, emailData: any) => {
     setIsSending(true);
     try {
-      // Criar token temporário para acesso público
-      const token = btoa(proposal.id);
-      const publicUrl = `${window.location.origin}/proposta/${token}`;
+      // Usar hash público ou criar token temporário para acesso público
+      const hash = proposal.public_hash || btoa(proposal.id);
+      const publicUrl = `${window.location.origin}/proposta/${hash}`;
 
       // Preparar dados para envio
       const emailContent = emailData.emailMessage.replace('[LINK_DA_PROPOSTA]', publicUrl);

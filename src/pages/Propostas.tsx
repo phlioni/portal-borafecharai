@@ -68,31 +68,8 @@ const Propostas = () => {
     }
   };
 
-  const handleSendProposal = async (proposalId: string) => {
-    try {
-      await updateProposal.mutateAsync({
-        id: proposalId,
-        updates: { status: 'enviada' }
-      });
-      
-      // Chamar função de envio de email
-      const response = await fetch('/functions/v1/send-proposal-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ proposalId })
-      });
-
-      if (response.ok) {
-        toast.success('Proposta enviada por email com sucesso!');
-      } else {
-        toast.success('Proposta marcada como enviada!');
-      }
-    } catch (error) {
-      console.error('Erro ao enviar proposta:', error);
-      toast.error('Erro ao enviar proposta');
-    }
+  const handleSendProposal = (proposalId: string) => {
+    navigate(`/propostas/${proposalId}`);
   };
 
   if (isLoading) {

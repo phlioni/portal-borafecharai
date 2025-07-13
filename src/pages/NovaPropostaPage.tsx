@@ -25,6 +25,7 @@ import { useCreateCompany, useCompanies } from '@/hooks/useCompanies';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import PlanLimitGuard from '@/components/PlanLimitGuard';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 const NovaPropostaPage = () => {
@@ -57,7 +58,17 @@ const NovaPropostaPage = () => {
     telefone: ''
   });
 
-  const templates = [
+  // Buscar templates personalizados para usuários do plano Equipes
+  const { data: customTemplates } = useQuery({
+    queryKey: ['custom-templates'],
+    queryFn: async () => {
+      // Implementar busca de templates personalizados
+      return [];
+    },
+    enabled: canAccessPremiumTemplates
+  });
+
+  const defaultTemplates = [
     {
       id: 'moderno',
       name: 'Moderno',
@@ -82,6 +93,19 @@ const NovaPropostaPage = () => {
       preview: '/templates/criativo.jpg',
       isPremium: true
     }
+  ];
+
+  const templates = [
+    ...defaultTemplates,
+    ...(customTemplates || []).map((template: any) => ({
+      id: template.id,
+      name: template.name,
+      description: template.description,
+      color: 'bg-gradient-to-br from-purple-500 to-blue-500',
+      preview: '/templates/custom.jpg',
+      isPremium: false,
+      isCustom: true
+    }))
   ];
 
   const handleInputChange = (field: string, value: string) => {
