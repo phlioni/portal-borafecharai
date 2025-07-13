@@ -2,19 +2,24 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Crown, Clock, FileText, ChevronRight } from 'lucide-react';
+import { Crown, Clock, FileText, ChevronRight, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
+import { useTrialStatus } from '@/hooks/useTrialStatus';
 
 const TrialCallToAction = () => {
   const navigate = useNavigate();
-  const { isAdmin, monthlyProposalCount, monthlyProposalLimit } = useUserPermissions();
+  const { isAdmin } = useUserPermissions();
+  const { 
+    isInTrial, 
+    daysRemaining, 
+    proposalsUsed, 
+    proposalsRemaining, 
+    loading 
+  } = useTrialStatus();
 
-  // Não mostrar para admins
-  if (isAdmin) return null;
-
-  const isInTrial = monthlyProposalLimit === 20;
-  const proposalsLeft = isInTrial ? (20 - monthlyProposalCount) : 0;
+  // Não mostrar para admins ou se estiver carregando
+  if (isAdmin || loading) return null;
 
   return (
     <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 shadow-md">
@@ -28,15 +33,15 @@ const TrialCallToAction = () => {
               </h3>
               {isInTrial && (
                 <Badge variant="secondary" className="bg-green-100 text-green-700">
-                  <Clock className="h-3 w-3 mr-1" />
-                  15 dias grátis
+                  <Calendar className="h-3 w-3 mr-1" />
+                  {daysRemaining} dias restantes
                 </Badge>
               )}
             </div>
             
             <p className="text-gray-600 mb-4">
               {isInTrial 
-                ? `Você tem ${proposalsLeft} propostas restantes no seu período de teste.`
+                ? `Você tem ${proposalsRemaining} propostas restantes e ${daysRemaining} dias do seu período de teste.`
                 : 'Comece sua jornada com 15 dias grátis e até 20 propostas!'
               }
             </p>
@@ -46,23 +51,47 @@ const TrialCallToAction = () => {
                 <FileText className="h-4 w-4" />
                 <span>
                   {isInTrial 
-                    ? `${monthlyProposalCount}/20 propostas usadas`
+                    ? `${proposalsUsed}/20 propostas usadas`
                     : 'Até 20 propostas grátis'
                   }
                 </span>
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Clock className="h-4 w-4" />
-                <span>15 dias de acesso</span>
+                <Calendar className="h-4 w-4" />
+                <span>
+                  {isInTrial 
+                    ? `${daysRemaining} ${daysRemaining === 1 ? 'dia restante' : 'dias restantes'}`
+                    : '15 dias de acesso'
+                  }
+                </span>
               </div>
             </div>
 
             {isInTrial && (
-              <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-                <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${(monthlyProposalCount / 20) * 100}%` }}
-                />
+              <div className="space-y-2 mb-4">
+                {/* Barra de progresso das propostas */}
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>Propostas utilizadas</span>
+                  <span>{proposalsUsed}/20</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${(proposalsUsed / 20) * 100}%` }}
+                  />
+                </div>
+                
+                {/* Barra de progresso dos dias */}
+                <div className="flex justify-between text-xs text-gray-500 mt-3">
+                  <span>Tempo restante</span>
+                  <span>{daysRemaining}/15 dias</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${((15 - daysRemaining) / 15) * 100}%` }}
+                  />
+                </div>
               </div>
             )}
           </div>

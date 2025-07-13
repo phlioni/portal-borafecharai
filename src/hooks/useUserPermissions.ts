@@ -32,10 +32,12 @@ export const useUserPermissions = () => {
   const initiateTrial = async () => {
     if (!user) return;
 
+    console.log('Iniciando trial automático para usuário:', user.email);
+
     const trialEndDate = new Date();
     trialEndDate.setDate(trialEndDate.getDate() + 15);
 
-    await supabase
+    const { error } = await supabase
       .from('subscribers')
       .upsert({
         user_id: user.id,
@@ -46,6 +48,12 @@ export const useUserPermissions = () => {
         subscribed: false,
         subscription_tier: null,
       }, { onConflict: 'user_id' });
+
+    if (error) {
+      console.error('Erro ao iniciar trial:', error);
+    } else {
+      console.log('Trial iniciado com sucesso até:', trialEndDate);
+    }
   };
 
   const checkPermissions = async () => {
@@ -91,8 +99,9 @@ export const useUserPermissions = () => {
       const isInTrial = subscriberData?.trial_end_date && 
         new Date(subscriberData.trial_end_date) >= new Date();
 
-      // If user has no subscription and no trial, initiate trial
+      // Se usuário não tem assinatura, não está em trial e nunca teve trial, iniciar automaticamente
       if (!subscriberData?.subscribed && !isInTrial && !subscriberData?.trial_end_date) {
+        console.log('Usuário novo detectado, iniciando trial automático');
         await initiateTrial();
         // Refresh subscriber data after trial initiation
         const { data: newSubscriberData } = await supabase
@@ -101,8 +110,8 @@ export const useUserPermissions = () => {
           .eq('user_id', user.id)
           .single();
         
-        // Update local reference
         if (newSubscriberData) {
+          // Atualizar a referência local para os dados atualizados
           Object.assign(subscriberData || {}, newSubscriberData);
         }
       }
