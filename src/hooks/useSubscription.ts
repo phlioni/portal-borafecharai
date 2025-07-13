@@ -44,7 +44,7 @@ export const useSubscription = () => {
           subscribed: subscriberData.subscribed || false,
           subscription_tier: subscriberData.subscription_tier || null,
           subscription_end: subscriberData.subscription_end || null,
-          cancel_at_period_end: subscriberData.cancel_at_period_end || false,
+          cancel_at_period_end: (subscriberData as any).cancel_at_period_end || false,
           loading: false,
           error: null,
         });
