@@ -8,10 +8,12 @@ import { Building, Plus, Mail, Phone, Users, Search } from 'lucide-react';
 import { useCompanies, useCreateCompany } from '@/hooks/useCompanies';
 import { ModernLoader } from '@/components/ModernLoader';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ClientesPage = () => {
   const { data: companies, isLoading, error } = useCompanies();
   const createCompanyMutation = useCreateCompany();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -32,8 +34,20 @@ const ClientesPage = () => {
       return;
     }
 
+    if (!user) {
+      toast({
+        title: "Erro",
+        description: "Usuário não autenticado",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      await createCompanyMutation.mutateAsync(newCompany);
+      await createCompanyMutation.mutateAsync({
+        ...newCompany,
+        user_id: user.id,
+      });
       setNewCompany({ name: '', email: '', phone: '' });
       setIsDialogOpen(false);
       toast({
