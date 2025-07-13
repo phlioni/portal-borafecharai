@@ -9,6 +9,7 @@ import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Propostas from "./pages/Propostas";
 import NovaPropostaPage from "./pages/NovaPropostaPage";
+import ChatPropostaPage from "./pages/ChatPropostaPage";
 import Planos from "./pages/Planos";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
@@ -38,6 +39,7 @@ const AppRoutes = () => {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="propostas" element={<Propostas />} />
           <Route path="propostas/nova" element={<NovaPropostaPage />} />
+          <Route path="propostas/chat" element={<ChatPropostaPage />} />
           <Route path="planos" element={<Planos />} />
           <Route path="configuracoes" element={<div className="p-6"><h1 className="text-2xl font-bold">Configurações</h1><p className="text-gray-600 mt-2">Página em desenvolvimento</p></div>} />
           <Route path="*" element={<NotFound />} />

@@ -1,72 +1,60 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { 
-  FileText, 
-  Eye, 
-  CheckCircle, 
-  XCircle, 
   Plus, 
-  Search,
-  Filter,
-  MoreHorizontal,
-  Clock,
-  Users,
+  Eye, 
+  Edit, 
+  Trash2, 
+  Send, 
   Calendar,
   DollarSign,
-  Loader2
+  Building,
+  MessageSquare,
+  Bot
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useProposals } from '@/hooks/useProposals';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const Propostas = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const { data: proposals, isLoading, error } = useProposals();
+  const { data: proposals, isLoading } = useProposals();
 
   const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      'enviada': { label: 'Enviada', variant: 'secondary' as const, icon: Clock },
-      'visualizada': { label: 'Visualizada', variant: 'default' as const, icon: Eye },
-      'aceita': { label: 'Aceita', variant: 'default' as const, icon: CheckCircle },
-      'perdida': { label: 'Perdida', variant: 'destructive' as const, icon: XCircle }
+    const variants = {
+      'rascunho': 'bg-gray-100 text-gray-800',
+      'enviada': 'bg-blue-100 text-blue-800',
+      'aceita': 'bg-green-100 text-green-800',
+      'rejeitada': 'bg-red-100 text-red-800'
     };
-
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.enviada;
-    const IconComponent = config.icon;
     
-    return (
-      <Badge variant={config.variant} className="flex items-center gap-1">
-        <IconComponent className="h-3 w-3" />
-        {config.label}
-      </Badge>
-    );
+    return variants[status as keyof typeof variants] || variants.rascunho;
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
+  const getStatusLabel = (status: string) => {
+    const labels = {
+      'rascunho': 'Rascunho',
+      'enviada': 'Enviada',
+      'aceita': 'Aceita',
+      'rejeitada': 'Rejeitada'
+    };
+    
+    return labels[status as keyof typeof labels] || 'Rascunho';
   };
 
-  const filteredPropostas = React.useMemo(() => {
-    if (!proposals) return [];
-    
-    return proposals.filter(proposta => {
-      const matchesSearch = proposta.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (proposta.companies?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || proposta.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    });
-  }, [proposals, searchTerm, statusFilter]);
-
-  if (error) {
+  if (isLoading) {
     return (
       <div className="p-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-2">Erro ao carregar propostas</h1>
-          <p className="text-gray-600">Tente recarregar a página</p>
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+          <div className="grid gap-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-32 bg-gray-200 rounded"></div>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -75,144 +63,190 @@ const Propostas = () => {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Propostas</h1>
-          <p className="text-gray-600 mt-1">Gerencie todas as suas propostas comerciais</p>
+          <p className="text-gray-600 mt-1">Gerencie suas propostas comerciais</p>
         </div>
-        <Button asChild className="bg-blue-600 hover:bg-blue-700">
-          <Link to="/propostas/nova">
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Proposta
-          </Link>
-        </Button>
+        <div className="flex gap-3">
+          <Button asChild variant="outline" className="border-purple-200 text-purple-700 hover:bg-purple-50">
+            <Link to="/propostas/chat" className="flex items-center gap-2">
+              <Bot className="h-4 w-4" />
+              Chat IA
+            </Link>
+          </Button>
+          <Button asChild className="bg-blue-600 hover:bg-blue-700">
+            <Link to="/propostas/nova" className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Nova Proposta
+            </Link>
+          </Button>
+        </div>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Buscar por título ou cliente..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-gray-500" />
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="all">Todos os Status</option>
-                <option value="enviada">Enviada</option>
-                <option value="visualizada">Visualizada</option>
-                <option value="aceita">Aceita</option>
-                <option value="perdida">Perdida</option>
-              </select>
+              <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                <Edit className="h-4 w-4 text-gray-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Rascunhos</p>
+                <p className="text-xl font-bold">
+                  {proposals?.filter(p => p.status === 'rascunho').length || 0}
+                </p>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Loading State */}
-      {isLoading && (
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-          <span className="ml-2 text-gray-600">Carregando propostas...</span>
-        </div>
-      )}
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Send className="h-4 w-4 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Enviadas</p>
+                <p className="text-xl font-bold">
+                  {proposals?.filter(p => p.status === 'enviada').length || 0}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                <DollarSign className="h-4 w-4 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Aceitas</p>
+                <p className="text-xl font-bold">
+                  {proposals?.filter(p => p.status === 'aceita').length || 0}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                <DollarSign className="h-4 w-4 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Valor Total</p>
+                <p className="text-xl font-bold">
+                  R$ {proposals?.reduce((acc, p) => acc + (p.value || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Proposals List */}
       <div className="space-y-4">
-        {filteredPropostas.map((proposta) => (
-          <Card key={proposta.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900">{proposta.title}</h3>
-                    <Button variant="ghost" size="sm">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-3">
-                    <div className="flex items-center gap-1">
-                      <Users className="h-4 w-4" />
-                      {proposta.companies?.name || 'Cliente não informado'}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      Criada em {formatDate(proposta.created_at)}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <DollarSign className="h-4 w-4" />
-                      {proposta.value ? `R$ ${Number(proposta.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'Valor não informado'}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-4 text-sm">
-                    <div className="flex items-center gap-1">
-                      <Eye className="h-4 w-4 text-gray-400" />
-                      <span>{proposta.views || 0} visualizações</span>
-                    </div>
-                    {proposta.last_viewed_at && (
-                      <div className="text-gray-500">
-                        Última visualização: {new Date(proposta.last_viewed_at).toLocaleString('pt-BR')}
-                      </div>
-                    )}
-                    {proposta.validity_date && (
-                      <div className="text-gray-500">
-                        Válida até: {formatDate(proposta.validity_date)}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  {getStatusBadge(proposta.status)}
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
-                      Ver Detalhes
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      Copiar Link
-                    </Button>
-                  </div>
-                </div>
+        {!proposals || proposals.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Plus className="h-8 w-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Nenhuma proposta criada
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Comece criando sua primeira proposta comercial
+              </p>
+              <div className="flex gap-3 justify-center">
+                <Button asChild variant="outline" className="border-purple-200 text-purple-700 hover:bg-purple-50">
+                  <Link to="/propostas/chat" className="flex items-center gap-2">
+                    <Bot className="h-4 w-4" />
+                    Usar Chat IA
+                  </Link>
+                </Button>
+                <Button asChild>
+                  <Link to="/propostas/nova" className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Nova Proposta
+                  </Link>
+                </Button>
               </div>
             </CardContent>
           </Card>
-        ))}
+        ) : (
+          proposals.map((proposal) => (
+            <Card key={proposal.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {proposal.title}
+                      </h3>
+                      <Badge className={getStatusBadge(proposal.status || 'rascunho')}>
+                        {getStatusLabel(proposal.status || 'rascunho')}
+                      </Badge>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      {proposal.companies && (
+                        <div className="flex items-center gap-2">
+                          <Building className="h-4 w-4 text-gray-400" />
+                          <span className="text-sm text-gray-600">
+                            {proposal.companies.name}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {proposal.value && (
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="h-4 w-4 text-gray-400" />
+                          <span className="text-sm text-gray-600">
+                            R$ {proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-gray-400" />
+                        <span className="text-sm text-gray-600">
+                          {format(new Date(proposal.created_at), 'dd/MM/yyyy', { locale: ptBR })}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {proposal.service_description && (
+                      <p className="text-sm text-gray-600 mb-4">
+                        {proposal.service_description}
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div className="flex gap-2 ml-4">
+                    <Button size="sm" variant="outline">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" variant="outline">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
-
-      {!isLoading && filteredPropostas.length === 0 && (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Nenhuma proposta encontrada
-            </h3>
-            <p className="text-gray-500 mb-4">
-              {searchTerm || statusFilter !== 'all' 
-                ? 'Tente ajustar os filtros ou criar uma nova proposta.'
-                : 'Comece criando sua primeira proposta comercial.'
-              }
-            </p>
-            <Button asChild>
-              <Link to="/propostas/nova">
-                <Plus className="h-4 w-4 mr-2" />
-                Nova Proposta
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };
