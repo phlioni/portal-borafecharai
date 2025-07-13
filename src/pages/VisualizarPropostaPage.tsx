@@ -64,14 +64,20 @@ const VisualizarPropostaPage = () => {
   const handleViewPublic = () => {
     if (!proposal) return;
     
-    const publicUrl = `/proposta/${proposal.public_hash || btoa(proposal.id)}`;
+    // Usar o hash público se existir, senão usar base64 do ID
+    const hash = proposal.public_hash || btoa(proposal.id);
+    const publicUrl = `/proposta/${hash}`;
+    console.log('Abrindo URL pública:', publicUrl);
     window.open(publicUrl, '_blank');
   };
 
   const handleDownloadPDF = () => {
     if (!proposal) return;
     
-    const publicUrl = `/proposta/${proposal.public_hash || btoa(proposal.id)}`;
+    // Usar o hash público se existir, senão usar base64 do ID
+    const hash = proposal.public_hash || btoa(proposal.id);
+    const publicUrl = `/proposta/${hash}`;
+    console.log('Abrindo para PDF:', publicUrl);
     window.open(publicUrl, '_blank');
     toast.info('A proposta foi aberta em uma nova aba. Use Ctrl+P para imprimir/salvar como PDF');
   };
@@ -97,7 +103,6 @@ const VisualizarPropostaPage = () => {
       </div>
     );
   }
-
 
   return (
     <div className="min-h-screen bg-gray-50">
