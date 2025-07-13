@@ -86,7 +86,12 @@ const Dashboard = () => {
   ];
 
   const getStatusBadge = (status: string) => {
-    const statusConfig = {
+    const statusConfig: Record<string, { 
+      label: string; 
+      variant: 'default' | 'secondary' | 'destructive' | 'outline'; 
+      icon: any; 
+      className?: string; 
+    }> = {
       'enviada': { label: 'Enviada', variant: 'secondary' as const, icon: Clock },
       'visualizada': { label: 'Visualizada', variant: 'default' as const, icon: Eye },
       'aceita': { label: 'Aceita', variant: 'default' as const, icon: CheckCircle, className: 'bg-green-100 text-green-800 hover:bg-green-100' },
