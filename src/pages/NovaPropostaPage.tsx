@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,11 +29,12 @@ import { toast } from 'sonner';
 import ProposalPreviewModal from '@/components/ProposalPreviewModal';
 import SendProposalModal from '@/components/SendProposalModal';
 import { useProposalSending } from '@/hooks/useProposalSending';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 const NovaPropostaPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { data: companies } = useCompanies();
+  const { data: companies, isLoading: companiesLoading } = useCompanies();
   const { canCreateProposal, canAccessPremiumTemplates, monthlyProposalCount, monthlyProposalLimit } = useUserPermissions();
   const createProposal = useCreateProposal();
   const createCompany = useCreateCompany();
@@ -253,6 +253,10 @@ const NovaPropostaPage = () => {
       navigate('/propostas');
     }
   };
+
+  if (companiesLoading) {
+    return <LoadingSpinner message="Carregando dados..." />;
+  }
 
   return (
     <PlanLimitGuard feature="createProposal">
@@ -671,6 +675,23 @@ const NovaPropostaPage = () => {
             clientEmail={currentProposal.companies?.email}
             isLoading={isSending}
           />
+        )}
+
+        {/* Loading states */}
+        {createProposal.isPending && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg">
+              <LoadingSpinner message="Salvando proposta..." />
+            </div>
+          </div>
+        )}
+
+        {isSending && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg">
+              <LoadingSpinner message="Enviando proposta..." />
+            </div>
+          </div>
         )}
       </div>
     </PlanLimitGuard>

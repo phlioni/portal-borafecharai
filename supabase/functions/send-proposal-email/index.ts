@@ -43,11 +43,23 @@ serve(async (req) => {
 
     // Validar dados obrigatórios
     if (!proposalId || !recipientEmail || !recipientName) {
-      throw new Error('Dados obrigatórios não fornecidos: proposalId, recipientEmail, recipientName');
+      console.error('Dados obrigatórios ausentes:', { proposalId, recipientEmail, recipientName });
+      return new Response(JSON.stringify({ 
+        error: 'Dados obrigatórios não fornecidos: proposalId, recipientEmail, recipientName' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     if (!resendApiKey) {
-      throw new Error('RESEND_API_KEY não configurada');
+      console.error('RESEND_API_KEY não configurada');
+      return new Response(JSON.stringify({ 
+        error: 'Configuração de email não encontrada' 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     console.log('Conectando ao Supabase...');
@@ -70,17 +82,28 @@ serve(async (req) => {
 
     if (error) {
       console.error('Erro ao buscar proposta:', error);
-      throw new Error(`Erro ao buscar proposta: ${error.message}`);
+      return new Response(JSON.stringify({ 
+        error: `Erro ao buscar proposta: ${error.message}` 
+      }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     if (!proposal) {
-      throw new Error('Proposta não encontrada');
+      console.error('Proposta não encontrada');
+      return new Response(JSON.stringify({ 
+        error: 'Proposta não encontrada' 
+      }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     console.log('Proposta encontrada:', proposal.title);
 
     // URL pública da proposta
-    const finalPublicUrl = publicUrl || `${supabaseUrl}/proposta/${proposal.public_hash || btoa(proposalId)}`;
+    const finalPublicUrl = publicUrl || `${supabaseUrl.replace('/rest/v1', '')}/proposta/${proposal.public_hash}`;
     console.log('URL pública final:', finalPublicUrl);
 
     // Template de email personalizado ou padrão
@@ -90,12 +113,12 @@ Olá ${recipientName},
 
 Estou enviando a proposta "${proposal.title}" para sua análise.
 
-Esta proposta é válida por tempo limitado. Clique no link abaixo para visualizar e baixar a proposta em PDF:
+Esta proposta é válida por tempo limitado. Clique no link abaixo para visualizar:
 
 ${finalPublicUrl}
 
 Detalhes da proposta:
-- Valor: ${proposal.value ? `R$ ${proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'A definir'}
+- Valor: ${proposal.value ? `R$ ${proposal.value.toLocaleString('pt-BR', { minimumFuturionDigits: 2 })}` : 'A definir'}
 - Prazo: ${proposal.delivery_time || 'A definir'}
 ${proposal.validity_date ? `- Válida até: ${new Date(proposal.validity_date).toLocaleDateString('pt-BR')}` : ''}
 
@@ -169,7 +192,7 @@ Equipe de Propostas
           <div class="content">
             <p>Olá <strong>${recipientName}</strong>,</p>
             
-            <p>${emailMessage ? emailMessage.replace(/\n/g, '<br>') : defaultMessage.replace(/\n/g, '<br>')}</p>
+            <p>${emailMessage ? emailMessage.replace(/\n/g, '<br>').replace('[LINK_DA_PROPOSTA]', `<a href="${finalPublicUrl}" class="button">Ver Proposta</a>`) : defaultMessage.replace(/\n/g, '<br>')}</p>
             
             <div class="proposal-details">
               <h3>Resumo da Proposta</h3>
@@ -216,13 +239,27 @@ Equipe de Propostas
       }),
     });
 
+    const emailResponseText = await emailResponse.text();
+    console.log('Resposta do Resend (raw):', emailResponseText);
+
     if (!emailResponse.ok) {
-      const errorData = await emailResponse.text();
-      console.error('Erro do Resend:', errorData);
-      throw new Error(`Erro ao enviar email: ${errorData}`);
+      console.error('Erro do Resend:', emailResponseText);
+      return new Response(JSON.stringify({ 
+        error: `Erro ao enviar email: ${emailResponseText}` 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    const emailResult = await emailResponse.json();
+    let emailResult;
+    try {
+      emailResult = JSON.parse(emailResponseText);
+    } catch (parseError) {
+      console.error('Erro ao fazer parse da resposta:', parseError);
+      emailResult = { id: 'unknown' };
+    }
+
     console.log('Email enviado com sucesso:', emailResult);
 
     // Atualizar status da proposta para enviada
@@ -244,7 +281,7 @@ Equipe de Propostas
 
     return new Response(JSON.stringify({ 
       success: true,
-      emailId: emailResult.id,
+      emailId: emailResult.id || 'sent',
       message: 'Proposta enviada com sucesso!',
       publicUrl: finalPublicUrl
     }), {
