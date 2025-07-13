@@ -26,7 +26,7 @@ const ConfiguracoesPage = () => {
       description: 'Ideal para freelancers e pequenos projetos',
       price: 'R$ 49,90',
       productId: 'prod_SfuTlv2mX4TfJe',
-      priceId: 'price_1234567890', // Será substituído por busca dinâmica
+      priceId: 'price_1RkYeSIjvuQQ47Sw8EnT7Ojm', // Será substituído por busca dinâmica
       planTier: 'basico' as const,
       features: [
         { text: 'Até 10 propostas por mês', included: true },
@@ -43,7 +43,7 @@ const ConfiguracoesPage = () => {
       description: 'Para empresas que precisam de mais recursos',
       price: 'R$ 89,90',
       productId: 'prod_SfuTErakRcHMsq',
-      priceId: 'price_0987654321', // Será substituído por busca dinâmica
+      priceId: 'price_1RkYeiIjvuQQ47SwXpP3Zhum', // Será substituído por busca dinâmica
       planTier: 'profissional' as const,
       popular: true,
       features: [
@@ -61,7 +61,7 @@ const ConfiguracoesPage = () => {
       description: 'Para equipes que precisam colaborar',
       price: 'R$ 149,90',
       productId: 'prod_SfuTPAmInfb3sD',
-      priceId: 'price_1122334455', // Será substituído por busca dinâmica
+      priceId: 'price_1RkYetIjvuQQ47SwZ2whIJpy', // Será substituído por busca dinâmica
       planTier: 'equipes' as const,
       features: [
         { text: 'Propostas ilimitadas', included: true },
