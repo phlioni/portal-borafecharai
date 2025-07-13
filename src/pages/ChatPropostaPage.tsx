@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,6 +42,8 @@ const ChatPropostaPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState('moderno');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [proposalData, setProposalData] = useState(null);
+  const [showPreview, setShowPreview] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const templates = [
@@ -102,13 +103,10 @@ const ChatPropostaPage = () => {
     }
   };
 
-  const generateProposal = async () => {
-    if (!user) return;
-    
+  const generateProposalPreview = async () => {    
     setIsGenerating(true);
     
     try {
-      // Extrair informações da conversa
       const { data } = await supabase.functions.invoke('chat-proposal', {
         body: { 
           messages: messages,
@@ -118,36 +116,10 @@ const ChatPropostaPage = () => {
 
       if (data?.content) {
         try {
-          const proposalData = JSON.parse(data.content);
-          
-          // Criar empresa se necessário
-          let companyId = null;
-          if (proposalData.cliente) {
-            const companyResult = await createCompany.mutateAsync({
-              user_id: user.id,
-              name: proposalData.cliente,
-              email: proposalData.email || null,
-              phone: proposalData.telefone || null
-            });
-            companyId = companyResult.id;
-          }
-
-          // Criar proposta
-          await createProposal.mutateAsync({
-            user_id: user.id,
-            company_id: companyId,
-            title: proposalData.titulo,
-            service_description: proposalData.servico,
-            detailed_description: proposalData.descricao,
-            value: proposalData.valor ? parseFloat(proposalData.valor.replace(/[^\d,]/g, '').replace(',', '.')) : null,
-            delivery_time: proposalData.prazo,
-            observations: proposalData.observacoes,
-            template_id: selectedTemplate,
-            status: 'rascunho'
-          });
-
-          toast.success('Proposta criada com sucesso!');
-          navigate('/propostas');
+          const parsedData = JSON.parse(data.content);
+          setProposalData(parsedData);
+          setShowPreview(true);
+          toast.success('Proposta gerada! Revise as informações antes de confirmar.');
         } catch (parseError) {
           console.error('Erro ao processar dados:', parseError);
           toast.error('Erro ao processar os dados da proposta');
@@ -156,6 +128,46 @@ const ChatPropostaPage = () => {
     } catch (error) {
       console.error('Erro ao gerar proposta:', error);
       toast.error('Erro ao gerar proposta');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const confirmAndCreateProposal = async () => {
+    if (!user || !proposalData) return;
+    
+    setIsGenerating(true);
+    
+    try {
+      let companyId = null;
+      if (proposalData.cliente) {
+        const companyResult = await createCompany.mutateAsync({
+          user_id: user.id,
+          name: proposalData.cliente,
+          email: proposalData.email || null,
+          phone: proposalData.telefone || null
+        });
+        companyId = companyResult.id;
+      }
+
+      await createProposal.mutateAsync({
+        user_id: user.id,
+        company_id: companyId,
+        title: proposalData.titulo,
+        service_description: proposalData.servico,
+        detailed_description: proposalData.descricao,
+        value: proposalData.valor ? parseFloat(proposalData.valor.replace(/[^\d,]/g, '').replace(',', '.')) : null,
+        delivery_time: proposalData.prazo,
+        observations: proposalData.observacoes,
+        template_id: selectedTemplate,
+        status: 'rascunho'
+      });
+
+      toast.success('Proposta criada com sucesso!');
+      navigate('/propostas');
+    } catch (error) {
+      console.error('Erro ao criar proposta:', error);
+      toast.error('Erro ao criar proposta');
     } finally {
       setIsGenerating(false);
     }
@@ -294,19 +306,19 @@ const ChatPropostaPage = () => {
               </CardContent>
             </Card>
 
-            {/* Generate Button */}
+            {/* Generate Preview Button */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Wand2 className="h-5 w-5" />
-                  Gerar Proposta
+                  <Eye className="h-5 w-5" />
+                  Pré-visualizar
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <Button
-                  onClick={generateProposal}
+                  onClick={generateProposalPreview}
                   disabled={isGenerating || messages.length < 4}
-                  className="w-full bg-green-600 hover:bg-green-700"
+                  className="w-full bg-purple-600 hover:bg-purple-700"
                 >
                   {isGenerating ? (
                     <>
@@ -315,8 +327,8 @@ const ChatPropostaPage = () => {
                     </>
                   ) : (
                     <>
-                      <Wand2 className="h-4 w-4 mr-2" />
-                      Criar Proposta
+                      <Eye className="h-4 w-4 mr-2" />
+                      Gerar Preview
                     </>
                   )}
                 </Button>
@@ -327,6 +339,40 @@ const ChatPropostaPage = () => {
                 )}
               </CardContent>
             </Card>
+
+            {/* Create Proposal Button */}
+            {showPreview && proposalData && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Wand2 className="h-5 w-5" />
+                    Criar Proposta
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    onClick={confirmAndCreateProposal}
+                    disabled={isGenerating}
+                    className="w-full bg-green-600 hover:bg-green-700"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Criando...
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 className="h-4 w-4 mr-2" />
+                        Confirmar e Criar
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Revise a pré-visualização antes de criar
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Tips */}
             <Card className="bg-blue-50 border-blue-200">
@@ -342,6 +388,46 @@ const ChatPropostaPage = () => {
             </Card>
           </div>
         </div>
+
+        {/* Preview Modal */}
+        {showPreview && proposalData && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-2xl max-h-[80vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold">Pré-visualização da Proposta</h2>
+                  <Button variant="ghost" onClick={() => setShowPreview(false)}>
+                    ✕
+                  </Button>
+                </div>
+                
+                <ProposalTemplatePreview
+                  data={{
+                    title: proposalData.titulo || 'Título da Proposta',
+                    client: proposalData.cliente || 'Nome do Cliente',
+                    value: proposalData.valor ? parseFloat(proposalData.valor.replace(/[^\d,]/g, '').replace(',', '.')) : undefined,
+                    deliveryTime: proposalData.prazo,
+                    description: proposalData.descricao,
+                    template: selectedTemplate
+                  }}
+                />
+                
+                <div className="flex gap-2 mt-4">
+                  <Button
+                    onClick={confirmAndCreateProposal}
+                    disabled={isGenerating}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    Confirmar e Criar Proposta
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowPreview(false)}>
+                    Voltar ao Chat
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

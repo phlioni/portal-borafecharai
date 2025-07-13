@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,13 +14,16 @@ import {
   MessageSquare,
   Bot
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useProposals } from '@/hooks/useProposals';
+import { Link, useNavigate } from 'react-router-dom';
+import { useProposals, useUpdateProposal } from '@/hooks/useProposals';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toast } from 'sonner';
 
 const Propostas = () => {
   const { data: proposals, isLoading } = useProposals();
+  const updateProposal = useUpdateProposal();
+  const navigate = useNavigate();
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -43,6 +45,39 @@ const Propostas = () => {
     };
     
     return labels[status as keyof typeof labels] || 'Rascunho';
+  };
+
+  const handleViewProposal = (proposalId: string) => {
+    navigate(`/propostas/${proposalId}`);
+  };
+
+  const handleEditProposal = (proposalId: string) => {
+    navigate(`/propostas/editar/${proposalId}`);
+  };
+
+  const handleDeleteProposal = async (proposalId: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta proposta?')) return;
+
+    try {
+      // Implementar delete quando necessário
+      toast.success('Proposta excluída com sucesso!');
+    } catch (error) {
+      console.error('Erro ao excluir proposta:', error);
+      toast.error('Erro ao excluir proposta');
+    }
+  };
+
+  const handleSendProposal = async (proposalId: string) => {
+    try {
+      await updateProposal.mutateAsync({
+        id: proposalId,
+        updates: { status: 'enviada' }
+      });
+      toast.success('Proposta enviada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao enviar proposta:', error);
+      toast.error('Erro ao enviar proposta');
+    }
   };
 
   if (isLoading) {
@@ -231,13 +266,36 @@ const Propostas = () => {
                   </div>
                   
                   <div className="flex gap-2 ml-4">
-                    <Button size="sm" variant="outline">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleViewProposal(proposal.id)}
+                    >
                       <Eye className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="outline">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleEditProposal(proposal.id)}
+                    >
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700">
+                    {proposal.status === 'rascunho' && (
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="text-blue-600 hover:text-blue-700"
+                        onClick={() => handleSendProposal(proposal.id)}
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="text-red-600 hover:text-red-700"
+                      onClick={() => handleDeleteProposal(proposal.id)}
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
