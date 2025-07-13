@@ -99,9 +99,9 @@ export const useUserPermissions = () => {
       const isInTrial = subscriberData?.trial_end_date && 
         new Date(subscriberData.trial_end_date) >= new Date();
 
-      // Se usuário não tem assinatura, não está em trial e nunca teve trial, iniciar automaticamente
-      if (!subscriberData?.subscribed && !isInTrial && !subscriberData?.trial_end_date) {
-        console.log('Usuário novo detectado, iniciando trial automático');
+      // Se não há dados de subscriber, criar automaticamente com trial
+      if (!subscriberData) {
+        console.log('Usuário novo detectado (sem registro), iniciando trial automático');
         await initiateTrial();
         // Refresh subscriber data after trial initiation
         const { data: newSubscriberData } = await supabase
@@ -110,10 +110,37 @@ export const useUserPermissions = () => {
           .eq('user_id', user.id)
           .single();
         
-        if (newSubscriberData) {
-          // Atualizar a referência local para os dados atualizados
-          Object.assign(subscriberData || {}, newSubscriberData);
+        // Usar os novos dados para os cálculos subsequentes
+        const updatedData = newSubscriberData || subscriberData;
+        
+        // Recalcular se está em trial com os dados atualizados
+        const updatedIsInTrial = updatedData?.trial_end_date && 
+          new Date(updatedData.trial_end_date) >= new Date();
+
+        // Usar dados atualizados para as permissões de trial
+        if (updatedIsInTrial) {
+          const trialProposalsUsed = updatedData?.trial_proposals_used || 0;
+          setPermissions({
+            isAdmin: false,
+            canCreateProposal: canCreate || false,
+            canAccessAnalytics: false,
+            canAccessPremiumTemplates: false,
+            canCollaborate: false,
+            monthlyProposalCount: trialProposalsUsed,
+            monthlyProposalLimit: 20,
+            loading: false,
+          });
+          return;
         }
+      }
+      
+      // Se usuário existe mas não tem trial configurado e não tem assinatura, iniciar trial
+      else if (!subscriberData.subscribed && !isInTrial && !subscriberData.trial_start_date) {
+        console.log('Usuário existente sem trial, iniciando trial automático');
+        await initiateTrial();
+        // Não precisa recalcular aqui, deixa para a próxima execução
+        setPermissions(prev => ({ ...prev, loading: false }));
+        return;
       }
 
       // Determine permissions based on plan and admin status

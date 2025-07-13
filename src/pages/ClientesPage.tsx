@@ -4,11 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Building, Plus, Mail, Phone, Users, Search } from 'lucide-react';
+import { Building, Plus, Mail, Phone, Users, Search, Edit } from 'lucide-react';
 import { useCompanies, useCreateCompany } from '@/hooks/useCompanies';
 import { ModernLoader } from '@/components/ModernLoader';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { ClientEditModal } from '@/components/ClientEditModal';
 
 const ClientesPage = () => {
   const { data: companies, isLoading, error } = useCompanies();
@@ -17,6 +18,8 @@ const ClientesPage = () => {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCompany, setSelectedCompany] = useState<any>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [newCompany, setNewCompany] = useState({
     name: '',
     email: '',
@@ -67,6 +70,16 @@ const ClientesPage = () => {
     company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     company.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleEditCompany = (company: any) => {
+    setSelectedCompany(company);
+    setIsEditModalOpen(true);
+  };
+
+  const handleCompanyUpdated = () => {
+    // Refetch companies data
+    window.location.reload(); // Força reload para atualizar os dados
+  };
 
   if (isLoading) {
     return <ModernLoader message="Carregando clientes..." />;
@@ -182,14 +195,30 @@ const ClientesPage = () => {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredCompanies?.map((company) => (
-            <Card key={company.id} className="hover:shadow-md transition-shadow">
+            <Card key={company.id} className="hover:shadow-md transition-shadow cursor-pointer group">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building className="h-5 w-5" />
-                  {company.name}
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Building className="h-5 w-5" />
+                    {company.name}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditCompany(company);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent 
+                className="space-y-2"
+                onClick={() => handleEditCompany(company)}
+              >
                 {company.email && (
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Mail className="h-4 w-4" />
@@ -202,11 +231,25 @@ const ClientesPage = () => {
                     {company.phone}
                   </div>
                 )}
+                <div className="pt-2">
+                  <Button variant="outline" size="sm" className="w-full">
+                    <Edit className="h-4 w-4 mr-2" />
+                    Editar Dados
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+
+      {/* Modal de Edição */}
+      <ClientEditModal
+        company={selectedCompany}
+        open={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        onCompanyUpdated={handleCompanyUpdated}
+      />
     </div>
   );
 };

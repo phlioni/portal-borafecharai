@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Upload, Settings, Image, Save, Trash2, Crown, Palette } from 'lucide-react';
+import { Upload, Settings, Image, Save, Trash2, Crown, Palette, Building, MapPin, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 import SubscriptionPlanCard from '@/components/SubscriptionPlanCard';
 import SubscriptionStatus from '@/components/SubscriptionStatus';
@@ -19,6 +19,20 @@ const ConfiguracoesPage = () => {
   const [companyLogo, setCompanyLogo] = useState<string>('');
   const [companyName, setCompanyName] = useState<string>('');
   const [isUploading, setIsUploading] = useState(false);
+  
+  // Estado para dados completos da empresa
+  const [companyData, setCompanyData] = useState({
+    name: '',
+    cnpj: '',
+    address: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    phone: '',
+    email: '',
+    website: '',
+    description: '',
+  });
 
   const plans = [
     {
@@ -115,6 +129,11 @@ const ConfiguracoesPage = () => {
     localStorage.setItem('company_name', companyName);
     toast.success('Configurações salvas com sucesso!');
   };
+  
+  const handleSaveCompanyData = () => {
+    localStorage.setItem('company_data', JSON.stringify(companyData));
+    toast.success('Dados da empresa salvos com sucesso!');
+  };
 
   const handleRemoveLogo = () => {
     setCompanyLogo('');
@@ -126,9 +145,17 @@ const ConfiguracoesPage = () => {
     // Carregar configurações salvas
     const savedLogo = localStorage.getItem('company_logo');
     const savedName = localStorage.getItem('company_name');
+    const savedCompanyData = localStorage.getItem('company_data');
 
     if (savedLogo) setCompanyLogo(savedLogo);
     if (savedName) setCompanyName(savedName);
+    if (savedCompanyData) {
+      try {
+        setCompanyData(JSON.parse(savedCompanyData));
+      } catch (error) {
+        console.error('Erro ao carregar dados da empresa:', error);
+      }
+    }
   }, []);
 
   return (
@@ -146,8 +173,12 @@ const ConfiguracoesPage = () => {
 
       {/* Tabs */}
       <Tabs defaultValue={defaultTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="empresa">Empresa</TabsTrigger>
+          <TabsTrigger value="meu-negocio">
+            <Building className="h-4 w-4 mr-2" />
+            Meu Negócio
+          </TabsTrigger>
           <TabsTrigger value="planos">
             <Crown className="h-4 w-4 mr-2" />
             Planos
@@ -262,6 +293,132 @@ const ConfiguracoesPage = () => {
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Meu Negócio Tab */}
+        <TabsContent value="meu-negocio" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building className="h-5 w-5" />
+                Dados Completos da Empresa
+              </CardTitle>
+              <CardDescription>
+                Complete as informações da sua empresa para usar nas propostas
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="companyNameFull">Nome da Empresa</Label>
+                  <Input
+                    id="companyNameFull"
+                    value={companyData.name}
+                    onChange={(e) => setCompanyData({ ...companyData, name: e.target.value })}
+                    placeholder="Nome completo da empresa"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="cnpj">CNPJ</Label>
+                  <Input
+                    id="cnpj"
+                    value={companyData.cnpj}
+                    onChange={(e) => setCompanyData({ ...companyData, cnpj: e.target.value })}
+                    placeholder="00.000.000/0000-00"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="address">Endereço Completo</Label>
+                <Input
+                  id="address"
+                  value={companyData.address}
+                  onChange={(e) => setCompanyData({ ...companyData, address: e.target.value })}
+                  placeholder="Rua, número, complemento"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="city">Cidade</Label>
+                  <Input
+                    id="city"
+                    value={companyData.city}
+                    onChange={(e) => setCompanyData({ ...companyData, city: e.target.value })}
+                    placeholder="Cidade"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="state">Estado</Label>
+                  <Input
+                    id="state"
+                    value={companyData.state}
+                    onChange={(e) => setCompanyData({ ...companyData, state: e.target.value })}
+                    placeholder="UF"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="zipCode">CEP</Label>
+                  <Input
+                    id="zipCode"
+                    value={companyData.zipCode}
+                    onChange={(e) => setCompanyData({ ...companyData, zipCode: e.target.value })}
+                    placeholder="00000-000"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="companyPhone">Telefone</Label>
+                  <Input
+                    id="companyPhone"
+                    value={companyData.phone}
+                    onChange={(e) => setCompanyData({ ...companyData, phone: e.target.value })}
+                    placeholder="(11) 99999-9999"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="companyEmail">E-mail</Label>
+                  <Input
+                    id="companyEmail"
+                    type="email"
+                    value={companyData.email}
+                    onChange={(e) => setCompanyData({ ...companyData, email: e.target.value })}
+                    placeholder="contato@empresa.com"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="website">Website</Label>
+                <Input
+                  id="website"
+                  value={companyData.website}
+                  onChange={(e) => setCompanyData({ ...companyData, website: e.target.value })}
+                  placeholder="https://www.empresa.com"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="description">Descrição da Empresa</Label>
+                <textarea
+                  id="description"
+                  className="w-full p-3 border border-input rounded-md resize-none"
+                  rows={4}
+                  value={companyData.description}
+                  onChange={(e) => setCompanyData({ ...companyData, description: e.target.value })}
+                  placeholder="Descreva sua empresa, serviços e diferenciais..."
+                />
+              </div>
+
+              <Button onClick={handleSaveCompanyData} className="w-full">
+                <Save className="h-4 w-4 mr-2" />
+                Salvar Dados da Empresa
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
