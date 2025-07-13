@@ -32,4 +32,3 @@ export const TrialCallToActionWrapper = () => {
 
   return <TrialCallToAction />;
 };
-</TrialCallToActionWrapper>
