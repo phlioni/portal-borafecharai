@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,12 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Building, Plus, Mail, Phone, Users, Search } from 'lucide-react';
-import { useCompanies } from '@/hooks/useCompanies';
+import { useCompanies, useCreateCompany } from '@/hooks/useCompanies';
 import { ModernLoader } from '@/components/ModernLoader';
 import { useToast } from '@/hooks/use-toast';
 
 const ClientesPage = () => {
-  const { data: companies, isLoading, error, createCompany } = useCompanies();
+  const { data: companies, isLoading, error } = useCompanies();
+  const createCompanyMutation = useCreateCompany();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -33,7 +33,7 @@ const ClientesPage = () => {
     }
 
     try {
-      await createCompany(newCompany);
+      await createCompanyMutation.mutateAsync(newCompany);
       setNewCompany({ name: '', email: '', phone: '' });
       setIsDialogOpen(false);
       toast({

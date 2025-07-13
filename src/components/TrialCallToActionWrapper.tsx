@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { TrialCallToAction } from './TrialCallToAction';
+import TrialCallToAction from './TrialCallToAction';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { Skeleton } from './ui/skeleton';
 
