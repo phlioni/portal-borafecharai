@@ -158,12 +158,20 @@ const NovaPropostaPage = () => {
   };
 
   const handleSubmit = async (action: 'save' | 'send') => {
-    if (!user || !formData.titulo) {
-      toast.error('Título é obrigatório');
+    console.log('handleSubmit chamado com ação:', action);
+    console.log('Dados do formulário:', formData);
+
+    if (!user) {
+      toast.error('Usuário não autenticado');
       return;
     }
 
-    if (!canCreateProposal && action === 'send') {
+    if (!formData.titulo.trim()) {
+      toast.error('Título da proposta é obrigatório');
+      return;
+    }
+
+    if (action === 'send' && !canCreateProposal) {
       toast.error('Você atingiu o limite de propostas do seu plano');
       return;
     }
@@ -172,7 +180,8 @@ const NovaPropostaPage = () => {
       let companyId = formData.clienteExistente;
 
       // Se não há cliente selecionado e há dados de cliente preenchidos, criar novo cliente
-      if (!companyId && formData.cliente) {
+      if (!companyId && formData.cliente.trim()) {
+        console.log('Criando novo cliente...');
         const result = await createCompany.mutateAsync({
           user_id: user.id,
           name: formData.cliente,
@@ -180,6 +189,7 @@ const NovaPropostaPage = () => {
           phone: formData.telefone || null
         });
         companyId = result.id;
+        console.log('Cliente criado:', result);
       }
 
       const proposalData = {
@@ -193,22 +203,27 @@ const NovaPropostaPage = () => {
         validity_date: formData.validade || null,
         observations: formData.observacoes || null,
         template_id: selectedTemplate,
-        status: 'rascunho'
+        status: action === 'send' ? 'rascunho' : 'rascunho'
       };
 
+      console.log('Criando proposta com dados:', proposalData);
       const proposal = await createProposal.mutateAsync(proposalData);
+      console.log('Proposta criada:', proposal);
 
       if (action === 'send') {
         // Buscar dados da empresa para o preview
         const company = companyId ? companies?.find(c => c.id === companyId) : null;
-        setCurrentProposal({
+        const proposalWithCompany = {
           ...proposal,
           companies: company || {
             name: formData.cliente,
             email: formData.email,
             phone: formData.telefone
           }
-        });
+        };
+        
+        console.log('Abrindo modal de preview com proposta:', proposalWithCompany);
+        setCurrentProposal(proposalWithCompany);
         setShowPreviewModal(true);
       } else {
         toast.success('Proposta salva como rascunho!');
@@ -216,17 +231,25 @@ const NovaPropostaPage = () => {
       }
     } catch (error) {
       console.error('Erro ao salvar proposta:', error);
-      toast.error('Erro ao salvar proposta');
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error(`Erro ao salvar proposta: ${errorMessage}`);
     }
   };
 
   const handleSendProposal = async (emailData: any) => {
-    if (!currentProposal) return;
+    console.log('handleSendProposal chamado com dados:', emailData);
+    console.log('Proposta atual:', currentProposal);
+    
+    if (!currentProposal) {
+      toast.error('Nenhuma proposta selecionada para envio');
+      return;
+    }
 
     const success = await sendProposal(currentProposal, emailData);
     if (success) {
       setShowSendModal(false);
       setShowPreviewModal(false);
+      toast.success('Proposta enviada com sucesso!');
       navigate('/propostas');
     }
   };
@@ -254,7 +277,11 @@ const NovaPropostaPage = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => handleSubmit('save')} disabled={createProposal.isPending}>
+            <Button 
+              variant="outline" 
+              onClick={() => handleSubmit('save')} 
+              disabled={createProposal.isPending}
+            >
               <Save className="h-4 w-4 mr-2" />
               Salvar Rascunho
             </Button>
@@ -624,6 +651,7 @@ const NovaPropostaPage = () => {
             isOpen={showPreviewModal}
             onClose={() => setShowPreviewModal(false)}
             onContinue={() => {
+              console.log('Preview modal - Continuar clicado');
               setShowPreviewModal(false);
               setShowSendModal(true);
             }}

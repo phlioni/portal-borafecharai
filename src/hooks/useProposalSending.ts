@@ -10,40 +10,38 @@ export const useProposalSending = () => {
     setIsSending(true);
     try {
       console.log('Iniciando envio da proposta:', proposal.id);
+      console.log('Dados do email:', emailData);
 
-      // Usar o hash público se existir, senão criar um baseado no ID
+      // Verificar se a proposta tem um hash público
       let publicHash = proposal.public_hash;
       
       if (!publicHash) {
-        console.log('Hash público não encontrado, criando um novo...');
-        // Se não tiver hash público, atualizar a proposta para ter um
-        const { data: updatedProposal, error: updateError } = await supabase
+        console.log('Hash público não encontrado, gerando um novo...');
+        // Gerar um hash baseado no ID da proposta
+        publicHash = btoa(`${proposal.id}-${Date.now()}`).replace(/[+=\/]/g, '').substring(0, 16);
+        
+        // Atualizar a proposta com o novo hash
+        const { error: updateError } = await supabase
           .from('proposals')
-          .update({ updated_at: new Date().toISOString() })
-          .eq('id', proposal.id)
-          .select()
-          .single();
+          .update({ 
+            public_hash: publicHash,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', proposal.id);
           
         if (updateError) {
-          console.error('Erro ao gerar hash público:', updateError);
-          // Fallback para base64 do ID
-          publicHash = btoa(proposal.id);
-        } else {
-          publicHash = updatedProposal.public_hash || btoa(proposal.id);
+          console.error('Erro ao atualizar hash público:', updateError);
+          throw new Error('Erro ao gerar link público da proposta');
         }
       }
 
       const publicUrl = `${window.location.origin}/proposta/${publicHash}`;
       console.log('URL pública da proposta:', publicUrl);
 
-      // Preparar dados para envio
+      // Preparar o conteúdo do email
       const emailContent = emailData.emailMessage.replace('[LINK_DA_PROPOSTA]', publicUrl);
 
-      console.log('Dados para envio:', {
-        proposalId: proposal.id,
-        recipientEmail: emailData.recipientEmail,
-        publicUrl
-      });
+      console.log('Enviando email via edge function...');
 
       const { data, error } = await supabase.functions.invoke('send-proposal-email', {
         body: {
@@ -65,8 +63,8 @@ export const useProposalSending = () => {
 
       toast.success('Proposta enviada por email com sucesso!');
       
-      // Atualizar status da proposta
-      const { error: updateError } = await supabase
+      // Atualizar status da proposta para enviada
+      const { error: statusUpdateError } = await supabase
         .from('proposals')
         .update({ 
           status: 'enviada',
@@ -74,14 +72,16 @@ export const useProposalSending = () => {
         })
         .eq('id', proposal.id);
 
-      if (updateError) {
-        console.error('Erro ao atualizar status:', updateError);
+      if (statusUpdateError) {
+        console.error('Erro ao atualizar status:', statusUpdateError);
+        // Não falhar por isso, apenas logar
       }
 
       return true;
     } catch (error) {
-      console.error('Erro ao enviar proposta:', error);
-      toast.error('Erro ao enviar proposta por email: ' + error.message);
+      console.error('Erro completo ao enviar proposta:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido ao enviar proposta';
+      toast.error(`Erro ao enviar proposta: ${errorMessage}`);
       return false;
     } finally {
       setIsSending(false);

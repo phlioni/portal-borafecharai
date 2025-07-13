@@ -27,6 +27,11 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Iniciando processamento de envio de email...');
+    
+    const body = await req.json();
+    console.log('Dados recebidos:', body);
+    
     const { 
       proposalId, 
       recipientEmail, 
@@ -34,15 +39,22 @@ serve(async (req) => {
       emailSubject,
       emailMessage,
       publicUrl 
-    }: EmailRequest = await req.json();
+    }: EmailRequest = body;
+
+    // Validar dados obrigatórios
+    if (!proposalId || !recipientEmail || !recipientName) {
+      throw new Error('Dados obrigatórios não fornecidos: proposalId, recipientEmail, recipientName');
+    }
 
     if (!resendApiKey) {
       throw new Error('RESEND_API_KEY não configurada');
     }
 
-    // Buscar dados da proposta
+    console.log('Conectando ao Supabase...');
     const supabase = createClient(supabaseUrl, supabaseKey);
     
+    // Buscar dados da proposta
+    console.log('Buscando proposta:', proposalId);
     const { data: proposal, error } = await supabase
       .from('proposals')
       .select(`
@@ -56,12 +68,20 @@ serve(async (req) => {
       .eq('id', proposalId)
       .single();
 
-    if (error || !proposal) {
+    if (error) {
+      console.error('Erro ao buscar proposta:', error);
+      throw new Error(`Erro ao buscar proposta: ${error.message}`);
+    }
+
+    if (!proposal) {
       throw new Error('Proposta não encontrada');
     }
 
+    console.log('Proposta encontrada:', proposal.title);
+
     // URL pública da proposta
-    const proposalUrl = publicUrl || `${supabaseUrl}/proposta/${btoa(proposalId)}`;
+    const finalPublicUrl = publicUrl || `${supabaseUrl}/proposta/${proposal.public_hash || btoa(proposalId)}`;
+    console.log('URL pública final:', finalPublicUrl);
 
     // Template de email personalizado ou padrão
     const defaultSubject = `Proposta: ${proposal.title}`;
@@ -72,7 +92,7 @@ Estou enviando a proposta "${proposal.title}" para sua análise.
 
 Esta proposta é válida por tempo limitado. Clique no link abaixo para visualizar e baixar a proposta em PDF:
 
-${proposalUrl}
+${finalPublicUrl}
 
 Detalhes da proposta:
 - Valor: ${proposal.value ? `R$ ${proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'A definir'}
@@ -160,7 +180,7 @@ Equipe de Propostas
             </div>
 
             <div style="text-align: center;">
-              <a href="${proposalUrl}" class="button">
+              <a href="${finalPublicUrl}" class="button">
                 📄 Visualizar Proposta Completa
               </a>
             </div>
@@ -179,6 +199,8 @@ Equipe de Propostas
       </html>
     `;
 
+    console.log('Enviando email via Resend...');
+
     // Enviar email via Resend
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -196,13 +218,16 @@ Equipe de Propostas
 
     if (!emailResponse.ok) {
       const errorData = await emailResponse.text();
+      console.error('Erro do Resend:', errorData);
       throw new Error(`Erro ao enviar email: ${errorData}`);
     }
 
     const emailResult = await emailResponse.json();
+    console.log('Email enviado com sucesso:', emailResult);
 
     // Atualizar status da proposta para enviada
-    await supabase
+    console.log('Atualizando status da proposta...');
+    const { error: updateError } = await supabase
       .from('proposals')
       .update({ 
         status: 'enviada',
@@ -210,11 +235,18 @@ Equipe de Propostas
       })
       .eq('id', proposalId);
 
+    if (updateError) {
+      console.error('Erro ao atualizar status:', updateError);
+      // Não falhar aqui, apenas logar
+    }
+
+    console.log('Processo finalizado com sucesso');
+
     return new Response(JSON.stringify({ 
       success: true,
       emailId: emailResult.id,
       message: 'Proposta enviada com sucesso!',
-      publicUrl: proposalUrl
+      publicUrl: finalPublicUrl
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -222,7 +254,7 @@ Equipe de Propostas
   } catch (error) {
     console.error('Error in send-proposal-email function:', error);
     return new Response(JSON.stringify({ 
-      error: error.message 
+      error: error.message || 'Erro interno do servidor'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
