@@ -30,6 +30,25 @@ export const useSubscription = () => {
     try {
       setSubscriptionData(prev => ({ ...prev, loading: true, error: null }));
       
+      // Primeiro tenta buscar diretamente na tabela subscribers
+      const { data: subscriberData, error: subscriberError } = await supabase
+        .from('subscribers')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (subscriberData && !subscriberError) {
+        setSubscriptionData({
+          subscribed: subscriberData.subscribed || false,
+          subscription_tier: subscriberData.subscription_tier || null,
+          subscription_end: subscriberData.subscription_end || null,
+          loading: false,
+          error: null,
+        });
+        return;
+      }
+
+      // Se não encontrar na tabela, tenta via edge function (Stripe)
       const { data, error } = await supabase.functions.invoke('check-subscription', {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
