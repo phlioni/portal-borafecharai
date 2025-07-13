@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   ArrowLeft, 
   Plus,
@@ -13,10 +14,15 @@ import {
   Trash,
   Eye,
   Crown,
-  Palette
+  Palette,
+  Wand2,
+  Sparkles,
+  Save
 } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import ProposalTemplatePreview from '@/components/ProposalTemplatePreview';
 
 const TemplatesPersonalizadosPage = () => {
   const { subscribed, subscription_tier } = useSubscription();
@@ -38,16 +44,67 @@ const TemplatesPersonalizadosPage = () => {
   ]);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [previewData, setPreviewData] = useState(null);
+  
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    headerStyle: '',
-    contentStyle: '',
-    footerStyle: ''
+    content: '',
+    style: 'moderno'
+  });
+
+  const [aiForm, setAiForm] = useState({
+    businessType: '',
+    serviceType: '',
+    targetAudience: '',
+    tone: 'profissional'
   });
 
   // Verificar se tem permissão para templates personalizados
   const hasPermission = subscribed && subscription_tier === 'equipes';
+
+  const generateWithAI = async () => {
+    if (!aiForm.businessType || !aiForm.serviceType) {
+      toast.error('Preencha pelo menos o tipo de negócio e serviço');
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const response = await supabase.functions.invoke('generate-proposal-template', {
+        body: aiForm
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      const templateData = response.data;
+      setFormData({
+        name: templateData.title,
+        description: templateData.service_description,
+        content: templateData.detailed_description,
+        style: 'moderno'
+      });
+
+      setPreviewData({
+        title: templateData.title,
+        client: 'Cliente Exemplo',
+        value: 5000,
+        deliveryTime: '30 dias',
+        description: templateData.detailed_description,
+        template: 'moderno'
+      });
+
+      toast.success('Template gerado com IA!');
+    } catch (error) {
+      console.error('Erro ao gerar template:', error);
+      toast.error('Erro ao gerar template com IA');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const handleCreateTemplate = () => {
     if (!formData.name.trim()) {
@@ -60,12 +117,16 @@ const TemplatesPersonalizadosPage = () => {
       name: formData.name,
       description: formData.description,
       created_at: new Date().toISOString().split('T')[0],
-      isActive: true
+      isActive: true,
+      content: formData.content,
+      style: formData.style
     };
 
     setTemplates([...templates, newTemplate]);
-    setFormData({ name: '', description: '', headerStyle: '', contentStyle: '', footerStyle: '' });
+    setFormData({ name: '', description: '', content: '', style: 'moderno' });
+    setAiForm({ businessType: '', serviceType: '', targetAudience: '', tone: 'profissional' });
     setShowCreateForm(false);
+    setPreviewData(null);
     toast.success('Template criado com sucesso!');
   };
 
@@ -124,7 +185,7 @@ const TemplatesPersonalizadosPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="p-6 max-w-6xl mx-auto">
+      <div className="p-6 max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
@@ -135,13 +196,16 @@ const TemplatesPersonalizadosPage = () => {
               </Link>
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Templates Personalizados</h1>
-              <p className="text-gray-600">Crie e gerencie seus templates únicos</p>
+              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <Sparkles className="h-6 w-6 text-purple-600" />
+                Templates Personalizados
+              </h1>
+              <p className="text-gray-600">Crie templates únicos com inteligência artificial</p>
             </div>
           </div>
           <Button 
             onClick={() => setShowCreateForm(true)}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
           >
             <Plus className="h-4 w-4 mr-2" />
             Novo Template
@@ -150,84 +214,198 @@ const TemplatesPersonalizadosPage = () => {
 
         {/* Create Form */}
         {showCreateForm && (
-          <Card className="mb-6 border-blue-200 bg-blue-50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Palette className="h-5 w-5 text-blue-600" />
-                Criar Novo Template
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="templateName">Nome do Template *</Label>
-                  <Input
-                    id="templateName"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    placeholder="Ex: Template Corporativo Premium"
-                  />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {/* Form */}
+            <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-blue-50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Wand2 className="h-5 w-5 text-purple-600" />
+                  Criar Novo Template
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Geração com IA */}
+                <div className="bg-white p-4 rounded-lg border border-purple-200 shadow-sm">
+                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Wand2 className="h-4 w-4 text-purple-600" />
+                    Gerar com Inteligência Artificial
+                  </h4>
+                  <div className="grid grid-cols-1 gap-4 mb-4">
+                    <div>
+                      <Label htmlFor="businessType">Tipo de Negócio</Label>
+                      <Input
+                        id="businessType"
+                        value={aiForm.businessType}
+                        onChange={(e) => setAiForm({...aiForm, businessType: e.target.value})}
+                        placeholder="Ex: Agência de Marketing"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="serviceType">Tipo de Serviço</Label>
+                      <Input
+                        id="serviceType"
+                        value={aiForm.serviceType}
+                        onChange={(e) => setAiForm({...aiForm, serviceType: e.target.value})}
+                        placeholder="Ex: Criação de Site"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="targetAudience">Público-alvo</Label>
+                      <Input
+                        id="targetAudience"
+                        value={aiForm.targetAudience}
+                        onChange={(e) => setAiForm({...aiForm, targetAudience: e.target.value})}
+                        placeholder="Ex: Pequenas empresas"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="tone">Tom da Proposta</Label>
+                      <Select 
+                        value={aiForm.tone} 
+                        onValueChange={(value) => setAiForm({...aiForm, tone: value})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="profissional">Profissional</SelectItem>
+                          <SelectItem value="amigável">Amigável</SelectItem>
+                          <SelectItem value="formal">Formal</SelectItem>
+                          <SelectItem value="criativo">Criativo</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={generateWithAI} 
+                    disabled={isGenerating}
+                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                  >
+                    {isGenerating ? (
+                      "Gerando..."
+                    ) : (
+                      <>
+                        <Wand2 className="h-4 w-4 mr-2" />
+                        Gerar Template com IA
+                      </>
+                    )}
+                  </Button>
                 </div>
-                <div>
-                  <Label htmlFor="templateDescription">Descrição</Label>
-                  <Input
-                    id="templateDescription"
-                    value={formData.description}
-                    onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    placeholder="Ex: Template elegante para propostas corporativas"
-                  />
+
+                {/* Formulário Manual */}
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-gray-900">Personalizar Template</h4>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <Label htmlFor="name">Nome do Template</Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                        placeholder="Nome do template"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="style">Estilo Visual</Label>
+                      <Select 
+                        value={formData.style} 
+                        onValueChange={(value) => setFormData({...formData, style: value})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="moderno">Moderno</SelectItem>
+                          <SelectItem value="executivo">Executivo</SelectItem>
+                          <SelectItem value="criativo">Criativo</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="description">Descrição Breve</Label>
+                      <Input
+                        id="description"
+                        value={formData.description}
+                        onChange={(e) => setFormData({...formData, description: e.target.value})}
+                        placeholder="Breve descrição do template"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="content">Conteúdo Detalhado</Label>
+                      <Textarea
+                        id="content"
+                        value={formData.content}
+                        onChange={(e) => setFormData({...formData, content: e.target.value})}
+                        placeholder="Conteúdo detalhado do template..."
+                        rows={6}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button onClick={handleCreateTemplate} className="flex items-center gap-2 flex-1">
+                      <Save className="h-4 w-4" />
+                      Salvar Template
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        const data = {
+                          title: formData.name || 'Título da Proposta',
+                          client: 'Cliente Exemplo',
+                          value: 5000,
+                          deliveryTime: '30 dias',
+                          description: formData.content || 'Descrição do serviço...',
+                          template: formData.style
+                        };
+                        setPreviewData(data);
+                      }}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Atualizar Preview
+                    </Button>
+                  </div>
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowCreateForm(false);
+                      setFormData({ name: '', description: '', content: '', style: 'moderno' });
+                      setAiForm({ businessType: '', serviceType: '', targetAudience: '', tone: 'profissional' });
+                      setPreviewData(null);
+                    }}
+                    className="w-full"
+                  >
+                    Cancelar
+                  </Button>
                 </div>
-              </div>
+              </CardContent>
+            </Card>
 
-              <div>
-                <Label htmlFor="headerStyle">Estilo do Cabeçalho (CSS)</Label>
-                <Textarea
-                  id="headerStyle"
-                  value={formData.headerStyle}
-                  onChange={(e) => setFormData({...formData, headerStyle: e.target.value})}
-                  placeholder="Ex: background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;"
-                  rows={3}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="contentStyle">Estilo do Conteúdo (CSS)</Label>
-                <Textarea
-                  id="contentStyle"
-                  value={formData.contentStyle}
-                  onChange={(e) => setFormData({...formData, contentStyle: e.target.value})}
-                  placeholder="Ex: font-family: 'Arial', sans-serif; line-height: 1.6;"
-                  rows={3}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="footerStyle">Estilo do Rodapé (CSS)</Label>
-                <Textarea
-                  id="footerStyle"
-                  value={formData.footerStyle}
-                  onChange={(e) => setFormData({...formData, footerStyle: e.target.value})}
-                  placeholder="Ex: border-top: 2px solid #667eea; padding-top: 20px;"
-                  rows={3}
-                />
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setShowCreateForm(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button 
-                  onClick={handleCreateTemplate}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Criar Template
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+            {/* Preview */}
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Eye className="h-5 w-5" />
+                    Pré-visualização
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {previewData ? (
+                    <div className="transform scale-75 origin-top">
+                      <ProposalTemplatePreview data={previewData} />
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-gray-500">
+                      <Eye className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Gere um template com IA ou preencha os campos para ver a pré-visualização</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         )}
 
         {/* Templates List */}
@@ -284,19 +462,19 @@ const TemplatesPersonalizadosPage = () => {
           {templates.length === 0 && (
             <Card>
               <CardContent className="text-center py-12">
-                <Palette className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <Sparkles className="h-16 w-16 text-purple-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
                   Nenhum template personalizado
                 </h3>
                 <p className="text-gray-600 mb-4">
-                  Crie seu primeiro template personalizado para dar uma identidade única às suas propostas.
+                  Crie seu primeiro template personalizado com IA para dar uma identidade única às suas propostas.
                 </p>
                 <Button 
                   onClick={() => setShowCreateForm(true)}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Criar Primeiro Template
+                  <Wand2 className="h-4 w-4 mr-2" />
+                  Criar Primeiro Template com IA
                 </Button>
               </CardContent>
             </Card>
