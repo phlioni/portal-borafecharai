@@ -132,13 +132,14 @@ export const useUserPermissions = () => {
 
         // Trial period permissions
         if (isInTrial) {
+          const trialProposalsUsed = subscriberData?.trial_proposals_used || 0;
           return {
             isAdmin: false,
             canCreateProposal: canCreate || false,
             canAccessAnalytics: false,
             canAccessPremiumTemplates: false,
             canCollaborate: false,
-            monthlyProposalCount: subscriberData?.trial_proposals_used || 0,
+            monthlyProposalCount: trialProposalsUsed,
             monthlyProposalLimit: 20,
           };
         }
