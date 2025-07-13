@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -24,7 +25,8 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  Send
+  Send,
+  Eye
 } from 'lucide-react';
 import { useProposals } from '@/hooks/useProposals';
 import { useCompanies } from '@/hooks/useCompanies';
@@ -37,9 +39,7 @@ const AnalyticsPage = () => {
   const { data: proposals, isLoading: proposalsLoading } = useProposals();
   const { data: companies, isLoading: companiesLoading } = useCompanies();
 
-  const isLoading = proposalsLoading || companiesLoading;
-
-  if (isLoading) {
+  if (proposalsLoading || companiesLoading) {
     return <ModernLoader message="Carregando analytics..." fullScreen />;
   }
 
@@ -51,9 +51,16 @@ const AnalyticsPage = () => {
   const sentProposals = proposals?.filter(p => p.status === 'enviada').length || 0;
   const draftProposals = proposals?.filter(p => p.status === 'rascunho').length || 0;
   const rejectedProposals = proposals?.filter(p => p.status === 'rejeitada').length || 0;
+  
+  // Novas estatísticas
+  const acceptedValue = proposals?.filter(p => p.status === 'aceita').reduce((acc, p) => acc + (p.value || 0), 0) || 0;
+  const totalViews = proposals?.reduce((acc, p) => acc + (p.views || 0), 0) || 0;
+  const viewedProposals = proposals?.filter(p => (p.views || 0) > 0).length || 0;
+  const unviewedProposals = totalProposals - viewedProposals;
 
   const acceptanceRate = totalProposals > 0 ? (acceptedProposals / totalProposals) * 100 : 0;
   const averageValue = totalProposals > 0 ? totalValue / totalProposals : 0;
+  const viewRate = totalProposals > 0 ? (viewedProposals / totalProposals) * 100 : 0;
 
   // Dados para gráfico de status
   const statusData = [
@@ -61,6 +68,12 @@ const AnalyticsPage = () => {
     { name: 'Enviadas', value: sentProposals, color: '#3B82F6' },
     { name: 'Rascunhos', value: draftProposals, color: '#6B7280' },
     { name: 'Rejeitadas', value: rejectedProposals, color: '#EF4444' },
+  ];
+
+  // Dados para gráfico de visualizações
+  const viewData = [
+    { name: 'Visualizadas', value: viewedProposals, color: '#10B981' },
+    { name: 'Não Visualizadas', value: unviewedProposals, color: '#EF4444' },
   ];
 
   // Dados para gráfico mensal (últimos 6 meses)
@@ -79,7 +92,8 @@ const AnalyticsPage = () => {
       month: format(month, 'MMM/yy', { locale: ptBR }),
       propostas: monthProposals.length,
       valor: monthProposals.reduce((acc, p) => acc + (p.value || 0), 0) / 1000, // em milhares
-      aceitas: monthProposals.filter(p => p.status === 'aceita').length
+      aceitas: monthProposals.filter(p => p.status === 'aceita').length,
+      visualizacoes: monthProposals.reduce((acc, p) => acc + (p.views || 0), 0)
     };
   });
 
@@ -99,7 +113,7 @@ const AnalyticsPage = () => {
           <p className="text-gray-600 mt-1">Análise detalhada das suas propostas e performance</p>
         </div>
 
-        {/* KPIs */}
+        {/* KPIs Principais */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4">
@@ -149,25 +163,25 @@ const AnalyticsPage = () => {
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-                  <Users className="h-4 w-4 text-orange-600" />
+                  <Eye className="h-4 w-4 text-orange-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Total de Clientes</p>
-                  <p className="text-2xl font-bold">{totalClients}</p>
+                  <p className="text-sm text-gray-600">Taxa de Visualização</p>
+                  <p className="text-2xl font-bold">{viewRate.toFixed(1)}%</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Status Overview */}
+        {/* KPIs Secundários */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-5 w-5 text-green-600" />
                 <div>
-                  <p className="text-sm text-gray-600">Aceitas</p>
+                  <p className="text-sm text-gray-600">Propostas Aceitas</p>
                   <p className="text-xl font-bold text-green-600">{acceptedProposals}</p>
                 </div>
               </div>
@@ -177,10 +191,12 @@ const AnalyticsPage = () => {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <Send className="h-5 w-5 text-blue-600" />
+                <DollarSign className="h-5 w-5 text-green-600" />
                 <div>
-                  <p className="text-sm text-gray-600">Enviadas</p>
-                  <p className="text-xl font-bold text-blue-600">{sentProposals}</p>
+                  <p className="text-sm text-gray-600">Valor Aceito</p>
+                  <p className="text-xl font-bold text-green-600">
+                    R$ {acceptedValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -189,10 +205,10 @@ const AnalyticsPage = () => {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-gray-600" />
+                <Eye className="h-5 w-5 text-blue-600" />
                 <div>
-                  <p className="text-sm text-gray-600">Rascunhos</p>
-                  <p className="text-xl font-bold text-gray-600">{draftProposals}</p>
+                  <p className="text-sm text-gray-600">Total de Visualizações</p>
+                  <p className="text-xl font-bold text-blue-600">{totalViews}</p>
                 </div>
               </div>
             </CardContent>
@@ -201,10 +217,10 @@ const AnalyticsPage = () => {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <XCircle className="h-5 w-5 text-red-600" />
+                <Users className="h-5 w-5 text-purple-600" />
                 <div>
-                  <p className="text-sm text-gray-600">Rejeitadas</p>
-                  <p className="text-xl font-bold text-red-600">{rejectedProposals}</p>
+                  <p className="text-sm text-gray-600">Total de Clientes</p>
+                  <p className="text-xl font-bold text-purple-600">{totalClients}</p>
                 </div>
               </div>
             </CardContent>
@@ -216,7 +232,7 @@ const AnalyticsPage = () => {
           {/* Monthly Trends */}
           <Card>
             <CardHeader>
-              <CardTitle>Propostas por Mês</CardTitle>
+              <CardTitle>Propostas e Visualizações por Mês</CardTitle>
               <CardDescription>Últimos 6 meses</CardDescription>
             </CardHeader>
             <CardContent>
@@ -226,8 +242,9 @@ const AnalyticsPage = () => {
                   <XAxis dataKey="month" />
                   <YAxis />
                   <Tooltip />
-                  <Line type="monotone" dataKey="propostas" stroke="#3B82F6" strokeWidth={2} />
-                  <Line type="monotone" dataKey="aceitas" stroke="#10B981" strokeWidth={2} />
+                  <Line type="monotone" dataKey="propostas" stroke="#3B82F6" strokeWidth={2} name="Propostas" />
+                  <Line type="monotone" dataKey="aceitas" stroke="#10B981" strokeWidth={2} name="Aceitas" />
+                  <Line type="monotone" dataKey="visualizacoes" stroke="#F59E0B" strokeWidth={2} name="Visualizações" />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
@@ -264,6 +281,35 @@ const AnalyticsPage = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Visualization Distribution */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Taxa de Visualização</CardTitle>
+              <CardDescription>Propostas visualizadas vs não visualizadas</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={viewData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {viewData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
           {/* Value by Month */}
           <Card>
             <CardHeader>
@@ -282,35 +328,35 @@ const AnalyticsPage = () => {
               </ResponsiveContainer>
             </CardContent>
           </Card>
-
-          {/* Template Usage */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Templates Mais Usados</CardTitle>
-              <CardDescription>Distribuição por template</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {templateData.map((template, index) => (
-                  <div key={template.name} className="flex items-center justify-between">
-                    <span className="font-medium">{template.name}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-24 bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-blue-600 h-2 rounded-full" 
-                          style={{ 
-                            width: `${(template.value / totalProposals) * 100}%` 
-                          }}
-                        />
-                      </div>
-                      <span className="text-sm text-gray-600">{template.value}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
         </div>
+
+        {/* Template Usage */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Templates Mais Usados</CardTitle>
+            <CardDescription>Distribuição por template</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {templateData.map((template, index) => (
+                <div key={template.name} className="flex items-center justify-between">
+                  <span className="font-medium">{template.name}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-32 bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full" 
+                        style={{ 
+                          width: `${totalProposals > 0 ? (template.value / totalProposals) * 100 : 0}%` 
+                        }}
+                      />
+                    </div>
+                    <span className="text-sm text-gray-600 w-8">{template.value}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Additional Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

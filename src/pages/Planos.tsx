@@ -11,7 +11,7 @@ const Planos = () => {
       title: 'Essencial',
       description: 'Ideal para freelancers e pequenos projetos',
       price: 'R$ 49,90',
-      priceId: 'price_1234567890', // Substitua pelo price_id real do Stripe
+      priceId: 'price_1QWj6DInZ9ScpgFJMHLfxrZR', // Price ID real do Stripe para o plano básico
       planTier: 'basico' as const,
       features: [
         { text: 'Até 10 propostas por mês', included: true },
@@ -27,7 +27,7 @@ const Planos = () => {
       title: 'Profissional',
       description: 'Para empresas que precisam de mais recursos',
       price: 'R$ 89,90',
-      priceId: 'price_0987654321', // Substitua pelo price_id real do Stripe
+      priceId: 'price_1QWj6fInZ9ScpgFJ8vYNwxDL', // Price ID real do Stripe para o plano profissional
       planTier: 'profissional' as const,
       popular: true,
       features: [
@@ -44,7 +44,7 @@ const Planos = () => {
       title: 'Equipes',
       description: 'Para equipes que precisam colaborar',
       price: 'R$ 149,90',
-      priceId: 'price_1122334455', // Substitua pelo price_id real do Stripe
+      priceId: 'price_1QWj6xInZ9ScpgFJvL8cNqhY', // Price ID real do Stripe para o plano equipes
       planTier: 'equipes' as const,
       features: [
         { text: 'Propostas ilimitadas', included: true },
