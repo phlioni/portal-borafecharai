@@ -10,7 +10,8 @@ import {
   LogOut,
   Menu,
   X,
-  CreditCard
+  CreditCard,
+  Users
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -23,11 +24,13 @@ const Layout = () => {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
     { name: 'Propostas', href: '/propostas', icon: FileText },
+    { name: 'Clientes', href: '/clientes', icon: Users },
+    { name: 'Analytics', href: '/analytics', icon: BarChart3 },
     { name: 'Planos', href: '/planos', icon: CreditCard },
     { name: 'Configurações', href: '/configuracoes', icon: Settings },
   ];
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => location.pathname === path || (path === '/dashboard' && location.pathname === '/');
 
   const handleSignOut = async () => {
     await signOut();

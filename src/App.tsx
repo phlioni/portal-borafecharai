@@ -29,13 +29,16 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<Layout />}>
               <Route index element={<Dashboard />} />
+              <Route path="dashboard" element={<Dashboard />} />
               <Route path="propostas" element={<Propostas />} />
               <Route path="propostas/nova" element={<NovaPropostaPage />} />
               <Route path="propostas/chat" element={<ChatPropostaPage />} />
               <Route path="propostas/:id" element={<VisualizarPropostaPage />} />
+              <Route path="propostas/editar/:id" element={<NovaPropostaPage />} />
               <Route path="clientes" element={<ClientesPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="planos" element={<Planos />} />
+              <Route path="configuracoes" element={<div className="p-6"><h1 className="text-2xl font-bold">Configurações</h1><p>Página em desenvolvimento</p></div>} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

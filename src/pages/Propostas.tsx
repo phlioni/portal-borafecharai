@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -73,7 +74,21 @@ const Propostas = () => {
         id: proposalId,
         updates: { status: 'enviada' }
       });
-      toast.success('Proposta enviada com sucesso!');
+      
+      // Chamar função de envio de email
+      const response = await fetch('/functions/v1/send-proposal-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ proposalId })
+      });
+
+      if (response.ok) {
+        toast.success('Proposta enviada por email com sucesso!');
+      } else {
+        toast.success('Proposta marcada como enviada!');
+      }
     } catch (error) {
       console.error('Erro ao enviar proposta:', error);
       toast.error('Erro ao enviar proposta');
@@ -270,6 +285,7 @@ const Propostas = () => {
                       size="sm" 
                       variant="outline"
                       onClick={() => handleViewProposal(proposal.id)}
+                      title="Visualizar proposta"
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
@@ -277,6 +293,7 @@ const Propostas = () => {
                       size="sm" 
                       variant="outline"
                       onClick={() => handleEditProposal(proposal.id)}
+                      title="Editar proposta"
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -286,6 +303,7 @@ const Propostas = () => {
                         variant="outline"
                         className="text-blue-600 hover:text-blue-700"
                         onClick={() => handleSendProposal(proposal.id)}
+                        title="Enviar proposta"
                       >
                         <Send className="h-4 w-4" />
                       </Button>
@@ -295,6 +313,7 @@ const Propostas = () => {
                       variant="outline" 
                       className="text-red-600 hover:text-red-700"
                       onClick={() => handleDeleteProposal(proposal.id)}
+                      title="Excluir proposta"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

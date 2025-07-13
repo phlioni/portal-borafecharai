@@ -20,6 +20,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toast } from 'sonner';
 
 const VisualizarPropostaPage = () => {
   const { id } = useParams();
@@ -28,6 +29,8 @@ const VisualizarPropostaPage = () => {
   const { data: proposal, isLoading } = useQuery({
     queryKey: ['proposal', id],
     queryFn: async () => {
+      if (!id) throw new Error('ID da proposta não fornecido');
+      
       const { data, error } = await supabase
         .from('proposals')
         .select(`
@@ -45,6 +48,7 @@ const VisualizarPropostaPage = () => {
       if (error) throw error;
       return data;
     },
+    enabled: !!id,
   });
 
   const getStatusBadge = (status: string) => {
@@ -77,6 +81,33 @@ const VisualizarPropostaPage = () => {
     };
     
     return styles[templateId as keyof typeof styles] || styles.moderno;
+  };
+
+  const handleSendProposal = async () => {
+    if (!proposal) return;
+
+    try {
+      const response = await fetch('/functions/v1/send-proposal-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ proposalId: proposal.id })
+      });
+
+      if (response.ok) {
+        toast.success('Proposta enviada por email com sucesso!');
+      } else {
+        toast.error('Erro ao enviar proposta por email');
+      }
+    } catch (error) {
+      console.error('Erro ao enviar proposta:', error);
+      toast.error('Erro ao enviar proposta');
+    }
+  };
+
+  const handleDownloadPDF = () => {
+    toast.info('Funcionalidade de download em desenvolvimento');
   };
 
   if (isLoading) {
@@ -117,15 +148,15 @@ const VisualizarPropostaPage = () => {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={handleDownloadPDF}>
               <Download className="h-4 w-4 mr-2" />
               Baixar PDF
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => navigate(`/propostas/editar/${proposal.id}`)}>
               <Edit className="h-4 w-4 mr-2" />
               Editar
             </Button>
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSendProposal}>
               <Send className="h-4 w-4 mr-2" />
               Enviar
             </Button>
