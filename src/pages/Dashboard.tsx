@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -90,7 +89,7 @@ const Dashboard = () => {
     const statusConfig = {
       'enviada': { label: 'Enviada', variant: 'secondary' as const, icon: Clock },
       'visualizada': { label: 'Visualizada', variant: 'default' as const, icon: Eye },
-      'aceita': { label: 'Aceita', variant: 'success' as const, icon: CheckCircle },
+      'aceita': { label: 'Aceita', variant: 'default' as const, icon: CheckCircle, className: 'bg-green-100 text-green-800 hover:bg-green-100' },
       'perdida': { label: 'Perdida', variant: 'destructive' as const, icon: XCircle }
     };
 
@@ -98,7 +97,7 @@ const Dashboard = () => {
     const IconComponent = config.icon;
     
     return (
-      <Badge variant={config.variant} className="flex items-center gap-1">
+      <Badge variant={config.variant} className={`flex items-center gap-1 ${config.className || ''}`}>
         <IconComponent className="h-3 w-3" />
         {config.label}
       </Badge>
