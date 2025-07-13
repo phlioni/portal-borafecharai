@@ -14,7 +14,7 @@ import SubscriptionStatus from '@/components/SubscriptionStatus';
 
 const ConfiguracoesPage = () => {
   const [searchParams] = useSearchParams();
-  const defaultTab = searchParams.get('tab') || 'empresa';
+  const defaultTab = searchParams.get('tab') || 'meu-negocio';
 
   const [companyLogo, setCompanyLogo] = useState<string>('');
   const [companyName, setCompanyName] = useState<string>('');
@@ -173,8 +173,7 @@ const ConfiguracoesPage = () => {
 
       {/* Tabs */}
       <Tabs defaultValue={defaultTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="empresa">Empresa</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="meu-negocio">
             <Building className="h-4 w-4 mr-2" />
             Meu Negócio
@@ -185,23 +184,21 @@ const ConfiguracoesPage = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* Empresa Tab */}
-        <TabsContent value="empresa" className="space-y-6">
+
+        {/* Meu Negócio Tab */}
+        <TabsContent value="meu-negocio" className="space-y-6">
+          {/* Logo da Empresa */}
           <Card>
             <CardHeader>
-              <CardTitle>Informações da Empresa</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Building className="h-5 w-5" />
+                Logo da Empresa
+              </CardTitle>
+              <CardDescription>
+                Sua logo aparecerá em todas as propostas
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div>
-                <Label htmlFor="companyName">Nome da Empresa</Label>
-                <Input
-                  id="companyName"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  placeholder="Digite o nome da sua empresa"
-                />
-              </div>
-
               <div>
                 <Label>Logo da Empresa</Label>
                 <div className="mt-2 space-y-4">
@@ -256,33 +253,18 @@ const ConfiguracoesPage = () => {
                     </label>
                   </div>
                 </div>
-                <p className="text-sm text-gray-500 mt-2">
-                  Esta logo aparecerá em todas as suas propostas
-                </p>
               </div>
 
-              <Button onClick={handleSaveSettings} className="w-full">
-                <Save className="h-4 w-4 mr-2" />
-                Salvar Configurações
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Template Preview */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Pré-visualização</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="bg-gray-50 rounded-lg p-6 text-center">
-                <Image className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="font-medium text-gray-900 mb-2">
-                  Exemplo de Proposta
-                </h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Para: Cliente Exemplo
-                </p>
-                {companyLogo && (
+              {/* Preview */}
+              {companyLogo && (
+                <div className="bg-gray-50 rounded-lg p-6 text-center">
+                  <Image className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="font-medium text-gray-900 mb-2">
+                    Exemplo de Proposta
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Para: Cliente Exemplo
+                  </p>
                   <div className="mt-4 p-4 bg-white rounded border">
                     <p className="text-sm text-gray-600 mb-2">Sua logo aparecerá assim:</p>
                     <img
@@ -291,14 +273,12 @@ const ConfiguracoesPage = () => {
                       className="h-12 w-auto mx-auto"
                     />
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </CardContent>
           </Card>
-        </TabsContent>
 
-        {/* Meu Negócio Tab */}
-        <TabsContent value="meu-negocio" className="space-y-6">
+          {/* Dados Completos da Empresa */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -415,10 +395,16 @@ const ConfiguracoesPage = () => {
                 />
               </div>
 
-              <Button onClick={handleSaveCompanyData} className="w-full">
-                <Save className="h-4 w-4 mr-2" />
-                Salvar Dados da Empresa
-              </Button>
+              <div className="flex gap-4">
+                <Button onClick={handleSaveSettings} variant="outline" className="flex-1">
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar Logo
+                </Button>
+                <Button onClick={handleSaveCompanyData} className="flex-1">
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar Dados da Empresa
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

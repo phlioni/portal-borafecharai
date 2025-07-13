@@ -41,8 +41,8 @@ const TrialCallToAction = () => {
             
             <p className="text-gray-600 mb-4">
               {isInTrial 
-                ? `Você tem ${proposalsRemaining} propostas restantes e ${daysRemaining} dias do seu período de teste.`
-                : 'Comece sua jornada com 15 dias grátis e até 20 propostas!'
+                ? `Você tem ${proposalsRemaining} propostas restantes e ${daysRemaining} dias do seu período de teste. O que acabar primeiro determina o fim do período gratuito.`
+                : 'Comece sua jornada com 15 dias grátis e até 20 propostas! O que acabar primeiro determina o fim do período gratuito.'
               }
             </p>
 
@@ -110,7 +110,7 @@ const TrialCallToAction = () => {
         {!isInTrial && (
           <div className="mt-4 pt-4 border-t border-blue-200">
             <p className="text-xs text-gray-500">
-              ✨ Sem cartão de crédito • ✨ Cancele a qualquer momento • ✨ Acesso completo aos templates
+              ✨ Período gratuito automático • ✨ 15 dias ou 20 propostas • ✨ Acesso completo aos templates
             </p>
           </div>
         )}
