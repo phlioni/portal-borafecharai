@@ -11,6 +11,12 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  subscription: {
+    subscribed: boolean;
+    subscription_tier: string | null;
+    subscription_end: string | null;
+  };
+  refreshSubscription: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,6 +33,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [subscription, setSubscription] = useState({
+    subscribed: false,
+    subscription_tier: null as string | null,
+    subscription_end: null as string | null,
+  });
+
+  const refreshSubscription = async () => {
+    if (!session) return;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('check-subscription', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!error && data) {
+        setSubscription({
+          subscribed: data.subscribed || false,
+          subscription_tier: data.subscription_tier || null,
+          subscription_end: data.subscription_end || null,
+        });
+      }
+    } catch (error) {
+      console.error('Error refreshing subscription:', error);
+    }
+  };
 
   useEffect(() => {
     console.log('Setting up auth listener...');
@@ -38,6 +71,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Refresh subscription data when user logs in
+        if (session?.user && event === 'SIGNED_IN') {
+          setTimeout(() => {
+            refreshSubscription();
+          }, 1000);
+        }
+
+        // Clear subscription data when user logs out
+        if (event === 'SIGNED_OUT') {
+          setSubscription({
+            subscribed: false,
+            subscription_tier: null,
+            subscription_end: null,
+          });
+        }
       }
     );
 
@@ -51,6 +100,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('Initial session:', session?.user?.email);
           setSession(session);
           setUser(session?.user ?? null);
+          
+          // Refresh subscription for initial session
+          if (session?.user) {
+            setTimeout(() => {
+              refreshSubscription();
+            }, 1000);
+          }
         }
       } catch (error) {
         console.error('Error in getInitialSession:', error);
@@ -66,6 +122,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       subscription.unsubscribe();
     };
   }, []);
+
+  // Auto-refresh subscription periodically when user is logged in
+  useEffect(() => {
+    if (!user || !session) return;
+
+    const interval = setInterval(() => {
+      refreshSubscription();
+    }, 30000); // Check every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [user, session]);
 
   const signIn = async (email: string, password: string) => {
     console.log('Attempting sign in for:', email);
@@ -124,6 +191,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('Signed out successfully');
         setUser(null);
         setSession(null);
+        setSubscription({
+          subscribed: false,
+          subscription_tier: null,
+          subscription_end: null,
+        });
       }
     } catch (err) {
       console.error('Unexpected error during sign out:', err);
@@ -137,6 +209,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signIn,
     signUp,
     signOut,
+    subscription,
+    refreshSubscription,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
