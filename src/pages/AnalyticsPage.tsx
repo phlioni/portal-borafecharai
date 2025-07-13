@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -31,11 +30,18 @@ import { useProposals } from '@/hooks/useProposals';
 import { useCompanies } from '@/hooks/useCompanies';
 import { format, subMonths, startOfMonth, endOfMonth, eachMonthOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { ModernLoader } from '@/components/ModernLoader';
 import PlanLimitGuard from '@/components/PlanLimitGuard';
 
 const AnalyticsPage = () => {
-  const { data: proposals } = useProposals();
-  const { data: companies } = useCompanies();
+  const { data: proposals, isLoading: proposalsLoading } = useProposals();
+  const { data: companies, isLoading: companiesLoading } = useCompanies();
+
+  const isLoading = proposalsLoading || companiesLoading;
+
+  if (isLoading) {
+    return <ModernLoader message="Carregando analytics..." fullScreen />;
+  }
 
   // Calcular estatísticas
   const totalProposals = proposals?.length || 0;
