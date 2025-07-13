@@ -87,6 +87,7 @@ const Planos = () => {
               description={plan.description}
               price={plan.price}
               priceId={plan.priceId}
+              productId={plan.productId}
               planTier={plan.planTier}
               features={plan.features}
               popular={plan.popular}

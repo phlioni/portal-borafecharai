@@ -17,6 +17,7 @@ interface SubscriptionPlanCardProps {
   description: string;
   price: string;
   priceId: string;
+  productId: string;
   features: PlanFeature[];
   popular?: boolean;
   planTier: 'basico' | 'profissional' | 'equipes';
