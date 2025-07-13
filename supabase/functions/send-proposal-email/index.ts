@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.5'
@@ -19,18 +18,50 @@ interface EmailRequest {
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      status: 200,
+      headers: corsHeaders 
+    });
   }
 
   try {
-    console.log('Iniciando processamento de envio de email...');
+    console.log('=== Iniciando processamento de envio de email ===');
+    console.log('Method:', req.method);
+    console.log('Headers:', Object.fromEntries(req.headers.entries()));
     
-    const body = await req.json();
-    console.log('Dados recebidos:', body);
+    // Verificar se é uma requisição POST
+    if (req.method !== 'POST') {
+      console.error('Método não permitido:', req.method);
+      return new Response(JSON.stringify({ 
+        error: 'Método não permitido. Use POST.' 
+      }), {
+        status: 405,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Parse do body da requisição
+    let body;
+    try {
+      const bodyText = await req.text();
+      console.log('Body raw:', bodyText);
+      body = JSON.parse(bodyText);
+      console.log('Body parsed:', body);
+    } catch (parseError) {
+      console.error('Erro ao fazer parse do body:', parseError);
+      return new Response(JSON.stringify({ 
+        error: 'Dados inválidos no corpo da requisição' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     
     const { 
       proposalId, 
@@ -52,10 +83,11 @@ serve(async (req) => {
       });
     }
 
+    // Verificar se a chave do Resend está configurada
     if (!resendApiKey) {
       console.error('RESEND_API_KEY não configurada');
       return new Response(JSON.stringify({ 
-        error: 'Configuração de email não encontrada' 
+        error: 'Configuração de email não encontrada. Verifique se RESEND_API_KEY está configurada.' 
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -102,8 +134,15 @@ serve(async (req) => {
 
     console.log('Proposta encontrada:', proposal.title);
 
-    // URL pública da proposta
-    const finalPublicUrl = publicUrl || `${supabaseUrl.replace('/rest/v1', '')}/proposta/${proposal.public_hash}`;
+    // URL pública da proposta - corrigir a construção da URL
+    let finalPublicUrl = publicUrl;
+    if (!finalPublicUrl) {
+      // Usar o domínio correto baseado no ambiente
+      const baseUrl = supabaseUrl.includes('localhost') 
+        ? 'http://localhost:8080' 
+        : supabaseUrl.replace('/rest/v1', '').replace('supabase.co', 'vercel.app');
+      finalPublicUrl = `${baseUrl}/proposta/${proposal.public_hash}`;
+    }
     console.log('URL pública final:', finalPublicUrl);
 
     // Template de email personalizado ou padrão
@@ -118,7 +157,7 @@ Esta proposta é válida por tempo limitado. Clique no link abaixo para visualiz
 ${finalPublicUrl}
 
 Detalhes da proposta:
-- Valor: ${proposal.value ? `R$ ${proposal.value.toLocaleString('pt-BR', { minimumFuturionDigits: 2 })}` : 'A definir'}
+- Valor: ${proposal.value ? `R$ ${proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'A definir'}
 - Prazo: ${proposal.delivery_time || 'A definir'}
 ${proposal.validity_date ? `- Válida até: ${new Date(proposal.validity_date).toLocaleDateString('pt-BR')}` : ''}
 
@@ -223,29 +262,42 @@ Equipe de Propostas
     `;
 
     console.log('Enviando email via Resend...');
+    console.log('Resend API Key presente:', !!resendApiKey);
 
     // Enviar email via Resend
+    const emailPayload = {
+      from: 'Propostas <contato@borafecharai.com>',
+      to: [recipientEmail],
+      subject: emailSubject || defaultSubject,
+      html: proposalHtml,
+    };
+
+    console.log('Payload do email:', {
+      ...emailPayload,
+      html: '[HTML_CONTENT]' // Não logar o HTML completo
+    });
+
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${resendApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        from: 'Propostas <contato@borafecharai.com>',
-        to: [recipientEmail],
-        subject: emailSubject || defaultSubject,
-        html: proposalHtml,
-      }),
+      body: JSON.stringify(emailPayload),
     });
 
     const emailResponseText = await emailResponse.text();
+    console.log('Status da resposta do Resend:', emailResponse.status);
     console.log('Resposta do Resend (raw):', emailResponseText);
 
     if (!emailResponse.ok) {
       console.error('Erro do Resend:', emailResponseText);
       return new Response(JSON.stringify({ 
-        error: `Erro ao enviar email: ${emailResponseText}` 
+        error: `Erro ao enviar email via Resend: ${emailResponseText}`,
+        details: {
+          status: emailResponse.status,
+          response: emailResponseText
+        }
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -256,8 +308,8 @@ Equipe de Propostas
     try {
       emailResult = JSON.parse(emailResponseText);
     } catch (parseError) {
-      console.error('Erro ao fazer parse da resposta:', parseError);
-      emailResult = { id: 'unknown' };
+      console.error('Erro ao fazer parse da resposta do Resend:', parseError);
+      emailResult = { id: 'unknown', message: 'Email enviado mas resposta não pôde ser parseada' };
     }
 
     console.log('Email enviado com sucesso:', emailResult);
@@ -277,7 +329,7 @@ Equipe de Propostas
       // Não falhar aqui, apenas logar
     }
 
-    console.log('Processo finalizado com sucesso');
+    console.log('=== Processo finalizado com sucesso ===');
 
     return new Response(JSON.stringify({ 
       success: true,
@@ -285,13 +337,18 @@ Equipe de Propostas
       message: 'Proposta enviada com sucesso!',
       publicUrl: finalPublicUrl
     }), {
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
+    console.error('=== Erro geral na função ===');
     console.error('Error in send-proposal-email function:', error);
+    console.error('Stack trace:', error.stack);
+    
     return new Response(JSON.stringify({ 
-      error: error.message || 'Erro interno do servidor'
+      error: error.message || 'Erro interno do servidor',
+      details: error.stack || 'Stack trace não disponível'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

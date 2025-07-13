@@ -15,7 +15,7 @@ import SubscriptionStatus from '@/components/SubscriptionStatus';
 const ConfiguracoesPage = () => {
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'empresa';
-  
+
   const [companyLogo, setCompanyLogo] = useState<string>('');
   const [companyName, setCompanyName] = useState<string>('');
   const [isUploading, setIsUploading] = useState(false);
@@ -123,7 +123,7 @@ const ConfiguracoesPage = () => {
     // Carregar configurações salvas
     const savedLogo = localStorage.getItem('company_logo');
     const savedName = localStorage.getItem('company_name');
-    
+
     if (savedLogo) setCompanyLogo(savedLogo);
     if (savedName) setCompanyName(savedName);
   }, []);
@@ -267,7 +267,7 @@ const ConfiguracoesPage = () => {
         <TabsContent value="planos" className="space-y-6">
           {/* Subscription Status */}
           <SubscriptionStatus />
-          
+
           {/* Plans Grid */}
           <div className="grid md:grid-cols-3 gap-6">
             {plans.map((plan, index) => (
@@ -306,9 +306,9 @@ const ConfiguracoesPage = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary">Plano Equipes</Badge>
-                    <Button 
-                      asChild 
-                      variant="outline" 
+                    <Button
+                      asChild
+                      variant="outline"
                       size="sm"
                       className="border-purple-300 text-purple-700 hover:bg-purple-50"
                     >
@@ -318,7 +318,7 @@ const ConfiguracoesPage = () => {
                     </Button>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center justify-between p-4 bg-white rounded-lg border opacity-60">
                   <div>
                     <h4 className="font-medium">Integração API</h4>

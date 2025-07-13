@@ -48,7 +48,7 @@ const ProposalHeader = ({
   };
 
   return (
-    <div className="flex items-center justify-between bg-white rounded-lg p-4 shadow-sm">
+    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between bg-white rounded-lg p-4 shadow-sm gap-4">
       <div className="flex items-center gap-4">
         <Button variant="ghost" onClick={onBack}>
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -64,7 +64,7 @@ const ProposalHeader = ({
           </div>
         </div>
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button variant="outline" onClick={onViewPublic}>
           <ExternalLink className="h-4 w-4 mr-2" />
           Ver Pública
@@ -78,7 +78,7 @@ const ProposalHeader = ({
           Editar
         </Button>
         <Button 
-          className="bg-blue-600 hover:bg-blue-700" 
+          className="bg-blue-600 hover:bg-blue-700 text-white" 
           onClick={onSend}
         >
           <Send className="h-4 w-4 mr-2" />
