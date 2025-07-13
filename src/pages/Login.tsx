@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +11,8 @@ import { Loader2, FileText, AlertCircle, CheckCircle, Clock, TrendingUp, Users, 
 import { useAuth } from '@/contexts/AuthContext';
 
 const Login = () => {
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, user, loading } = useAuth();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -26,22 +28,52 @@ const Login = () => {
     confirmPassword: ''
   });
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!loading && user) {
+      console.log('User is authenticated, redirecting to dashboard');
+      navigate('/dashboard');
+    }
+  }, [user, loading, navigate]);
+
+  // Show loading if auth is still initializing
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Don't render login form if user is authenticated
+  if (user) {
+    return null;
+  }
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
 
     try {
+      console.log('Login form submitted');
       const { error } = await signIn(loginForm.email, loginForm.password);
       
       if (error) {
+        console.error('Login error:', error);
         if (error.message.includes('Invalid login credentials')) {
           setError('Email ou senha incorretos. Verifique suas credenciais.');
+        } else if (error.message.includes('Email not confirmed')) {
+          setError('Por favor, confirme seu email antes de fazer login.');
         } else {
           setError('Erro ao fazer login. Tente novamente.');
         }
+      } else {
+        console.log('Login successful, should redirect');
+        // Redirecionamento será feito pelo useEffect
       }
     } catch (err) {
+      console.error('Unexpected error:', err);
       setError('Erro inesperado. Tente novamente.');
     } finally {
       setIsLoading(false);
