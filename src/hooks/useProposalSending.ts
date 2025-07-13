@@ -63,18 +63,20 @@ export const useProposalSending = () => {
 
       toast.success('Proposta enviada por email com sucesso!');
       
-      // Atualizar status da proposta para enviada
-      const { error: statusUpdateError } = await supabase
-        .from('proposals')
-        .update({ 
-          status: 'enviada',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', proposal.id);
+      // Atualizar status da proposta para enviada apenas se ela ainda estava como rascunho
+      if (proposal.status === 'rascunho' || !proposal.status) {
+        const { error: statusUpdateError } = await supabase
+          .from('proposals')
+          .update({ 
+            status: 'enviada',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', proposal.id);
 
-      if (statusUpdateError) {
-        console.error('Erro ao atualizar status:', statusUpdateError);
-        // Não falhar por isso, apenas logar
+        if (statusUpdateError) {
+          console.error('Erro ao atualizar status:', statusUpdateError);
+          // Não falhar por isso, apenas logar
+        }
       }
 
       return true;
