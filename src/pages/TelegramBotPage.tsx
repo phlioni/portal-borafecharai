@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,8 +20,10 @@ import {
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 const TelegramBotPage = () => {
+  const { user } = useAuth();
   const [isConfiguring, setIsConfiguring] = useState(false);
   const [isTestingWebhook, setIsTestingWebhook] = useState(false);
   const [isTestingPhone, setIsTestingPhone] = useState(false);
@@ -30,9 +32,62 @@ const TelegramBotPage = () => {
   const [botUsername, setBotUsername] = useState('');
   const [testPhone, setTestPhone] = useState('');
   const [phoneTestResult, setPhoneTestResult] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // URL do webhook
   const webhookEndpoint = `https://pakrraqbjbkkbdnwkkbt.supabase.co/functions/v1/telegram-bot-webhook`;
+
+  // Verificar se o usuário é admin
+  useEffect(() => {
+    if (user?.email === 'admin@borafecharai.com') {
+      setIsAdmin(true);
+      loadWebhookSettings();
+    }
+  }, [user]);
+
+  // Carregar configurações do webhook do Supabase
+  const loadWebhookSettings = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('setting_value')
+        .eq('user_id', user.id)
+        .eq('setting_key', 'telegram_webhook')
+        .single();
+
+      if (data?.setting_value) {
+        const settings = data.setting_value as any;
+        setWebhookConfigured(settings?.configured || false);
+        setWebhookUrl(settings?.webhook_url || '');
+        setBotUsername(settings?.bot_username || '');
+      }
+    } catch (error) {
+      console.log('Configurações do webhook não encontradas');
+    }
+  };
+
+  // Salvar configurações do webhook no Supabase
+  const saveWebhookSettings = async (settings: any) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('system_settings')
+        .upsert({
+          user_id: user.id,
+          setting_key: 'telegram_webhook',
+          setting_value: settings
+        });
+
+      if (error) {
+        console.error('Erro ao salvar configurações:', error);
+      }
+    } catch (error) {
+      console.error('Erro ao salvar configurações:', error);
+    }
+  };
 
   const configureWebhook = async () => {
     setIsConfiguring(true);
@@ -52,6 +107,16 @@ const TelegramBotPage = () => {
       if (data?.success) {
         setWebhookConfigured(true);
         setWebhookUrl(data.webhook_url);
+        setBotUsername(data.bot_username || '');
+        
+        // Salvar configurações no Supabase
+        await saveWebhookSettings({
+          configured: true,
+          webhook_url: data.webhook_url,
+          bot_username: data.bot_username || '',
+          configured_at: new Date().toISOString()
+        });
+        
         toast.success('Webhook do Telegram configurado com sucesso!');
       } else {
         toast.error(data?.error || 'Erro ao configurar webhook');
@@ -183,6 +248,27 @@ const TelegramBotPage = () => {
         return data;
       });
   };
+
+  // Verificação de acesso admin
+  if (!isAdmin) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto">
+        <Card className="border-red-200 bg-red-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-900">
+              <AlertCircle className="h-5 w-5" />
+              Acesso Restrito
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-red-800">
+              Esta página é acessível apenas para administradores do sistema.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">

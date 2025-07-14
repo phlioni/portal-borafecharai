@@ -268,10 +268,28 @@ async function handleMessage(update: TelegramUpdate) {
     if (user) {
       session.userId = user.user_id;
       console.log('Usuário encontrado:', user);
+      
+      // Buscar informações da empresa para personalizar a conversa
+      const { data: companyData } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('user_id', user.user_id)
+        .single();
+      
+      console.log('Dados da empresa:', companyData);
+      
+      const businessInfo = companyData ? 
+        `Empresa: ${companyData.name}\nSetor: ${companyData.description || 'Não informado'}` : 
+        `Usuário: ${user.name}`;
+      
       await sendTelegramMessage(chatId, 
-        `✅ Telefone identificado! Olá ${user.name}!\n\nAgora vou te ajudar a criar uma proposta profissional. Vamos começar?\n\n*Qual tipo de negócio você tem?*\nEx: Agência Digital, Consultoria, E-commerce, etc.`
+        `✅ Telefone identificado! Olá ${user.name}!\n\n` +
+        `📋 ${businessInfo}\n\n` +
+        `🚀 Vou te ajudar a criar uma proposta profissional rapidamente!\n\n` +
+        `*Para qual cliente você quer criar uma proposta?*\n` +
+        `Digite o nome da empresa ou cliente:`
       );
-      session.step = 'business_type';
+      session.step = 'client_name';
     } else {
       console.log('Usuário não encontrado pelo telefone:', session.phone);
       await sendTelegramMessage(chatId, 
@@ -297,73 +315,6 @@ async function handleMessage(update: TelegramUpdate) {
       await sendTelegramMessage(chatId, 
         `👋 Olá! Eu sou o assistente de propostas!\n\nPara começar, preciso identificar você pelo seu telefone cadastrado no sistema.\n\n👇 Clique no botão abaixo para compartilhar seu telefone:`,
         keyboard
-      );
-      break;
-
-    case 'business_type':
-      console.log('Coletando tipo de negócio:', text);
-      session.data.businessType = text;
-      session.step = 'service_type';
-      await sendTelegramMessage(chatId, 
-        `✅ Tipo de negócio: *${text}*\n\n*Que tipo de serviço você quer propor?*\nEx: Desenvolvimento de Website, Consultoria em Marketing, Design Gráfico, etc.`
-      );
-      break;
-
-    case 'service_type':
-      console.log('Coletando tipo de serviço:', text);
-      session.data.serviceType = text;
-      session.step = 'target_audience';
-      await sendTelegramMessage(chatId, 
-        `✅ Serviço: *${text}*\n\n*Qual é o público-alvo deste projeto?*\nEx: Pequenas empresas, Startups, E-commerces, etc.`
-      );
-      break;
-
-    case 'target_audience':
-      console.log('Coletando público-alvo:', text);
-      session.data.targetAudience = text;
-      session.step = 'tone';
-      
-      const toneKeyboard = {
-        keyboard: [
-          [{ text: "Profissional" }, { text: "Amigável" }],
-          [{ text: "Técnico" }, { text: "Criativo" }]
-        ],
-        one_time_keyboard: true,
-        resize_keyboard: true
-      };
-      
-      await sendTelegramMessage(chatId, 
-        `✅ Público-alvo: *${text}*\n\n*Qual tom você quer na proposta?*`,
-        toneKeyboard
-      );
-      break;
-
-    case 'tone':
-      console.log('Coletando tom:', text);
-      session.data.tone = text;
-      session.step = 'template';
-      
-      const templateKeyboard = {
-        keyboard: [
-          [{ text: "Moderno" }, { text: "Executivo" }],
-          [{ text: "Criativo" }]
-        ],
-        one_time_keyboard: true,
-        resize_keyboard: true
-      };
-      
-      await sendTelegramMessage(chatId, 
-        `✅ Tom: *${text}*\n\n*Qual template você quer usar?*`,
-        templateKeyboard
-      );
-      break;
-
-    case 'template':
-      console.log('Coletando template:', text);
-      session.data.template = text.toLowerCase();
-      session.step = 'client_name';
-      await sendTelegramMessage(chatId, 
-        `✅ Template: *${text}*\n\n*Qual é o nome do cliente/empresa?*`
       );
       break;
 
