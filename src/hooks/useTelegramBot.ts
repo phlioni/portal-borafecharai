@@ -8,6 +8,7 @@ interface TelegramBotSettings {
   bot_token?: string;
   bot_username?: string;
   webhook_configured?: boolean;
+  chat_id?: number;
 }
 
 export const useTelegramBot = () => {
@@ -52,7 +53,8 @@ export const useTelegramBot = () => {
           user_id: user.id,
           bot_token: newSettings.bot_token,
           bot_username: newSettings.bot_username,
-          webhook_configured: newSettings.webhook_configured || false
+          webhook_configured: newSettings.webhook_configured || false,
+          chat_id: newSettings.chat_id
         })
         .select()
         .single();
@@ -70,6 +72,24 @@ export const useTelegramBot = () => {
     }
   };
 
+  const cleanupExpiredSessions = async () => {
+    try {
+      const { data, error } = await supabase
+        .rpc('cleanup_expired_telegram_sessions');
+
+      if (error) {
+        console.error('Error cleaning up expired sessions:', error);
+        return 0;
+      }
+
+      console.log(`Cleaned up ${data} expired sessions`);
+      return data;
+    } catch (error) {
+      console.error('Error cleaning up expired sessions:', error);
+      return 0;
+    }
+  };
+
   useEffect(() => {
     fetchSettings();
   }, [user]);
@@ -78,6 +98,7 @@ export const useTelegramBot = () => {
     settings,
     loading,
     fetchSettings,
-    saveSettings
+    saveSettings,
+    cleanupExpiredSessions
   };
 };
