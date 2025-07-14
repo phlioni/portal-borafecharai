@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
-import { ModernoTemplate, ExecutivoTemplate, CriativoTemplate } from '@/components/ProposalTemplates';
+import ProposalTemplateRenderer from '@/components/ProposalTemplateRenderer';
 
 interface ProposalPreviewModalProps {
   isOpen: boolean;
@@ -20,19 +21,6 @@ const ProposalPreviewModal = ({
   companyLogo 
 }: ProposalPreviewModalProps) => {
   
-  const renderTemplate = () => {
-    const templateId = proposal.template_id || 'moderno';
-    
-    switch (templateId) {
-      case 'executivo':
-        return <ExecutivoTemplate proposal={proposal} companyLogo={companyLogo} />;
-      case 'criativo':
-        return <CriativoTemplate proposal={proposal} companyLogo={companyLogo} />;
-      default:
-        return <ModernoTemplate proposal={proposal} companyLogo={companyLogo} />;
-    }
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -59,7 +47,11 @@ const ProposalPreviewModal = ({
           {/* Proposal Preview */}
           <div className="border rounded-lg p-1 bg-white">
             <div className="transform scale-75 origin-top">
-              {renderTemplate()}
+              <ProposalTemplateRenderer 
+                templateId={proposal.template_id || 'moderno'}
+                proposal={proposal} 
+                company={{ logo_url: companyLogo }} 
+              />
             </div>
           </div>
         </div>

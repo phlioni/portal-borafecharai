@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useCustomTemplates } from '@/hooks/useCustomTemplates';
 
@@ -68,12 +69,19 @@ const ProposalTemplateRenderer: React.FC<ProposalTemplateRendererProps> = ({
 
   // Renderizar templates padrão
   const renderDefaultTemplate = () => {
-    const baseStyles = "font-family: 'Arial', sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px;";
+    const baseStyles: React.CSSProperties = {
+      fontFamily: "'Arial', sans-serif",
+      lineHeight: '1.6',
+      color: '#333',
+      maxWidth: '800px',
+      margin: '0 auto',
+      padding: '20px'
+    };
     
     switch (templateId) {
       case 'moderno':
         return (
-          <div style={{ ...baseStyles }}>
+          <div style={baseStyles}>
             <div style={{ textAlign: 'center', marginBottom: '40px', borderBottom: '2px solid #3b82f6', paddingBottom: '20px' }}>
               {company?.logo_url && (
                 <img 
@@ -126,7 +134,7 @@ const ProposalTemplateRenderer: React.FC<ProposalTemplateRendererProps> = ({
       
       case 'classico':
         return (
-          <div style={{ ...baseStyles }}>
+          <div style={baseStyles}>
             <div style={{ textAlign: 'center', marginBottom: '40px' }}>
               {company?.logo_url && (
                 <img 
