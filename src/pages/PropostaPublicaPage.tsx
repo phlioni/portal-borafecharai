@@ -272,7 +272,7 @@ const PropostaPublicaPage = () => {
           <div className="bg-white rounded-lg shadow-sm">
             <ProposalTemplateRenderer 
               proposal={proposal} 
-              companyLogo={localStorage.getItem('company_logo') || ''} 
+              companyLogo="" 
             />
           </div>
         </div>
