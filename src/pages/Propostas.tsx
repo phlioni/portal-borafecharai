@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { 
   FileText, 
   Plus, 
@@ -20,13 +21,16 @@ import {
   Send,
   Share
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useProposals } from '@/hooks/useProposals';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ModernLoader } from '@/components/ModernLoader';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const Propostas = () => {
+  const navigate = useNavigate();
   const { data: proposals, isLoading, error } = useProposals();
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -34,6 +38,23 @@ const Propostas = () => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   
   const itemsPerPage = 10;
+
+  const deleteProposal = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('proposals')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast.success('Proposta excluída com sucesso!');
+      window.location.reload(); // Recarrega a página para atualizar a lista
+    } catch (error) {
+      console.error('Erro ao excluir proposta:', error);
+      toast.error('Erro ao excluir proposta');
+    }
+  };
 
   if (isLoading) {
     return <ModernLoader message="Carregando propostas..." />;
@@ -88,6 +109,10 @@ const Propostas = () => {
   const handleViewProposal = (proposal: any) => {
     setSelectedProposal(proposal);
     setIsViewModalOpen(true);
+  };
+
+  const handleEditProposal = (proposalId: string) => {
+    navigate(`/propostas/${proposalId}/editar`);
   };
 
   return (
@@ -201,23 +226,38 @@ const Propostas = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            asChild
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Link to={`/propostas/${proposal.id}/editar`}>
-                              <Edit className="h-4 w-4" />
-                            </Link>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              // TODO: Implementar delete
+                              handleEditProposal(proposal.id);
                             }}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Edit className="h-4 w-4" />
                           </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Excluir Proposta</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja excluir esta proposta? Esta ação não pode ser desfeita.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteProposal(proposal.id)}>
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -319,11 +359,12 @@ const Propostas = () => {
                     Visualizar Completa
                   </Link>
                 </Button>
-                <Button variant="outline" asChild>
-                  <Link to={`/propostas/${selectedProposal.id}/editar`}>
-                    <Edit className="h-4 w-4 mr-2" />
-                    Editar
-                  </Link>
+                <Button variant="outline" onClick={() => {
+                  setIsViewModalOpen(false);
+                  handleEditProposal(selectedProposal.id);
+                }}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Editar
                 </Button>
               </div>
             </div>

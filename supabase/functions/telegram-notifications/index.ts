@@ -53,6 +53,7 @@ async function processNotifications() {
         proposals:proposal_id (
           id,
           title,
+          value,
           companies:company_id (
             name
           )
@@ -70,43 +71,64 @@ async function processNotifications() {
 
     for (const notification of notifications || []) {
       try {
-        // Buscar configurações do bot do usuário
+        // Buscar configurações do bot do usuário para obter o chat_id
         const { data: botSettings } = await supabase
           .from('telegram_bot_settings')
           .select('*')
           .eq('user_id', notification.user_id)
           .single();
 
-        if (!botSettings?.bot_token) {
-          console.log(`Usuário ${notification.user_id} não tem bot configurado`);
+        if (!botSettings?.chat_id) {
+          console.log(`Usuário ${notification.user_id} não tem chat_id configurado`);
+          
+          // Marcar como processada mesmo sem enviar
+          const { error: updateError } = await supabase
+            .from('proposal_notifications')
+            .update({ notified: true })
+            .eq('id', notification.id);
+
+          if (updateError) {
+            console.error('Erro ao marcar notificação como processada:', updateError);
+          }
           continue;
         }
 
-        // Buscar o chat_id do usuário (seria necessário armazenar isso quando o usuário inicia o bot)
-        // Por enquanto, vamos tentar enviar para o próprio usuário usando o ID do Telegram
-        
         const proposal = notification.proposals;
         const companyName = proposal?.companies?.name || 'Cliente';
+        const proposalValue = proposal?.value ? 
+          `R$ ${proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 
+          'Valor não informado';
         
         let message = '';
         if (notification.status === 'aceita') {
           message = `🎉 *Proposta Aceita!*\n\n` +
                    `📋 **${proposal?.title || 'Proposta'}**\n` +
-                   `👤 Cliente: ${companyName}\n\n` +
+                   `👤 Cliente: ${companyName}\n` +
+                   `💰 Valor: ${proposalValue}\n\n` +
                    `✅ Parabéns! Sua proposta foi aceita pelo cliente.\n\n` +
-                   `💡 Agora é hora de começar o projeto!`;
+                   `💡 Agora é hora de começar o projeto!\n\n` +
+                   `🔗 Acesse o sistema para ver mais detalhes.`;
         } else if (notification.status === 'rejeitada') {
           message = `❌ *Proposta Rejeitada*\n\n` +
                    `📋 **${proposal?.title || 'Proposta'}**\n` +
-                   `👤 Cliente: ${companyName}\n\n` +
+                   `👤 Cliente: ${companyName}\n` +
+                   `💰 Valor: ${proposalValue}\n\n` +
                    `😞 Infelizmente, sua proposta foi rejeitada pelo cliente.\n\n` +
-                   `💡 Não desista! Analise o feedback e prepare uma nova proposta.`;
+                   `💡 Não desista! Analise o feedback e prepare uma nova proposta.\n\n` +
+                   `🚀 Que tal criar uma nova proposta agora mesmo? Digite /start`;
         }
 
-        // Aqui você precisaria ter uma forma de obter o chat_id do Telegram do usuário
-        // Por exemplo, salvando quando o usuário inicia o bot pela primeira vez
-        // Por enquanto, vamos marcar como processada
-        
+        if (message) {
+          const success = await sendTelegramNotification(botSettings.chat_id.toString(), message);
+          
+          if (success) {
+            console.log(`Notificação enviada com sucesso para usuário ${notification.user_id}`);
+          } else {
+            console.log(`Falha ao enviar notificação para usuário ${notification.user_id}`);
+          }
+        }
+
+        // Marcar como processada independentemente do sucesso do envio
         const { error: updateError } = await supabase
           .from('proposal_notifications')
           .update({ notified: true })
@@ -120,6 +142,16 @@ async function processNotifications() {
 
       } catch (error) {
         console.error('Erro ao processar notificação individual:', error);
+        
+        // Marcar como processada mesmo com erro para evitar loop infinito
+        const { error: updateError } = await supabase
+          .from('proposal_notifications')
+          .update({ notified: true })
+          .eq('id', notification.id);
+
+        if (updateError) {
+          console.error('Erro ao marcar notificação como processada após erro:', updateError);
+        }
       }
     }
   } catch (error) {
@@ -133,6 +165,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Processando notificações do Telegram...');
+    
     // Processar notificações pendentes
     await processNotifications();
     

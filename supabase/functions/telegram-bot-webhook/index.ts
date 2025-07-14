@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
@@ -58,9 +59,6 @@ const supabase = createClient(
 
 // Armazenar sessões em memória
 const userSessions = new Map<number, UserSession>();
-
-// Criar tabela em memória para armazenar chat_ids dos usuários
-const userChatIds = new Map<string, number>();
 
 const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
 
@@ -147,6 +145,34 @@ async function findUserByPhone(phone: string) {
 
   console.log('❌ Usuário não encontrado pelo telefone');
   return null;
+}
+
+async function getRecentProposals(userId: string) {
+  try {
+    const { data: proposals, error } = await supabase
+      .from('proposals')
+      .select(`
+        id,
+        title,
+        status,
+        value,
+        created_at,
+        companies (name)
+      `)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (error) {
+      console.error('Erro ao buscar propostas:', error);
+      return [];
+    }
+
+    return proposals || [];
+  } catch (error) {
+    console.error('Erro ao buscar propostas:', error);
+    return [];
+  }
 }
 
 async function createProposalForUser(session: UserSession) {
@@ -305,18 +331,23 @@ async function handleMessage(update: TelegramUpdate) {
         `Empresa: ${companyData.name}\nSetor: ${companyData.description || 'Não informado'}` : 
         `Usuário: ${user.name}`;
       
+      const keyboard = {
+        keyboard: [
+          [{ text: "🆕 Criar Nova Proposta" }],
+          [{ text: "📊 Ver Status das Propostas" }]
+        ],
+        one_time_keyboard: false,
+        resize_keyboard: true
+      };
+      
       await sendTelegramMessage(chatId, 
         `✅ *Telefone identificado!* Olá ${user.name}!\n\n` +
         `📋 ${businessInfo}\n\n` +
         `🤖 *Bem-vindo ao @borafecharai_bot!*\n\n` +
-        `🚀 Posso te ajudar a:\n` +
-        `• Criar propostas profissionais\n` +
-        `• Enviar notificações sobre suas propostas\n` +
-        `• Acompanhar status das propostas\n\n` +
-        `*Para qual cliente você quer criar uma proposta?*\n` +
-        `Digite o nome da empresa ou cliente:`
+        `🚀 O que você gostaria de fazer?`,
+        keyboard
       );
-      session.step = 'client_name';
+      session.step = 'main_menu';
     } else {
       console.log('Usuário não encontrado pelo telefone:', session.phone);
       await sendTelegramMessage(chatId, 
@@ -350,12 +381,61 @@ async function handleMessage(update: TelegramUpdate) {
         `Sou seu assistente para criação de propostas profissionais.\n\n` +
         `📲 *Funcionalidades:*\n` +
         `• Criar propostas pelo Telegram\n` +
-        `• Receber notificações em tempo real\n` +
-        `• Acompanhar status das propostas\n\n` +
+        `• Ver status das suas propostas\n` +
+        `• Receber notificações em tempo real\n\n` +
         `Para começar, preciso identificar você pelo seu telefone cadastrado no sistema.\n\n` +
         `👇 *Clique no botão abaixo para compartilhar seu telefone:*`,
         keyboard
       );
+      break;
+
+    case 'main_menu':
+      if (text === '🆕 Criar Nova Proposta') {
+        session.step = 'client_name';
+        session.data = {}; // Reset proposal data
+        await sendTelegramMessage(chatId, 
+          `🆕 *Vamos criar uma nova proposta!*\n\n*Para qual cliente você quer criar uma proposta?*\n` +
+          `Digite o nome da empresa ou cliente:`
+        );
+      } else if (text === '📊 Ver Status das Propostas') {
+        const proposals = await getRecentProposals(session.userId!);
+        
+        if (proposals.length === 0) {
+          await sendTelegramMessage(chatId, 
+            `📊 *Status das Propostas*\n\n` +
+            `❌ Você ainda não tem propostas cadastradas.\n\n` +
+            `💡 Que tal criar sua primeira proposta?`
+          );
+        } else {
+          let statusMessage = `📊 *Suas últimas ${proposals.length} propostas:*\n\n`;
+          
+          proposals.forEach((proposal, index) => {
+            const statusEmoji = {
+              'rascunho': '📝',
+              'enviada': '📤',
+              'visualizada': '👁️',
+              'aceita': '✅',
+              'rejeitada': '❌'
+            };
+            
+            const value = proposal.value ? `R$ ${proposal.value.toLocaleString('pt-BR')}` : 'Valor não definido';
+            const client = proposal.companies?.name || 'Cliente não informado';
+            const status = proposal.status || 'rascunho';
+            
+            statusMessage += `${index + 1}. *${proposal.title}*\n`;
+            statusMessage += `   👤 Cliente: ${client}\n`;
+            statusMessage += `   💰 Valor: ${value}\n`;
+            statusMessage += `   ${statusEmoji[status]} Status: ${status.charAt(0).toUpperCase() + status.slice(1)}\n\n`;
+          });
+          
+          await sendTelegramMessage(chatId, statusMessage);
+        }
+      } else {
+        await sendTelegramMessage(chatId, 
+          `❓ *Não entendi sua mensagem.*\n\n` +
+          `🤖 Use os botões do menu ou digite /start para começar novamente.`
+        );
+      }
       break;
 
     case 'client_name':
@@ -505,11 +585,21 @@ async function handleMessage(update: TelegramUpdate) {
         summary += `1. Acesse o sistema para revisar\n`;
         summary += `2. Envie a proposta para o cliente\n`;
         summary += `3. Acompanhe o status aqui no Telegram\n\n`;
-        summary += `🔄 Para criar outra proposta, digite /start novamente.`;
         
-        await sendTelegramMessage(chatId, summary);
-
-        userSessions.delete(userId);
+        const keyboard = {
+          keyboard: [
+            [{ text: "🆕 Criar Nova Proposta" }],
+            [{ text: "📊 Ver Status das Propostas" }]
+          ],
+          one_time_keyboard: false,
+          resize_keyboard: true
+        };
+        
+        await sendTelegramMessage(chatId, summary, keyboard);
+        
+        // Voltar ao menu principal
+        session.step = 'main_menu';
+        session.data = {};
         
       } catch (error) {
         console.error('Erro ao criar proposta:', error);
@@ -529,7 +619,7 @@ async function handleMessage(update: TelegramUpdate) {
         `❓ *Não entendi sua mensagem.*\n\n` +
         `🤖 Para começar uma nova conversa, digite /start\n\n` +
         `💡 *Comandos disponíveis:*\n` +
-        `• /start - Iniciar criação de proposta\n` +
+        `• /start - Iniciar ou reiniciar conversa\n` +
         `• Compartilhar telefone - Para identificação`
       );
       break;
