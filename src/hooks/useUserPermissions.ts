@@ -160,6 +160,12 @@ export const useUserPermissions = () => {
         // Trial period permissions
         if (isInTrial) {
           const trialProposalsUsed = subscriberData?.trial_proposals_used || 0;
+          console.log('useUserPermissions - Trial ativo:', {
+            isInTrial,
+            canCreate,
+            trialProposalsUsed,
+            trialEndDate: subscriberData?.trial_end_date
+          });
           return {
             isAdmin: false,
             canCreateProposal: canCreate || false,

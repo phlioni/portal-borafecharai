@@ -23,11 +23,20 @@ const PlanLimitGuard: React.FC<PlanLimitGuardProps> = ({
     canCollaborate,
     monthlyProposalCount,
     monthlyProposalLimit,
-    loading
+    loading,
+    isAdmin
   } = useUserPermissions();
 
   if (loading) {
     return <div>Carregando...</div>;
+  }
+
+  // Debug para propostas
+  if (feature === 'createProposal') {
+    console.log('PlanLimitGuard - canCreateProposal:', canCreateProposal);
+    console.log('PlanLimitGuard - isAdmin:', isAdmin);
+    console.log('PlanLimitGuard - monthlyProposalCount:', monthlyProposalCount);
+    console.log('PlanLimitGuard - monthlyProposalLimit:', monthlyProposalLimit);
   }
 
   const hasAccess = () => {
