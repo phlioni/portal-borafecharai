@@ -188,6 +188,28 @@ export const useCompany = () => {
     }
   };
 
+  const checkUniquePhone = async (phone: string, userId: string): Promise<boolean> => {
+    if (!phone || !userId) return true;
+
+    try {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('phone', phone.trim())
+        .neq('user_id', userId);
+
+      if (error) {
+        console.error('Erro ao verificar telefone:', error);
+        return false;
+      }
+
+      return (data as any[]).length === 0;
+    } catch (error) {
+      console.error('Erro ao verificar telefone:', error);
+      return false;
+    }
+  };
+
   const createCompany = async (companyData: Omit<Company, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
     if (!user) throw new Error('User not authenticated');
 
@@ -313,6 +335,7 @@ export const useCompany = () => {
     fetchCompanies,
     createCompany,
     updateCompany,
-    deleteCompany
+    deleteCompany,
+    checkUniquePhone
   };
 };

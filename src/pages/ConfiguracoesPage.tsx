@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -143,7 +142,7 @@ const ConfiguracoesPage = () => {
 
       if (companyData) {
         // Update existing company
-        await updateCompany({ id: companyData.id, updates: values as Omit<Company, 'created_at' | 'id' | 'updated_at' | 'user_id'> });
+        await updateCompany(companyData.id, values as Partial<Company>);
         toast.success('Empresa atualizada com sucesso!');
       } else {
         // Create new company
