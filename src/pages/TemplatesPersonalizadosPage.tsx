@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -202,7 +201,7 @@ const TemplatesPersonalizadosPage = () => {
                     required
                   />
                   <p className="text-sm text-muted-foreground mt-2">
-                    Use variáveis como \{\{title\}\}, \{\{company.name\}\}, \{\{service_description\}\}, etc.
+                    Use variáveis como {'{{title}}'}, {'{{company.name}}'}, {'{{service_description}}'}, etc.
                   </p>
                 </div>
                 
