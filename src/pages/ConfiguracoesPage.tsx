@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,8 +23,13 @@ import {
   Trash2,
   UserCheck,
   RotateCcw,
-  Bell
+  MessageCircle,
+  Check,
+  X,
+  Crown,
+  RefreshCw
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -32,6 +38,9 @@ import { useCompany } from '@/hooks/useCompanies';
 import { useAdminOperations } from '@/hooks/useAdminOperations';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import CompanyLogoUpload from '@/components/CompanyLogoUpload';
+import TelegramBotUserGuide from '@/components/TelegramBotUserGuide';
+import { useTelegramBot } from '@/hooks/useTelegramBot';
+import { supabase } from '@/integrations/supabase/client';
 
 interface User {
   id: string;
@@ -77,9 +86,16 @@ const ConfiguracoesPage = () => {
   const trialStatus = useTrialStatus();
   const { companies, loading: companiesLoading, createCompany, updateCompany, deleteCompany, checkUniquePhone } = useCompany();
   const { loadUsers, resetUserData, manageUserStatus } = useAdminOperations();
+  const { settings, loading: telegramLoading, saveSettings } = useTelegramBot();
   
   const [companyData, setCompanyData] = useState<Company | null>(null);
   const [isCompanyFormLoading, setIsCompanyFormLoading] = useState(false);
+  const [telegramFormData, setTelegramFormData] = useState({
+    bot_token: '',
+    bot_username: ''
+  });
+  const [isConfiguringTelegram, setIsConfiguringTelegram] = useState(false);
+  const [webhookStatus, setWebhookStatus] = useState<'pending' | 'success' | 'error'>('pending');
 
   const companySchema = z.object({
     name: z.string().min(2, {
@@ -130,10 +146,18 @@ const ConfiguracoesPage = () => {
     }
   }, [companies, companyForm]);
 
+  useEffect(() => {
+    if (settings.bot_token) {
+      setTelegramFormData({
+        bot_token: settings.bot_token,
+        bot_username: settings.bot_username || ''
+      });
+    }
+  }, [settings]);
+
   const onSubmitCompany = async (values: z.infer<typeof companySchema>) => {
     setIsCompanyFormLoading(true);
     try {
-      // Validar telefone único se foi fornecido
       if (values.phone && values.phone.trim() !== '') {
         const phoneIsUnique = await checkUniquePhone(values.phone, user?.id || '');
         if (!phoneIsUnique) {
@@ -144,11 +168,9 @@ const ConfiguracoesPage = () => {
       }
 
       if (companyData) {
-        // Update existing company
         await updateCompany(companyData.id, values as Partial<Company>);
         toast.success('Empresa atualizada com sucesso!');
       } else {
-        // Create new company - ensure required fields are present
         const companyToCreate = {
           name: values.name,
           email: values.email,
@@ -176,6 +198,76 @@ const ConfiguracoesPage = () => {
   const handleLogoUpdate = (logoUrl: string | null) => {
     if (companyData) {
       setCompanyData({ ...companyData, logo_url: logoUrl });
+    }
+  };
+
+  const handleTelegramSave = async () => {
+    if (!telegramFormData.bot_token.trim()) {
+      toast.error('Token do bot é obrigatório');
+      return;
+    }
+
+    setIsConfiguringTelegram(true);
+    try {
+      await saveSettings({
+        bot_token: telegramFormData.bot_token,
+        bot_username: telegramFormData.bot_username,
+        webhook_configured: false
+      });
+
+      const { data, error } = await supabase.functions.invoke('setup-telegram-webhook', {
+        body: {
+          bot_token: telegramFormData.bot_token
+        }
+      });
+
+      if (error) {
+        console.error('Erro ao configurar webhook:', error);
+        setWebhookStatus('error');
+        toast.error('Bot salvo, mas erro ao configurar webhook');
+      } else {
+        console.log('Webhook configurado:', data);
+        setWebhookStatus('success');
+        
+        await saveSettings({
+          bot_token: telegramFormData.bot_token,
+          bot_username: telegramFormData.bot_username,
+          webhook_configured: true
+        });
+        
+        toast.success('Bot configurado com sucesso!');
+      }
+    } catch (error) {
+      console.error('Erro ao salvar configurações:', error);
+      setWebhookStatus('error');
+      toast.error('Erro ao configurar bot');
+    } finally {
+      setIsConfiguringTelegram(false);
+    }
+  };
+
+  const testTelegramBot = async () => {
+    if (!settings.bot_token) {
+      toast.error('Configure o bot primeiro');
+      return;
+    }
+
+    try {
+      const response = await fetch(`https://api.telegram.org/bot${settings.bot_token}/getMe`);
+      const data = await response.json();
+
+      if (data.ok) {
+        toast.success(`Bot "${data.result.first_name}" está funcionando!`);
+        setTelegramFormData(prev => ({
+          ...prev,
+          bot_username: data.result.username || ''
+        }));
+      } else {
+        toast.error('Token inválido ou bot não encontrado');
+      }
+    } catch (error) {
+      console.error('Erro ao testar bot:', error);
+      toast.error('Erro ao conectar com o Telegram');
     }
   };
 
@@ -225,24 +317,86 @@ const ConfiguracoesPage = () => {
     }
   }, [isAdmin]);
 
-  const tabsList = [
-    { value: "perfil", label: "Perfil & Empresa", icon: Building },
-    { value: "plano", label: "Plano & Assinatura", icon: CreditCard },
-    { value: "notificacoes", label: "Notificações", icon: Bell },
-  ];
+  const renderPlanCard = (title: string, price: string, features: { text: string; included: boolean }[], popular = false) => (
+    <div className={`relative bg-white rounded-lg border p-6 ${popular ? 'border-blue-500 ring-2 ring-blue-500' : 'border-gray-200'}`}>
+      {popular && (
+        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+          <Badge className="bg-blue-600 text-white px-3 py-1">
+            <Crown className="w-3 h-3 mr-1" />
+            Mais Popular
+          </Badge>
+        </div>
+      )}
+      
+      <div className="text-center mb-6">
+        <h3 className="text-xl font-bold text-gray-900 mb-2">{title}</h3>
+        <div className="mb-4">
+          <span className="text-3xl font-bold text-gray-900">{price}</span>
+          <span className="text-gray-600">/mês</span>
+        </div>
+      </div>
 
-  if (isAdmin) {
-    tabsList.push({ value: "admin", label: "Admin", icon: Users });
-  }
+      <div className="space-y-3 mb-6">
+        {features.map((feature, index) => (
+          <div key={index} className="flex items-center space-x-3">
+            <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
+              feature.included ? 'bg-green-100' : 'bg-gray-100'
+            }`}>
+              {feature.included ? (
+                <Check className="w-3 h-3 text-green-600" />
+              ) : (
+                <X className="w-3 h-3 text-gray-400" />
+              )}
+            </div>
+            <span className={`text-sm ${
+              feature.included ? 'text-gray-900' : 'text-gray-500'
+            }`}>
+              {feature.text}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <Button 
+        className="w-full" 
+        variant={popular ? "default" : "outline"}
+        disabled={subscription.subscribed && subscription.subscription_tier === (title === 'Essencial' ? 'basico' : 'profissional')}
+      >
+        {subscription.subscribed && subscription.subscription_tier === (title === 'Essencial' ? 'basico' : 'profissional') 
+          ? 'Plano Atual' 
+          : 'Assinar Agora'
+        }
+      </Button>
+    </div>
+  );
+
+  const getTabsList = () => {
+    const baseTabs = [
+      { value: "negocio", label: "Meu Negócio", icon: Building },
+      { value: "planos", label: "Planos", icon: CreditCard },
+      { value: "telegram", label: "Bot Telegram", icon: MessageCircle },
+    ];
+
+    if (isAdmin) {
+      baseTabs.push({ value: "admin", label: "Admin", icon: Users });
+    }
+
+    return baseTabs;
+  };
+
+  const tabsList = getTabsList();
 
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Configurações</h1>
+        <div>
+          <h1 className="text-3xl font-bold">Configurações</h1>
+          <p className="text-gray-600">Gerencie sua empresa, planos e configurações</p>
+        </div>
       </div>
 
-      <Tabs defaultValue="perfil" className="space-y-6">
-        <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'}`}>
+      <Tabs defaultValue="negocio" className="space-y-6">
+        <TabsList className={`grid w-full grid-cols-${tabsList.length}`}>
           {tabsList.map((tab) => (
             <TabsTrigger key={tab.value} value={tab.value}>
               <tab.icon className="h-4 w-4 mr-2" />
@@ -251,7 +405,7 @@ const ConfiguracoesPage = () => {
           ))}
         </TabsList>
 
-        <TabsContent value="perfil" className="space-y-6">
+        <TabsContent value="negocio" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -380,59 +534,294 @@ const ConfiguracoesPage = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="plano" className="space-y-6">
+        <TabsContent value="planos" className="space-y-6">
+          {/* Status da Assinatura */}
           <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Crown className="h-5 w-5" />
+                  Status da Assinatura
+                </CardTitle>
+                <CardDescription>
+                  Gerencie sua assinatura e veja os detalhes do seu plano
+                </CardDescription>
+              </div>
+              <Button variant="outline" size="sm">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Atualizar
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Badge variant={subscription.subscribed ? "default" : "secondary"}>
+                    {subscription.subscribed ? 
+                      (subscription.subscription_tier === 'basico' ? 'Essencial' : 'Professional') 
+                      : 'Sem Assinatura'
+                    }
+                  </Badge>
+                  <span className="text-sm text-gray-600">
+                    {subscription.subscribed ? 'Ativo' : 'Gratuito'}
+                  </span>
+                </div>
+                {!subscription.subscribed && (
+                  <p className="text-gray-600">
+                    Você está no plano gratuito. Assine um plano para acessar recursos premium.
+                  </p>
+                )}
+              </div>
+              {!subscription.subscribed && (
+                <div className="mt-4">
+                  <Button asChild>
+                    <Link to="/planos">Ver Planos</Link>
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Planos */}
+          <div className="grid md:grid-cols-2 gap-6">
+            {renderPlanCard('Essencial', 'R$ 39,90', [
+              { text: 'Até 10 propostas por mês', included: true },
+              { text: 'Templates básicos', included: true },
+              { text: 'Gestão de clientes', included: true },
+              { text: 'Suporte por email', included: true },
+              { text: 'Analytics básico', included: false },
+              { text: 'Templates premium', included: false },
+              { text: 'Suporte prioritário', included: false },
+            ])}
+
+            {renderPlanCard('Professional', 'R$ 79,90', [
+              { text: 'Propostas ilimitadas', included: true },
+              { text: 'Templates básicos', included: true },
+              { text: 'Templates premium', included: true },
+              { text: 'Gestão avançada de clientes', included: true },
+              { text: 'Analytics completo', included: true },
+              { text: 'Suporte prioritário', included: true },
+              { text: 'Colaboração em equipe', included: false },
+            ], true)}
+          </div>
+
+          {/* Recursos Avançados */}
+          <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                Plano & Assinatura
+              <CardTitle className="flex items-center gap-2 text-purple-900">
+                <Crown className="h-5 w-5" />
+                Recursos Avançados
               </CardTitle>
-              <CardDescription>
-                Gerencie seu plano e assinatura
+              <CardDescription className="text-purple-700">
+                Recursos exclusivos para planos premium
               </CardDescription>
             </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold text-purple-900 mb-2">Templates Personalizados</h4>
+                    <p className="text-sm text-purple-700 mb-3">Crie templates únicos para suas propostas</p>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-purple-600 border-purple-300">
+                        Plano Equipes
+                      </Badge>
+                      <Button size="sm" variant="outline" className="text-purple-600 border-purple-300">
+                        Acessar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold text-purple-900 mb-2">Integração API</h4>
+                    <p className="text-sm text-purple-700 mb-3">Conecte com seus sistemas</p>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-gray-600">
+                        Em breve
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Perguntas Frequentes */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Perguntas Frequentes</CardTitle>
+            </CardHeader>
             <CardContent className="space-y-4">
-              {subscription.subscribed ? (
-                <>
-                  <p>
-                    Seu plano atual é:{' '}
-                    <span className="font-medium">
-                      {subscription.subscription_tier === 'basico' ? 'Essencial' : 'Professional'}
-                    </span>
-                  </p>
-                  <p>
-                    Status da assinatura:{' '}
-                    <Switch checked={subscription.subscribed} disabled />
-                  </p>
-                </>
-              ) : trialStatus.trialEndDate ? (
-                <p>
-                  Você está no período de trial. Termina em:{' '}
-                  {trialStatus.trialEndDate.toLocaleDateString()}
+              <div className="border-l-4 border-blue-500 pl-4">
+                <h4 className="font-semibold text-gray-900 mb-2">
+                  Posso cancelar minha assinatura a qualquer momento?
+                </h4>
+                <p className="text-gray-600 text-sm">
+                  Sim, você pode cancelar sua assinatura a qualquer momento através do portal do cliente.
                 </p>
-              ) : (
-                <p>Você está no plano gratuito.</p>
-              )}
-              <Button>Mudar Plano</Button>
+              </div>
+              <div className="border-l-4 border-green-500 pl-4">
+                <h4 className="font-semibold text-gray-900 mb-2">
+                  Existe período de teste gratuito?
+                </h4>
+                <p className="text-gray-600 text-sm">
+                  Sim, oferecemos 15 dias de teste gratuito com até 20 propostas para novos usuários.
+                </p>
+              </div>
+              <div className="border-l-4 border-purple-500 pl-4">
+                <h4 className="font-semibold text-gray-900 mb-2">
+                  Posso alterar meu plano depois?
+                </h4>
+                <p className="text-gray-600 text-sm">
+                  Claro! Você pode fazer upgrade ou downgrade do seu plano a qualquer momento.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="notificacoes" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5" />
-                Notificações
-              </CardTitle>
-              <CardDescription>
-                Gerencie suas preferências de notificação
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Em breve...</p>
-            </CardContent>
-          </Card>
+        <TabsContent value="telegram" className="space-y-6">
+          {isAdmin ? (
+            // Admin view - Bot configuration
+            <div className="space-y-6">
+              {/* Status */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageCircle className="h-5 w-5" />
+                    Status da Configuração
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-4">
+                    {settings.bot_token ? (
+                      <Badge variant="default" className="flex items-center gap-1">
+                        <Check className="h-4 w-4" />
+                        Bot Configurado
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="flex items-center gap-1">
+                        <X className="h-4 w-4" />
+                        Bot Não Configurado
+                      </Badge>
+                    )}
+                    
+                    {settings.webhook_configured ? (
+                      <Badge variant="default" className="flex items-center gap-1">
+                        <Check className="h-4 w-4" />
+                        Webhook Ativo
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        <X className="h-4 w-4" />
+                        Webhook Pendente
+                      </Badge>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Configuration Form */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Configuração do Bot</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="bot_token">Token do Bot</Label>
+                    <Input
+                      id="bot_token"
+                      type="password"
+                      value={telegramFormData.bot_token}
+                      onChange={(e) => setTelegramFormData({...telegramFormData, bot_token: e.target.value})}
+                      placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
+                    />
+                    <p className="text-sm text-gray-500 mt-1">
+                      Obtenha o token conversando com @BotFather no Telegram
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="bot_username">Username do Bot (opcional)</Label>
+                    <Input
+                      id="bot_username"
+                      value={telegramFormData.bot_username}
+                      onChange={(e) => setTelegramFormData({...telegramFormData, bot_username: e.target.value})}
+                      placeholder="borafecharai_bot"
+                    />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={handleTelegramSave} 
+                      disabled={isConfiguringTelegram}
+                      className="flex items-center gap-2"
+                    >
+                      {isConfiguringTelegram ? 'Configurando...' : 'Salvar Configuração'}
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      onClick={testTelegramBot}
+                      disabled={!telegramFormData.bot_token}
+                    >
+                      Testar Bot
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            // User view - How to use guide
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageCircle className="h-5 w-5 text-blue-600" />
+                    Configure seu Bot do Telegram
+                  </CardTitle>
+                  <CardDescription>
+                    Permita que seus clientes criem propostas diretamente pelo Telegram
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="text-center py-8">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <MessageCircle className="h-8 w-8 text-blue-600" />
+                  </div>
+                  <Button className="mb-8">
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Configurar Bot
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-blue-50 border-blue-200">
+                <CardHeader>
+                  <CardTitle className="text-blue-900">Como funciona:</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
+                    <p className="text-blue-900">Cliente inicia conversa com o bot <strong>@borafecharai_bot</strong></p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
+                    <p className="text-blue-900">Bot identifica o cliente pelo telefone</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">3</div>
+                    <p className="text-blue-900">Coleta todas as informações da proposta</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">4</div>
+                    <p className="text-blue-900">Cria proposta automaticamente no sistema</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <TelegramBotUserGuide />
+            </div>
+          )}
         </TabsContent>
 
         {/* Admin Tab - only shown if user is admin */}

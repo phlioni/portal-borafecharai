@@ -15,7 +15,7 @@ const Planos = () => {
       {
         title: 'Essencial',
         description: 'Ideal para freelancers e pequenos projetos',
-        price: 'R$ 49,90',
+        price: 'R$ 39,90',
         productId: 'prod_SfuTlv2mX4TfJe',
         planTier: 'basico' as const,
         features: [
@@ -29,9 +29,9 @@ const Planos = () => {
         ],
       },
       {
-        title: 'Profissional',
+        title: 'Professional',
         description: 'Para empresas que precisam de mais recursos',
-        price: 'R$ 89,90',
+        price: 'R$ 79,90',
         productId: 'prod_SfuTErakRcHMsq',
         planTier: 'profissional' as const,
         popular: true,
@@ -43,22 +43,6 @@ const Planos = () => {
           { text: 'Analytics completo', included: true },
           { text: 'Suporte prioritário', included: true },
           { text: 'Colaboração em equipe', included: false },
-        ],
-      },
-      {
-        title: 'Equipes',
-        description: 'Para equipes que precisam colaborar',
-        price: 'R$ 149,90',
-        productId: 'prod_SfuTPAmInfb3sD',
-        planTier: 'equipes' as const,
-        features: [
-          { text: 'Propostas ilimitadas', included: true },
-          { text: 'Todos os templates', included: true },
-          { text: 'Gestão avançada de clientes', included: true },
-          { text: 'Analytics completo', included: true },
-          { text: 'Colaboração em equipe', included: true },
-          { text: 'Usuários ilimitados', included: true },
-          { text: 'Suporte premium 24/7', included: true },
         ],
       },
     ];
@@ -109,7 +93,7 @@ const Planos = () => {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-12">
+        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-12">
           {plans.map((plan, index) => (
             <SubscriptionPlanCard
               key={index}
@@ -123,6 +107,18 @@ const Planos = () => {
               popular={plan.popular}
             />
           ))}
+        </div>
+
+        {/* Trial Info */}
+        <div className="max-w-4xl mx-auto mb-12">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+            <h3 className="text-lg font-semibold text-green-900 mb-2">
+              🎉 Teste Gratuito de 15 Dias
+            </h3>
+            <p className="text-green-700">
+              Experimente todos os recursos premium gratuitamente por 15 dias com até 20 propostas incluídas!
+            </p>
+          </div>
         </div>
 
         {/* FAQ Section */}
@@ -144,7 +140,7 @@ const Planos = () => {
                 Existe período de teste gratuito?
               </h3>
               <p className="text-gray-600">
-                Sim, oferecemos 7 dias de teste gratuito para todos os planos pagos. Você pode experimentar todos os recursos premium sem compromisso.
+                Sim, oferecemos 15 dias de teste gratuito para todos os planos pagos com até 20 propostas incluídas. Você pode experimentar todos os recursos premium sem compromisso.
               </p>
             </div>
             <div className="bg-white rounded-lg p-6 shadow-sm border">
@@ -153,6 +149,14 @@ const Planos = () => {
               </h3>
               <p className="text-gray-600">
                 Claro! Você pode fazer upgrade ou downgrade do seu plano a qualquer momento. As alterações serão aplicadas no próximo ciclo de cobrança.
+              </p>
+            </div>
+            <div className="bg-white rounded-lg p-6 shadow-sm border">
+              <h3 className="font-semibold text-gray-900 mb-2">
+                Qual a diferença entre os planos?
+              </h3>
+              <p className="text-gray-600">
+                O plano Essencial é ideal para freelancers com até 10 propostas mensais. O Professional oferece propostas ilimitadas, templates premium e analytics completo.
               </p>
             </div>
           </div>
