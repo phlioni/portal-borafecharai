@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -365,7 +365,12 @@ const Login = () => {
           </Card>
 
           <div className="text-center mt-4 text-xs text-gray-500">
-            <p>Ao criar uma conta, você concorda com nossos termos de uso</p>
+            <p>
+              Ao criar uma conta, você concorda com nossos{' '}
+              <Link to="/termos-de-uso" className="text-blue-600 hover:text-blue-800 underline">
+                termos de uso
+              </Link>
+            </p>
           </div>
         </div>
       </div>

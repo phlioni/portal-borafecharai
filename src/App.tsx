@@ -23,6 +23,7 @@ import Planos from '@/pages/Planos';
 import TemplatesPersonalizadosPage from '@/pages/TemplatesPersonalizadosPage';
 import TelegramBotPage from '@/pages/TelegramBotPage';
 import GerenciamentoUsuariosPage from '@/pages/GerenciamentoUsuariosPage';
+import TermosDeUso from '@/pages/TermosDeUso';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,6 +46,7 @@ function App() {
             {/* Rotas públicas */}
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/termos-de-uso" element={<TermosDeUso />} />
             <Route path="/planos" element={<Planos />} />
             
             {/* Rotas autenticadas */}
