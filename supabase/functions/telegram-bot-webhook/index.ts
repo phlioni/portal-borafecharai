@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
@@ -56,9 +57,6 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
-// Armazenar sessões em memória
-const userSessions = new Map<number, UserSession>();
-
 const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
 
 async function sendTelegramMessage(chatId: number, text: string, replyMarkup?: any) {
@@ -97,6 +95,86 @@ async function sendTelegramMessage(chatId: number, text: string, replyMarkup?: a
   } catch (error) {
     console.error('Erro na requisição para Telegram:', error);
     return false;
+  }
+}
+
+async function getSession(telegramUserId: number, chatId: number): Promise<UserSession> {
+  console.log(`Buscando sessão para usuário ${telegramUserId}`);
+  
+  const { data: session, error } = await supabase
+    .from('telegram_sessions')
+    .select('*')
+    .eq('telegram_user_id', telegramUserId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Erro ao buscar sessão:', error);
+  }
+
+  if (session) {
+    console.log('Sessão encontrada:', session);
+    return {
+      step: session.step,
+      data: session.session_data || {},
+      phone: session.phone,
+      userId: session.user_id
+    };
+  }
+
+  // Criar nova sessão se não existir
+  console.log('Criando nova sessão');
+  const newSession = {
+    step: 'start',
+    data: {}
+  };
+
+  const { error: insertError } = await supabase
+    .from('telegram_sessions')
+    .upsert({
+      telegram_user_id: telegramUserId,
+      chat_id: chatId,
+      step: newSession.step,
+      session_data: newSession.data,
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    });
+
+  if (insertError) {
+    console.error('Erro ao criar sessão:', insertError);
+  }
+
+  return newSession;
+}
+
+async function updateSession(telegramUserId: number, session: UserSession) {
+  console.log(`Atualizando sessão para usuário ${telegramUserId}:`, session);
+  
+  const { error } = await supabase
+    .from('telegram_sessions')
+    .update({
+      step: session.step,
+      session_data: session.data,
+      phone: session.phone,
+      user_id: session.userId,
+      updated_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    })
+    .eq('telegram_user_id', telegramUserId);
+
+  if (error) {
+    console.error('Erro ao atualizar sessão:', error);
+  }
+}
+
+async function clearSession(telegramUserId: number) {
+  console.log(`Limpando sessão para usuário ${telegramUserId}`);
+  
+  const { error } = await supabase
+    .from('telegram_sessions')
+    .delete()
+    .eq('telegram_user_id', telegramUserId);
+
+  if (error) {
+    console.error('Erro ao limpar sessão:', error);
   }
 }
 
@@ -295,25 +373,10 @@ async function handleMessage(update: TelegramUpdate) {
   // Verificar se é comando /start
   if (text === '/start') {
     console.log('Comando /start recebido, reiniciando conversa');
-    // Limpar sessão anterior
-    userSessions.delete(userId);
-    
-    // Criar nova sessão
-    userSessions.set(userId, {
-      step: 'start',
-      data: {}
-    });
+    await clearSession(userId);
   }
 
-  if (!userSessions.has(userId)) {
-    console.log('Criando nova sessão para usuário:', userId);
-    userSessions.set(userId, {
-      step: 'start',
-      data: {}
-    });
-  }
-
-  const session = userSessions.get(userId)!;
+  const session = await getSession(userId, chatId);
   console.log('Estado atual da sessão:', session);
 
   // Handle contact sharing
@@ -358,6 +421,7 @@ async function handleMessage(update: TelegramUpdate) {
         keyboard
       );
       session.step = 'main_menu';
+      await updateSession(userId, session);
     } else {
       console.log('Usuário não encontrado pelo telefone:', session.phone);
       await sendTelegramMessage(chatId, 
@@ -369,7 +433,7 @@ async function handleMessage(update: TelegramUpdate) {
         `💡 Acesse o sistema e verifique se seu telefone está correto em suas configurações.\n\n` +
         `Digite /start para tentar novamente.`
       );
-      userSessions.delete(userId);
+      await clearSession(userId);
     }
     return;
   }
@@ -404,6 +468,7 @@ async function handleMessage(update: TelegramUpdate) {
       if (text === '🆕 Criar Nova Proposta') {
         session.step = 'client_name';
         session.data = {}; // Reset proposal data
+        await updateSession(userId, session);
         await sendTelegramMessage(chatId, 
           `🆕 *Vamos criar uma nova proposta!*\n\n*Para qual cliente você quer criar uma proposta?*\n` +
           `Digite o nome da empresa ou cliente:`
@@ -459,6 +524,7 @@ async function handleMessage(update: TelegramUpdate) {
       
       session.data.clientName = text.trim();
       session.step = 'client_email';
+      await updateSession(userId, session);
       await sendTelegramMessage(chatId, 
         `✅ Cliente: *${text}*\n\n*Qual o e-mail do cliente?*\n(opcional - digite "pular" para pular)`
       );
@@ -476,6 +542,7 @@ async function handleMessage(update: TelegramUpdate) {
         session.data.clientEmail = text.trim();
       }
       session.step = 'project_title';
+      await updateSession(userId, session);
       await sendTelegramMessage(chatId, 
         `${text.toLowerCase().trim() !== 'pular' ? '✅ E-mail: *' + text + '*' : '⏭️ E-mail pulado'}\n\n*Qual é o título do projeto/proposta?*\nEx: "Desenvolvimento de Website Institucional"`
       );
@@ -491,6 +558,7 @@ async function handleMessage(update: TelegramUpdate) {
       
       session.data.projectTitle = text.trim();
       session.step = 'service_description';
+      await updateSession(userId, session);
       await sendTelegramMessage(chatId, 
         `✅ Título: *${text}*\n\n*Faça um resumo do serviço:*\nEx: "Criação de website responsivo com CMS"`
       );
@@ -506,6 +574,7 @@ async function handleMessage(update: TelegramUpdate) {
       
       session.data.serviceDescription = text.trim();
       session.step = 'detailed_description';
+      await updateSession(userId, session);
       await sendTelegramMessage(chatId, 
         `✅ Resumo salvo!\n\n*Agora faça uma descrição mais detalhada do que será entregue:*\n\n💡 Seja específico sobre o que o cliente receberá.`
       );
@@ -521,6 +590,7 @@ async function handleMessage(update: TelegramUpdate) {
       
       session.data.detailedDescription = text.trim();
       session.step = 'value';
+      await updateSession(userId, session);
       await sendTelegramMessage(chatId, 
         `✅ Descrição detalhada salva!\n\n*Qual o valor da proposta?*\nEx: "R$ 5.000,00" ou "5000" (ou digite "pular" para definir depois)`
       );
@@ -538,6 +608,7 @@ async function handleMessage(update: TelegramUpdate) {
         session.data.value = text.trim();
       }
       session.step = 'delivery_time';
+      await updateSession(userId, session);
       await sendTelegramMessage(chatId, 
         `${text.toLowerCase().trim() !== 'pular' ? '✅ Valor: *' + text + '*' : '⏭️ Valor para definir depois'}\n\n*Qual o prazo de entrega?*\nEx: "30 dias" ou "2 semanas" (ou digite "pular")`
       );
@@ -548,6 +619,7 @@ async function handleMessage(update: TelegramUpdate) {
         session.data.deliveryTime = text.trim();
       }
       session.step = 'observations';
+      await updateSession(userId, session);
       await sendTelegramMessage(chatId, 
         `${text.toLowerCase().trim() !== 'pular' ? '✅ Prazo: *' + text + '*' : '⏭️ Prazo para definir depois'}\n\n*Alguma observação adicional?*\nEx: Condições de pagamento, garantias, etc.\n\n(ou digite "pular" para finalizar)`
       );
@@ -598,6 +670,7 @@ async function handleMessage(update: TelegramUpdate) {
         // Voltar ao menu principal
         session.step = 'main_menu';
         session.data = {};
+        await updateSession(userId, session);
         
       } catch (error) {
         console.error('Erro ao criar proposta:', error);
@@ -607,7 +680,7 @@ async function handleMessage(update: TelegramUpdate) {
           `🔄 Tente novamente digitando /start ou use o sistema web diretamente.\n\n` +
           `💬 Se o problema persistir, entre em contato com o suporte.`
         );
-        userSessions.delete(userId);
+        await clearSession(userId);
       }
       break;
 
@@ -622,7 +695,7 @@ async function handleMessage(update: TelegramUpdate) {
       break;
   }
 
-  console.log('Sessão atualizada:', userSessions.get(userId));
+  console.log('Sessão atualizada:', session);
 }
 
 serve(async (req) => {

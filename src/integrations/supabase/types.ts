@@ -315,6 +315,45 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_sessions: {
+        Row: {
+          chat_id: number
+          created_at: string
+          expires_at: string | null
+          id: string
+          phone: string | null
+          session_data: Json | null
+          step: string
+          telegram_user_id: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          chat_id: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          phone?: string | null
+          session_data?: Json | null
+          step?: string
+          telegram_user_id: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          chat_id?: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          phone?: string | null
+          session_data?: Json | null
+          step?: string
+          telegram_user_id?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -344,6 +383,10 @@ export type Database = {
       can_create_proposal: {
         Args: { _user_id: string }
         Returns: boolean
+      }
+      cleanup_expired_telegram_sessions: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       get_monthly_proposal_count: {
         Args: { _user_id: string; _month?: string }
