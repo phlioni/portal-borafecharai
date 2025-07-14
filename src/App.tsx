@@ -22,6 +22,7 @@ import NotFound from '@/pages/NotFound';
 import Planos from '@/pages/Planos';
 import TemplatesPersonalizadosPage from '@/pages/TemplatesPersonalizadosPage';
 import TelegramBotPage from '@/pages/TelegramBotPage';
+import GerenciamentoUsuariosPage from '@/pages/GerenciamentoUsuariosPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -121,6 +122,13 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <TelegramBotPage />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/gerenciamento-usuarios" element={
+              <ProtectedRoute>
+                <Layout>
+                  <GerenciamentoUsuariosPage />
                 </Layout>
               </ProtectedRoute>
             } />

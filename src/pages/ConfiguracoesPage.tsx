@@ -271,7 +271,7 @@ const ConfiguracoesPage = () => {
 
       {/* Tabs */}
       <Tabs defaultValue={defaultTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="meu-negocio">
             <Building className="h-4 w-4 mr-2" />
             Meu Negócio
@@ -283,6 +283,10 @@ const ConfiguracoesPage = () => {
           <TabsTrigger value="planos">
             <Crown className="h-4 w-4 mr-2" />
             Planos
+          </TabsTrigger>
+          <TabsTrigger value="admin" className={user?.email !== 'admin@borafecharai.com' ? 'hidden' : ''}>
+            <Settings className="h-4 w-4 mr-2" />
+            Admin
           </TabsTrigger>
         </TabsList>
 
@@ -674,6 +678,47 @@ const ConfiguracoesPage = () => {
                     Claro! Você pode fazer upgrade ou downgrade do seu plano a qualquer momento.
                   </p>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Admin Tab */}
+        <TabsContent value="admin" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5 text-red-600" />
+                Administração do Sistema
+              </CardTitle>
+              <CardDescription>
+                Acesso restrito para administradores do sistema
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <Settings className="h-16 w-16 text-red-600 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Gerenciamento de Usuários</h3>
+                <p className="text-gray-600 mb-6">
+                  Gerencie todos os usuários, permissões e configurações do sistema
+                </p>
+                <Button asChild className="bg-red-600 hover:bg-red-700">
+                  <Link to="/gerenciamento-usuarios">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Gerenciar Usuários
+                  </Link>
+                </Button>
+              </div>
+              
+              <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <h4 className="font-medium text-red-900 mb-2">Funcionalidades disponíveis:</h4>
+                <ul className="text-sm text-red-800 space-y-1">
+                  <li>• Visualizar todos os usuários do sistema</li>
+                  <li>• Ativar/inativar contas de usuários</li>
+                  <li>• Gerenciar permissões e roles</li>
+                  <li>• Configurar períodos de trial</li>
+                  <li>• Excluir contas de usuários</li>
+                </ul>
               </div>
             </CardContent>
           </Card>

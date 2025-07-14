@@ -39,9 +39,28 @@ const TelegramBotPage = () => {
 
   // Verificar se o usuário é admin
   useEffect(() => {
-    if (user?.email === 'admin@borafecharai.com') {
-      setIsAdmin(true);
-      loadWebhookSettings();
+    const checkAdminStatus = async () => {
+      if (user?.email === 'admin@borafecharai.com') {
+        setIsAdmin(true);
+        loadWebhookSettings();
+      } else {
+        // Verificar se o usuário tem role de admin
+        const { data: userRoles } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user?.id)
+          .eq('role', 'admin')
+          .single();
+          
+        if (userRoles) {
+          setIsAdmin(true);
+          loadWebhookSettings();
+        }
+      }
+    };
+    
+    if (user) {
+      checkAdminStatus();
     }
   }, [user]);
 
