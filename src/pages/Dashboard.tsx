@@ -7,7 +7,6 @@ import { Link } from 'react-router-dom';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useProposals } from '@/hooks/useProposals';
 import { useSubscription } from '@/hooks/useSubscription';
-import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ModernLoader } from '@/components/ModernLoader';
@@ -17,7 +16,6 @@ const Dashboard = () => {
   const { data, isLoading, error } = useDashboardData();
   const { data: proposals, isLoading: proposalsLoading } = useProposals();
   const { subscribed, subscription_tier } = useSubscription();
-  const { fixTrial } = useUserPermissions();
 
   if (isLoading || proposalsLoading) {
     return <ModernLoader message="Carregando dashboard..." fullScreen />;
@@ -109,25 +107,12 @@ const Dashboard = () => {
           <h1 className="text-2xl font-bold">Olá! 👋</h1>
           <p className="text-muted-foreground">Aqui está um resumo da sua atividade</p>
         </div>
-        <div className="flex gap-2">
-          <Button asChild className="w-full sm:w-auto">
-            <Link to="/propostas/nova">
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Proposta
-            </Link>
-          </Button>
-          {/* Botão temporário para corrigir trial */}
-          <Button 
-            variant="outline" 
-            onClick={() => {
-              console.log('Corrigindo trial...');
-              fixTrial();
-            }}
-            className="w-full sm:w-auto"
-          >
-            Corrigir Trial (DEBUG)
-          </Button>
-        </div>
+        <Button asChild className="w-full sm:w-auto">
+          <Link to="/propostas/nova">
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Proposta
+          </Link>
+        </Button>
       </div>
 
       {/* Trial Call to Action - agora com verificação otimizada */}

@@ -33,22 +33,38 @@ serve(async (req) => {
     }
 
     const jwt = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: userError } = await supabase.auth.getUser(jwt)
+    const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser(jwt)
     
-    if (userError || !user) {
+    if (userError || !currentUser) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    console.log('Iniciando/corrigindo trial para usuário:', user.id, user.email)
+    // Verificar se é admin (só admin pode corrigir trial de outros usuários)
+    const isAdminEmail = currentUser.email === 'admin@borafecharai.com'
+    const { data: adminRole } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', currentUser.id)
+      .eq('role', 'admin')
+      .single()
+    
+    const isAdmin = isAdminEmail || adminRole
+
+    // Obter parâmetros do body para usuário específico (se admin) ou usar o usuário atual
+    const body = req.method === 'POST' ? await req.json() : {}
+    const targetUserId = (isAdmin && body.userId) ? body.userId : currentUser.id
+    const targetUserEmail = (isAdmin && body.userEmail) ? body.userEmail : currentUser.email
+
+    console.log('Iniciando/corrigindo trial para usuário:', targetUserId, targetUserEmail)
 
     // Verificar se o subscriber já existe
     const { data: existingSubscriber } = await supabase
       .from('subscribers')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', targetUserId)
       .single()
 
     const trialEndDate = new Date()
@@ -64,7 +80,7 @@ serve(async (req) => {
           trial_proposals_used: 0,
           updated_at: new Date().toISOString()
         })
-        .eq('user_id', user.id)
+        .eq('user_id', targetUserId)
         .select()
 
       if (error) {
@@ -81,8 +97,8 @@ serve(async (req) => {
       const { data, error } = await supabase
         .from('subscribers')
         .insert({
-          user_id: user.id,
-          email: user.email!,
+          user_id: targetUserId,
+          email: targetUserEmail!,
           trial_start_date: new Date().toISOString(),
           trial_end_date: trialEndDate.toISOString(),
           trial_proposals_used: 0,

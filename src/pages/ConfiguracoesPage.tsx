@@ -19,6 +19,7 @@ const ConfiguracoesPage = () => {
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'meu-negocio';
   const { user } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const [companyLogo, setCompanyLogo] = useState<string>('');
   const [companyName, setCompanyName] = useState<string>('');
@@ -242,6 +243,31 @@ const ConfiguracoesPage = () => {
     toast.success('Logo removida com sucesso!');
   };
 
+  // Verificar se o usuário é admin
+  React.useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (user?.email === 'admin@borafecharai.com') {
+        setIsAdmin(true);
+      } else {
+        // Verificar se o usuário tem role de admin
+        const { data: userRoles } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user?.id)
+          .eq('role', 'admin')
+          .single();
+          
+        if (userRoles) {
+          setIsAdmin(true);
+        }
+      }
+    };
+    
+    if (user) {
+      checkAdminStatus();
+    }
+  }, [user]);
+
   React.useEffect(() => {
     // Carregar configurações salvas do localStorage (logo)
     const savedLogo = localStorage.getItem('company_logo');
@@ -271,23 +297,27 @@ const ConfiguracoesPage = () => {
 
       {/* Tabs */}
       <Tabs defaultValue={defaultTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-4' : 'grid-cols-2'}`}>
           <TabsTrigger value="meu-negocio">
             <Building className="h-4 w-4 mr-2" />
             Meu Negócio
           </TabsTrigger>
-          <TabsTrigger value="bot-telegram">
-            <MessageSquare className="h-4 w-4 mr-2" />
-            Bot Telegram
-          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="bot-telegram">
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Bot Telegram
+            </TabsTrigger>
+          )}
           <TabsTrigger value="planos">
             <Crown className="h-4 w-4 mr-2" />
             Planos
           </TabsTrigger>
-          <TabsTrigger value="admin" className={user?.email !== 'admin@borafecharai.com' ? 'hidden' : ''}>
-            <Settings className="h-4 w-4 mr-2" />
-            Admin
-          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="admin">
+              <Settings className="h-4 w-4 mr-2" />
+              Admin
+            </TabsTrigger>
+          )}
         </TabsList>
 
 

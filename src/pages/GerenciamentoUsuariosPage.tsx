@@ -24,6 +24,7 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserPermissions } from '@/hooks/useUserPermissions';
 
 interface User {
   id: string;
@@ -56,6 +57,7 @@ interface Subscriber {
 
 const GerenciamentoUsuariosPage = () => {
   const { user } = useAuth();
+  const { fixTrial } = useUserPermissions();
   const [users, setUsers] = useState<User[]>([]);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
@@ -263,6 +265,28 @@ const GerenciamentoUsuariosPage = () => {
     return userRoles.find(r => r.user_id === userId);
   };
 
+  // Corrigir trial de um usuário específico
+  const handleFixUserTrial = async (userId: string, userEmail: string) => {
+    try {
+      // Usar edge function fix-trial para o usuário específico
+      const { error } = await supabase.functions.invoke('fix-trial', {
+        body: { userId, userEmail }
+      });
+      
+      if (error) {
+        console.error('Erro ao corrigir trial:', error);
+        toast.error('Erro ao corrigir trial do usuário');
+        return;
+      }
+      
+      toast.success('Trial do usuário corrigido com sucesso!');
+      loadUsers(); // Recarregar dados
+    } catch (error) {
+      console.error('Erro ao corrigir trial:', error);
+      toast.error('Erro ao corrigir trial do usuário');
+    }
+  };
+
   // Verificação de acesso admin
   if (!isAdmin) {
     return (
@@ -410,24 +434,32 @@ const GerenciamentoUsuariosPage = () => {
                         {new Date(user.created_at).toLocaleDateString('pt-BR')}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditUser(user)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDeleteUser(user.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+                     <TableCell>
+                       <div className="flex gap-2">
+                         <Button
+                           variant="outline"
+                           size="sm"
+                           onClick={() => handleEditUser(user)}
+                         >
+                           <Edit className="h-4 w-4" />
+                         </Button>
+                         <Button
+                           variant="secondary"
+                           size="sm"
+                           onClick={() => handleFixUserTrial(user.id, user.email)}
+                           title="Corrigir Trial"
+                         >
+                           🔧
+                         </Button>
+                         <Button
+                           variant="destructive"
+                           size="sm"
+                           onClick={() => handleDeleteUser(user.id)}
+                         >
+                           <Trash2 className="h-4 w-4" />
+                         </Button>
+                       </div>
+                     </TableCell>
                   </TableRow>
                 );
               })}
