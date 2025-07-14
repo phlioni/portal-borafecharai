@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   Save, 
   Building, 
@@ -23,7 +24,15 @@ import {
   Bot,
   Settings,
   Trash2,
-  ExternalLink
+  ExternalLink,
+  Users,
+  Search,
+  Edit,
+  UserCheck,
+  UserX,
+  Shield,
+  Ban,
+  RotateCcw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -49,18 +58,26 @@ interface CompanyData {
   logo_url?: string | null;
 }
 
-interface SubscriberData {
-  id?: string;
+interface AdminUser {
+  id: string;
   email: string;
-  subscribed: boolean;
-  subscription_tier?: string;
-  trial_end_date?: string;
-  trial_proposals_used?: number;
+  created_at: string;
+  last_sign_in_at?: string;
+  email_confirmed_at?: string;
+  raw_user_meta_data?: any;
+  banned_until?: string;
+  subscriber?: {
+    subscribed: boolean;
+    subscription_tier?: string;
+    trial_end_date?: string;
+    trial_proposals_used?: number;
+  };
+  role?: string;
 }
 
 const ConfiguracoesPage = () => {
   const { user } = useAuth();
-  const { canCreateProposal, isAdmin } = useUserPermissions();
+  const { isAdmin } = useUserPermissions();
   const { subscribed, subscription_tier } = useSubscription();
   const { isInTrial, daysUsed, totalTrialDays, proposalsUsed, proposalsRemaining } = useTrialStatus();
   const [activeTab, setActiveTab] = useState('negocio');
@@ -79,7 +96,12 @@ const ConfiguracoesPage = () => {
     country_code: '+55',
     logo_url: null
   });
-  const [subscriberData, setSubscriberData] = useState<SubscriberData | null>(null);
+
+  // Estados para gerenciamento de usuários (admin)
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<AdminUser[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
 
   // Carregar dados da empresa
   useEffect(() => {
@@ -99,7 +121,21 @@ const ConfiguracoesPage = () => {
         }
 
         if (data) {
-          setCompanyData(data);
+          setCompanyData({
+            id: data.id,
+            name: data.name || '',
+            email: data.email || '',
+            phone: data.phone || '',
+            website: data.website || '',
+            cnpj: data.cnpj || '',
+            description: data.description || '',
+            address: data.address || '',
+            city: data.city || '',
+            state: data.state || '',
+            zip_code: data.zip_code || '',
+            country_code: data.country_code || '+55',
+            logo_url: data.logo_url
+          });
         }
       } catch (error) {
         console.error('Erro ao carregar dados da empresa:', error);
@@ -109,33 +145,84 @@ const ConfiguracoesPage = () => {
     loadCompanyData();
   }, [user]);
 
-  // Carregar dados do assinante
+  // Carregar usuários para admin
   useEffect(() => {
-    const loadSubscriberData = async () => {
-      if (!user) return;
+    if (isAdmin && activeTab === 'admin') {
+      loadAdminUsers();
+    }
+  }, [isAdmin, activeTab]);
 
-      try {
-        const { data, error } = await supabase
-          .from('subscribers')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
+  // Filtrar usuários
+  useEffect(() => {
+    if (!searchTerm) {
+      setFilteredUsers(adminUsers);
+    } else {
+      const filtered = adminUsers.filter(user => 
+        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (user.raw_user_meta_data?.full_name || '').toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredUsers(filtered);
+    }
+  }, [adminUsers, searchTerm]);
 
-        if (error && error.code !== 'PGRST116') {
-          console.error('Erro ao carregar dados do assinante:', error);
-          return;
-        }
-
-        if (data) {
-          setSubscriberData(data);
-        }
-      } catch (error) {
-        console.error('Erro ao carregar dados do assinante:', error);
+  const loadAdminUsers = async () => {
+    setIsLoadingUsers(true);
+    try {
+      // Buscar usuários
+      const { data: authUsers, error: authError } = await supabase.functions.invoke('get-users');
+      
+      if (authError) {
+        console.error('Erro ao buscar usuários:', authError);
+        toast.error('Erro ao carregar usuários');
+        return;
       }
-    };
 
-    loadSubscriberData();
-  }, [user]);
+      // Buscar dados de assinatura e roles
+      const { data: subscribers } = await supabase.from('subscribers').select('*');
+      const { data: roles } = await supabase.from('user_roles').select('*');
+
+      // Combinar dados
+      const usersWithData = authUsers.map((authUser: any) => {
+        const subscriber = subscribers?.find(s => s.user_id === authUser.id || s.email === authUser.email);
+        const userRole = roles?.find(r => r.user_id === authUser.id);
+        
+        return {
+          ...authUser,
+          subscriber,
+          role: userRole?.role
+        };
+      });
+
+      setAdminUsers(usersWithData);
+    } catch (error) {
+      console.error('Erro ao carregar usuários:', error);
+      toast.error('Erro ao carregar usuários');
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+
+  // Verificar se telefone é único
+  const checkUniquePhone = async (phone: string): Promise<boolean> => {
+    if (!phone || !user) return true;
+
+    try {
+      const { data, error } = await supabase.rpc('check_unique_phone_across_users', {
+        p_phone: phone,
+        p_user_id: user.id
+      });
+
+      if (error) {
+        console.error('Erro ao verificar telefone:', error);
+        return false;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Erro ao verificar telefone:', error);
+      return false;
+    }
+  };
 
   // Salvar dados da empresa
   const handleSaveCompany = async () => {
@@ -146,35 +233,58 @@ const ConfiguracoesPage = () => {
       return;
     }
 
+    // Validar telefone único se fornecido
+    if (companyData.phone && companyData.phone.trim()) {
+      const isPhoneUnique = await checkUniquePhone(companyData.phone.trim());
+      if (!isPhoneUnique) {
+        toast.error('Este telefone já está sendo usado por outro usuário');
+        return;
+      }
+    }
+
     setIsSaving(true);
     try {
+      const dataToSave = {
+        user_id: user.id,
+        name: companyData.name.trim(),
+        email: companyData.email?.trim() || null,
+        phone: companyData.phone?.trim() || null,
+        website: companyData.website?.trim() || null,
+        cnpj: companyData.cnpj?.trim() || null,
+        description: companyData.description?.trim() || null,
+        address: companyData.address?.trim() || null,
+        city: companyData.city?.trim() || null,
+        state: companyData.state?.trim() || null,
+        zip_code: companyData.zip_code?.trim() || null,
+        country_code: companyData.country_code || '+55',
+        logo_url: companyData.logo_url
+      };
+
       const { data, error } = await supabase
         .from('companies')
-        .upsert({
-          user_id: user.id,
-          name: companyData.name,
-          email: companyData.email || null,
-          phone: companyData.phone || null,
-          website: companyData.website || null,
-          cnpj: companyData.cnpj || null,
-          description: companyData.description || null,
-          address: companyData.address || null,
-          city: companyData.city || null,
-          state: companyData.state || null,
-          zip_code: companyData.zip_code || null,
-          country_code: companyData.country_code || '+55',
-          logo_url: companyData.logo_url
+        .upsert(dataToSave, { 
+          onConflict: 'user_id',
+          ignoreDuplicates: false 
         })
         .select()
         .single();
 
       if (error) {
         console.error('Erro ao salvar empresa:', error);
-        toast.error('Erro ao salvar dados da empresa');
+        if (error.code === '23505') {
+          toast.error('Este telefone já está sendo usado por outro usuário');
+        } else {
+          toast.error('Erro ao salvar dados da empresa');
+        }
         return;
       }
 
-      setCompanyData(data);
+      // Atualizar estado com dados salvos
+      setCompanyData(prev => ({
+        ...prev,
+        id: data.id
+      }));
+      
       toast.success('Dados da empresa salvos com sucesso!');
     } catch (error) {
       console.error('Erro ao salvar empresa:', error);
@@ -184,68 +294,56 @@ const ConfiguracoesPage = () => {
     }
   };
 
-  // Cancelar assinatura
-  const handleCancelSubscription = async () => {
-    if (!subscriberData || !confirm('Tem certeza que deseja cancelar sua assinatura?')) return;
-
+  // Funções de gerenciamento de usuários (admin)
+  const handleResetUserData = async (userId: string, resetType: 'proposals' | 'trial' | 'both') => {
     try {
-      const { error } = await supabase
-        .from('subscribers')
-        .update({ 
-          subscribed: false,
-          subscription_tier: null,
-          cancel_at_period_end: true
-        })
-        .eq('id', subscriberData.id);
-
-      if (error) {
-        console.error('Erro ao cancelar assinatura:', error);
-        toast.error('Erro ao cancelar assinatura');
-        return;
-      }
-
-      setSubscriberData(prev => prev ? { ...prev, subscribed: false, cancel_at_period_end: true } : null);
-      toast.success('Assinatura cancelada com sucesso');
-    } catch (error) {
-      console.error('Erro ao cancelar assinatura:', error);
-      toast.error('Erro ao cancelar assinatura');
-    }
-  };
-
-  // Excluir conta
-  const handleDeleteAccount = async () => {
-    if (!user) return;
-
-    const confirmation = prompt('Para confirmar a exclusão da conta, digite "EXCLUIR" (em maiúsculas):');
-    if (confirmation !== 'EXCLUIR') {
-      toast.error('Confirmação incorreta. Conta não foi excluída.');
-      return;
-    }
-
-    try {
-      // Excluir dados relacionados primeiro
-      await supabase.from('proposals').delete().eq('user_id', user.id);
-      await supabase.from('companies').delete().eq('user_id', user.id);
-      await supabase.from('subscribers').delete().eq('user_id', user.id);
-      await supabase.from('user_roles').delete().eq('user_id', user.id);
-
-      // Excluir usuário via edge function
-      const { error } = await supabase.functions.invoke('delete-user', {
-        body: { userId: user.id }
+      const { data, error } = await supabase.rpc('admin_reset_user_data', {
+        target_user_id: userId,
+        reset_proposals: resetType === 'proposals' || resetType === 'both',
+        reset_trial: resetType === 'trial' || resetType === 'both'
       });
 
       if (error) {
-        console.error('Erro ao excluir conta:', error);
-        toast.error('Erro ao excluir conta');
+        console.error('Erro ao resetar dados:', error);
+        toast.error('Erro ao resetar dados do usuário');
         return;
       }
 
-      toast.success('Conta excluída com sucesso');
-      // Redirecionar para página de login
-      window.location.href = '/login';
+      toast.success('Dados do usuário resetados com sucesso!');
+      loadAdminUsers();
     } catch (error) {
-      console.error('Erro ao excluir conta:', error);
-      toast.error('Erro ao excluir conta');
+      console.error('Erro ao resetar dados:', error);
+      toast.error('Erro ao resetar dados do usuário');
+    }
+  };
+
+  const handleManageUserStatus = async (userId: string, action: 'activate' | 'deactivate' | 'delete', makeAdmin = false) => {
+    const confirmMessages = {
+      activate: 'Tem certeza que deseja ativar este usuário?',
+      deactivate: 'Tem certeza que deseja desativar este usuário?',
+      delete: 'Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.'
+    };
+
+    if (!confirm(confirmMessages[action])) return;
+
+    try {
+      const { data, error } = await supabase.rpc('admin_manage_user_status', {
+        target_user_id: userId,
+        action,
+        make_admin: makeAdmin
+      });
+
+      if (error) {
+        console.error('Erro ao gerenciar usuário:', error);
+        toast.error('Erro ao gerenciar usuário');
+        return;
+      }
+
+      toast.success(`Usuário ${action === 'activate' ? 'ativado' : action === 'deactivate' ? 'desativado' : 'excluído'} com sucesso!`);
+      loadAdminUsers();
+    } catch (error) {
+      console.error('Erro ao gerenciar usuário:', error);
+      toast.error('Erro ao gerenciar usuário');
     }
   };
 
@@ -259,11 +357,12 @@ const ConfiguracoesPage = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className={isAdmin ? "grid w-full grid-cols-5" : "grid w-full grid-cols-4"}>
             <TabsTrigger value="negocio">Meu Negócio</TabsTrigger>
             <TabsTrigger value="assinatura">Assinatura</TabsTrigger>
             <TabsTrigger value="integracoes">Integrações</TabsTrigger>
             <TabsTrigger value="conta">Conta</TabsTrigger>
+            {isAdmin && <TabsTrigger value="admin">Admin</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="negocio" className="space-y-6">
@@ -281,7 +380,7 @@ const ConfiguracoesPage = () => {
                   onLogoUpdate={(logoUrl) => setCompanyData(prev => ({ ...prev, logo_url: logoUrl }))}
                 />
 
-                {/* Existing form fields */}
+                {/* Form fields */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="company-name">Nome da Empresa *</Label>
@@ -330,7 +429,7 @@ const ConfiguracoesPage = () => {
                       />
                     </div>
                     <p className="text-sm text-gray-500">
-                      ⚠️ Importante: Este telefone é usado pelo bot do Telegram para identificar sua conta
+                      ⚠️ Importante: Este telefone é usado pelo bot do Telegram para identificar sua conta e deve ser único
                     </p>
                   </div>
 
@@ -586,7 +685,30 @@ const ConfiguracoesPage = () => {
                 <CardContent className="space-y-4">
                   <Button 
                     variant="destructive" 
-                    onClick={handleCancelSubscription}
+                    onClick={async () => {
+                      if (!confirm('Tem certeza que deseja cancelar sua assinatura?')) return;
+                      try {
+                        const { error } = await supabase
+                          .from('subscribers')
+                          .update({ 
+                            subscribed: false,
+                            subscription_tier: null,
+                            cancel_at_period_end: true
+                          })
+                          .eq('user_id', user?.id);
+
+                        if (error) {
+                          console.error('Erro ao cancelar assinatura:', error);
+                          toast.error('Erro ao cancelar assinatura');
+                          return;
+                        }
+
+                        toast.success('Assinatura cancelada com sucesso');
+                      } catch (error) {
+                        console.error('Erro ao cancelar assinatura:', error);
+                        toast.error('Erro ao cancelar assinatura');
+                      }
+                    }}
                     className="w-full"
                   >
                     Cancelar Assinatura
@@ -735,7 +857,41 @@ const ConfiguracoesPage = () => {
                   </p>
                   <Button 
                     variant="destructive" 
-                    onClick={handleDeleteAccount}
+                    onClick={async () => {
+                      if (!user) return;
+
+                      const confirmation = prompt('Para confirmar a exclusão da conta, digite "EXCLUIR" (em maiúsculas):');
+                      if (confirmation !== 'EXCLUIR') {
+                        toast.error('Confirmação incorreta. Conta não foi excluída.');
+                        return;
+                      }
+
+                      try {
+                        // Excluir dados relacionados primeiro
+                        await supabase.from('proposals').delete().eq('user_id', user.id);
+                        await supabase.from('companies').delete().eq('user_id', user.id);
+                        await supabase.from('subscribers').delete().eq('user_id', user.id);
+                        await supabase.from('user_roles').delete().eq('user_id', user.id);
+
+                        // Excluir usuário via edge function
+                        const { error } = await supabase.functions.invoke('delete-user', {
+                          body: { userId: user.id }
+                        });
+
+                        if (error) {
+                          console.error('Erro ao excluir conta:', error);
+                          toast.error('Erro ao excluir conta');
+                          return;
+                        }
+
+                        toast.success('Conta excluída com sucesso');
+                        // Redirecionar para página de login
+                        window.location.href = '/login';
+                      } catch (error) {
+                        console.error('Erro ao excluir conta:', error);
+                        toast.error('Erro ao excluir conta');
+                      }
+                    }}
                     className="w-full"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
@@ -745,6 +901,172 @@ const ConfiguracoesPage = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {isAdmin && (
+            <TabsContent value="admin" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Gerenciamento de Usuários
+                  </CardTitle>
+                  <CardDescription>
+                    Gerencie todos os usuários do sistema
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Filtro */}
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <Label htmlFor="search">Buscar por nome ou email</Label>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="search"
+                          placeholder="Digite o nome ou email do usuário..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
+                    <Button onClick={loadAdminUsers} disabled={isLoadingUsers}>
+                      {isLoadingUsers ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RotateCcw className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+
+                  {/* Lista de usuários */}
+                  {isLoadingUsers ? (
+                    <div className="flex items-center justify-center h-32">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Usuário</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Plano</TableHead>
+                          <TableHead>Role</TableHead>
+                          <TableHead>Trial/Propostas</TableHead>
+                          <TableHead>Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredUsers.map((adminUser) => (
+                          <TableRow key={adminUser.id}>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{adminUser.email}</p>
+                                {adminUser.raw_user_meta_data?.full_name && (
+                                  <p className="text-sm text-gray-500">{adminUser.raw_user_meta_data.full_name}</p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {adminUser.email_confirmed_at ? (
+                                <Badge variant="default" className="bg-green-100 text-green-800">
+                                  <UserCheck className="h-3 w-3 mr-1" />
+                                  Ativo
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                                  <UserX className="h-3 w-3 mr-1" />
+                                  Pendente
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {adminUser.subscriber?.subscribed ? (
+                                <Badge variant="default" className="bg-blue-100 text-blue-800">
+                                  {adminUser.subscriber.subscription_tier === 'basico' ? 'Essencial' : 'Profissional'}
+                                </Badge>
+                              ) : adminUser.subscriber?.trial_end_date ? (
+                                <Badge variant="outline" className="border-purple-200 text-purple-800">
+                                  Trial
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary">
+                                  Gratuito
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {adminUser.role === 'admin' ? (
+                                <Badge variant="destructive">
+                                  <Shield className="h-3 w-3 mr-1" />
+                                  Admin
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline">
+                                  Usuário
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm">
+                                {adminUser.subscriber?.trial_end_date && (
+                                  <p>Propostas: {adminUser.subscriber.trial_proposals_used || 0}/20</p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleResetUserData(adminUser.id, 'both')}
+                                  title="Reset Trial e Propostas"
+                                >
+                                  <RotateCcw className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => handleManageUserStatus(adminUser.id, 'activate')}
+                                  title="Ativar"
+                                >
+                                  <UserCheck className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => handleManageUserStatus(adminUser.id, 'deactivate')}
+                                  title="Desativar"
+                                >
+                                  <Ban className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant={adminUser.role === 'admin' ? 'default' : 'outline'}
+                                  size="sm"
+                                  onClick={() => handleManageUserStatus(adminUser.id, 'activate', adminUser.role !== 'admin')}
+                                  title={adminUser.role === 'admin' ? 'Remover Admin' : 'Tornar Admin'}
+                                >
+                                  <Shield className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => handleManageUserStatus(adminUser.id, 'delete')}
+                                  title="Excluir"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>
