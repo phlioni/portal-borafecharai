@@ -29,6 +29,8 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
+import { useSubscription } from '@/hooks/useSubscription';
+import { useTrialStatus } from '@/hooks/useTrialStatus';
 import CompanyLogoUpload from '@/components/CompanyLogoUpload';
 
 interface CompanyData {
@@ -58,7 +60,9 @@ interface SubscriberData {
 
 const ConfiguracoesPage = () => {
   const { user } = useAuth();
-  const { canCreateProposal, isSubscribed, trialDaysLeft, proposalsUsed, maxProposals } = useUserPermissions();
+  const { canCreateProposal, isAdmin } = useUserPermissions();
+  const { subscribed, subscription_tier } = useSubscription();
+  const { isInTrial, daysUsed, totalTrialDays, proposalsUsed, proposalsRemaining } = useTrialStatus();
   const [activeTab, setActiveTab] = useState('negocio');
   const [isSaving, setIsSaving] = useState(false);
   const [companyData, setCompanyData] = useState<CompanyData>({
@@ -435,14 +439,14 @@ const ConfiguracoesPage = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {isSubscribed ? (
+                  {subscribed ? (
                     <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
                       <div className="flex items-center gap-3">
                         <CheckCircle className="h-5 w-5 text-green-600" />
                         <div>
                           <p className="font-medium text-green-900">Assinatura Ativa</p>
                           <p className="text-sm text-green-700">
-                            Plano: {subscriberData?.subscription_tier === 'basico' ? 'Essencial' : 'Profissional'}
+                            Plano: {subscription_tier === 'basico' ? 'Essencial' : 'Profissional'}
                           </p>
                         </div>
                       </div>
@@ -451,14 +455,14 @@ const ConfiguracoesPage = () => {
                         Premium
                       </Badge>
                     </div>
-                  ) : trialDaysLeft > 0 ? (
+                  ) : isInTrial ? (
                     <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
                       <div className="flex items-center gap-3">
                         <AlertTriangle className="h-5 w-5 text-blue-600" />
                         <div>
                           <p className="font-medium text-blue-900">Período de Teste</p>
                           <p className="text-sm text-blue-700">
-                            {trialDaysLeft} dias restantes • {proposalsUsed}/{maxProposals} propostas usadas
+                            {totalTrialDays - daysUsed} dias restantes • {proposalsUsed}/{20} propostas usadas
                           </p>
                         </div>
                       </div>
@@ -508,7 +512,7 @@ const ConfiguracoesPage = () => {
                     <ul className="space-y-2 text-sm">
                       <li className="flex items-center gap-2">
                         <CheckCircle className="h-4 w-4 text-green-500" />
-                        Propostas ilimitadas
+                        10 propostas por mês
                       </li>
                       <li className="flex items-center gap-2">
                         <CheckCircle className="h-4 w-4 text-green-500" />
@@ -523,8 +527,8 @@ const ConfiguracoesPage = () => {
                         Suporte por email
                       </li>
                     </ul>
-                    <Button className="w-full" variant={subscriberData?.subscription_tier === 'basico' ? 'secondary' : 'default'}>
-                      {subscriberData?.subscription_tier === 'basico' ? 'Plano Atual' : 'Assinar Essencial'}
+                    <Button className="w-full" variant={subscription_tier === 'basico' ? 'secondary' : 'default'}>
+                      {subscription_tier === 'basico' ? 'Plano Atual' : 'Assinar Essencial'}
                     </Button>
                   </div>
 
@@ -543,7 +547,7 @@ const ConfiguracoesPage = () => {
                     <ul className="space-y-2 text-sm">
                       <li className="flex items-center gap-2">
                         <CheckCircle className="h-4 w-4 text-green-500" />
-                        Tudo do plano Essencial
+                        Propostas ilimitadas
                       </li>
                       <li className="flex items-center gap-2">
                         <CheckCircle className="h-4 w-4 text-green-500" />
@@ -562,8 +566,8 @@ const ConfiguracoesPage = () => {
                         Suporte prioritário
                       </li>
                     </ul>
-                    <Button className="w-full" variant={subscriberData?.subscription_tier === 'profissional' ? 'secondary' : 'default'}>
-                      {subscriberData?.subscription_tier === 'profissional' ? 'Plano Atual' : 'Assinar Profissional'}
+                    <Button className="w-full" variant={subscription_tier === 'profissional' ? 'secondary' : 'default'}>
+                      {subscription_tier === 'profissional' ? 'Plano Atual' : 'Assinar Profissional'}
                     </Button>
                   </div>
                 </div>
@@ -571,7 +575,7 @@ const ConfiguracoesPage = () => {
             </Card>
 
             {/* Gerenciar Assinatura */}
-            {subscriberData?.subscribed && (
+            {subscribed && (
               <Card>
                 <CardHeader>
                   <CardTitle>Gerenciar Assinatura</CardTitle>
