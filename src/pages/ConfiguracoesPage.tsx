@@ -126,7 +126,7 @@ const ConfiguracoesPage = () => {
       name: 'Professional',
       price: 'R$ 79,90',
       currency: 'BRL',
-      priceId: process.env.NODE_ENV === 'production' ? 'price_1RktMUIjvuQQ47Swctsuavr9' : 'price_test_professional',
+      priceId: 'price_1RktMUIjvuQQ47Swctsuavr9',
       features: [
         'Propostas ilimitadas',
         'Todos os templates',
