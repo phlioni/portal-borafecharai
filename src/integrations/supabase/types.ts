@@ -286,6 +286,7 @@ export type Database = {
         Row: {
           bot_token: string | null
           bot_username: string | null
+          chat_id: number | null
           created_at: string
           id: string
           updated_at: string
@@ -295,6 +296,7 @@ export type Database = {
         Insert: {
           bot_token?: string | null
           bot_username?: string | null
+          chat_id?: number | null
           created_at?: string
           id?: string
           updated_at?: string
@@ -304,6 +306,7 @@ export type Database = {
         Update: {
           bot_token?: string | null
           bot_username?: string | null
+          chat_id?: number | null
           created_at?: string
           id?: string
           updated_at?: string

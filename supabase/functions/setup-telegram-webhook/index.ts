@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -14,16 +15,15 @@ serve(async (req) => {
   }
 
   try {
-    const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    // Obter dados do request
+    const { bot_token } = await req.json();
     
-    console.log('Bot token configurado:', !!botToken);
-    console.log('Supabase URL:', supabaseUrl);
+    console.log('Bot token recebido:', !!bot_token);
     
-    if (!botToken) {
-      console.error('TELEGRAM_BOT_TOKEN não configurado');
+    if (!bot_token) {
+      console.error('Bot token não fornecido');
       return new Response(JSON.stringify({ 
-        error: 'TELEGRAM_BOT_TOKEN não configurado',
+        error: 'Bot token é obrigatório',
         success: false
       }), {
         status: 400,
@@ -31,23 +31,34 @@ serve(async (req) => {
       });
     }
 
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    console.log('Supabase URL:', supabaseUrl);
+    
+    if (!supabaseUrl) {
+      console.error('SUPABASE_URL não configurado');
+      return new Response(JSON.stringify({ 
+        error: 'SUPABASE_URL não configurado',
+        success: false
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const webhookUrl = `${supabaseUrl}/functions/v1/telegram-bot-webhook`;
-    const telegramUrl = `https://api.telegram.org/bot${botToken}/setWebhook`;
-
     console.log('Configurando webhook:', webhookUrl);
-    console.log('URL da API do Telegram:', telegramUrl);
 
-    // Primeiro, vamos limpar webhook anterior
+    // Primeiro, limpar webhook anterior
     console.log('Limpando webhook anterior...');
-    const deleteResponse = await fetch(`https://api.telegram.org/bot${botToken}/deleteWebhook`, {
+    const deleteResponse = await fetch(`https://api.telegram.org/bot${bot_token}/deleteWebhook`, {
       method: 'POST'
     });
     const deleteResult = await deleteResponse.json();
     console.log('Resultado da limpeza:', deleteResult);
 
-    // Agora configurar o novo webhook
+    // Configurar o novo webhook
     console.log('Configurando novo webhook...');
-    const response = await fetch(telegramUrl, {
+    const response = await fetch(`https://api.telegram.org/bot${bot_token}/setWebhook`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -55,7 +66,7 @@ serve(async (req) => {
       body: JSON.stringify({
         url: webhookUrl,
         max_connections: 40,
-        allowed_updates: ['message']
+        allowed_updates: ['message', 'callback_query']
       }),
     });
 
@@ -64,7 +75,7 @@ serve(async (req) => {
 
     if (result.ok) {
       // Verificar informações do webhook
-      const infoResponse = await fetch(`https://api.telegram.org/bot${botToken}/getWebhookInfo`);
+      const infoResponse = await fetch(`https://api.telegram.org/bot${bot_token}/getWebhookInfo`);
       const infoResult = await infoResponse.json();
       console.log('Informações do webhook:', infoResult);
 

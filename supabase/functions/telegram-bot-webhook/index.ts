@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
@@ -67,7 +66,7 @@ async function sendTelegramMessage(chatId: number, text: string, replyMarkup?: a
   
   if (!botToken) {
     console.error('TELEGRAM_BOT_TOKEN não configurado');
-    return;
+    return false;
   }
   
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
@@ -91,9 +90,13 @@ async function sendTelegramMessage(chatId: number, text: string, replyMarkup?: a
 
     if (!response.ok) {
       console.error('Erro ao enviar mensagem Telegram:', responseData);
+      return false;
     }
+    
+    return true;
   } catch (error) {
     console.error('Erro na requisição para Telegram:', error);
+    return false;
   }
 }
 
@@ -103,6 +106,7 @@ async function findUserByPhone(phone: string) {
   const cleanPhone = phone.replace(/\D/g, '');
   console.log('Telefone limpo:', cleanPhone);
   
+  // Buscar na tabela companies primeiro
   const { data: companies, error } = await supabase
     .from('companies')
     .select('user_id, name, email, phone, country_code')
@@ -115,6 +119,7 @@ async function findUserByPhone(phone: string) {
     return companies[0];
   }
 
+  // Buscar em todas as empresas com comparação mais flexível
   const { data: allCompanies, error: allError } = await supabase
     .from('companies')
     .select('user_id, name, email, phone, country_code');
@@ -250,6 +255,8 @@ async function createProposalForUser(session: UserSession) {
 
 async function storeUserChatId(userId: string, chatId: number) {
   try {
+    console.log(`Salvando chat_id ${chatId} para usuário ${userId}`);
+    
     const { error } = await supabase
       .from('telegram_bot_settings')
       .upsert({
@@ -261,6 +268,8 @@ async function storeUserChatId(userId: string, chatId: number) {
 
     if (error) {
       console.error('Erro ao salvar chat_id:', error);
+    } else {
+      console.log('Chat_id salvo com sucesso');
     }
   } catch (error) {
     console.error('Erro ao salvar chat_id:', error);
@@ -307,6 +316,7 @@ async function handleMessage(update: TelegramUpdate) {
   const session = userSessions.get(userId)!;
   console.log('Estado atual da sessão:', session);
 
+  // Handle contact sharing
   if (message.contact) {
     console.log('Contato compartilhado:', message.contact);
     session.phone = message.contact.phone_number;
@@ -364,6 +374,7 @@ async function handleMessage(update: TelegramUpdate) {
     return;
   }
 
+  // Handle conversation flow
   switch (session.step) {
     case 'start':
       console.log('Processando comando /start');
@@ -446,7 +457,6 @@ async function handleMessage(update: TelegramUpdate) {
         return;
       }
       
-      console.log('Coletando nome do cliente:', text);
       session.data.clientName = text.trim();
       session.step = 'client_email';
       await sendTelegramMessage(chatId, 
@@ -455,9 +465,7 @@ async function handleMessage(update: TelegramUpdate) {
       break;
 
     case 'client_email':
-      console.log('Coletando email do cliente:', text);
       if (text.toLowerCase().trim() !== 'pular') {
-        // Validar email básico
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(text.trim())) {
           await sendTelegramMessage(chatId, 
@@ -481,7 +489,6 @@ async function handleMessage(update: TelegramUpdate) {
         return;
       }
       
-      console.log('Coletando título do projeto:', text);
       session.data.projectTitle = text.trim();
       session.step = 'service_description';
       await sendTelegramMessage(chatId, 
@@ -497,7 +504,6 @@ async function handleMessage(update: TelegramUpdate) {
         return;
       }
       
-      console.log('Coletando descrição do serviço:', text);
       session.data.serviceDescription = text.trim();
       session.step = 'detailed_description';
       await sendTelegramMessage(chatId, 
@@ -513,7 +519,6 @@ async function handleMessage(update: TelegramUpdate) {
         return;
       }
       
-      console.log('Coletando descrição detalhada:', text);
       session.data.detailedDescription = text.trim();
       session.step = 'value';
       await sendTelegramMessage(chatId, 
@@ -522,9 +527,7 @@ async function handleMessage(update: TelegramUpdate) {
       break;
 
     case 'value':
-      console.log('Coletando valor:', text);
       if (text.toLowerCase().trim() !== 'pular') {
-        // Validar se é um número válido
         const numericValue = text.replace(/[^\d,]/g, '').replace(',', '.');
         if (!numericValue || isNaN(parseFloat(numericValue))) {
           await sendTelegramMessage(chatId, 
@@ -541,7 +544,6 @@ async function handleMessage(update: TelegramUpdate) {
       break;
 
     case 'delivery_time':
-      console.log('Coletando prazo:', text);
       if (text.toLowerCase().trim() !== 'pular') {
         session.data.deliveryTime = text.trim();
       }
@@ -552,20 +554,16 @@ async function handleMessage(update: TelegramUpdate) {
       break;
 
     case 'observations':
-      console.log('Coletando observações:', text);
       if (text.toLowerCase().trim() !== 'pular') {
         session.data.observations = text.trim();
       }
       
       try {
-        console.log('Iniciando criação da proposta...');
         await sendTelegramMessage(chatId, 
           `🎯 *Gerando sua proposta...*\n\n⏳ Por favor aguarde, estou processando suas informações...`
         );
 
         const proposal = await createProposalForUser(session);
-        
-        console.log('Proposta criada com sucesso:', proposal);
         
         // Resumo da proposta criada
         let summary = `🎉 *Proposta criada com sucesso!*\n\n`;
@@ -614,7 +612,6 @@ async function handleMessage(update: TelegramUpdate) {
       break;
 
     default:
-      console.log('Comando não reconhecido, orientando usuário...');
       await sendTelegramMessage(chatId, 
         `❓ *Não entendi sua mensagem.*\n\n` +
         `🤖 Para começar uma nova conversa, digite /start\n\n` +

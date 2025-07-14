@@ -1,3 +1,4 @@
+
 project_id = "pakrraqbjbkkbdnwkkbt"
 
 [api]
@@ -78,4 +79,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.setup-telegram-webhook]
+verify_jwt = false
+
+[functions.telegram-notifications]
 verify_jwt = false
