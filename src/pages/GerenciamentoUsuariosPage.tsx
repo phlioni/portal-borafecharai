@@ -717,10 +717,10 @@ const GerenciamentoUsuariosPage = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Dialog de Edição - CORRIGIDO */}
+      {/* Dialog de Edição - AJUSTADO PARA CABER NA TELA */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+          <DialogHeader className="shrink-0">
             <DialogTitle>Editar Usuário</DialogTitle>
             <DialogDescription>
               Gerencie as permissões e configurações do usuário
@@ -728,26 +728,27 @@ const GerenciamentoUsuariosPage = () => {
           </DialogHeader>
           
           {selectedUser && (
-            <div className="space-y-6">
+            <div className="flex-1 overflow-y-auto pr-2 space-y-4">
               {/* Informações do Usuário */}
-              <div>
-                <h3 className="font-medium mb-3">Informações do Usuário</h3>
-                <div className="space-y-2">
+              <div className="space-y-2">
+                <h3 className="font-medium text-sm">Informações do Usuário</h3>
+                <div className="text-xs space-y-1 bg-gray-50 p-3 rounded">
                   <p><strong>Email:</strong> {selectedUser.email}</p>
-                  <p><strong>ID:</strong> {selectedUser.id}</p>
-                  <p><strong>Cadastro:</strong> {new Date(selectedUser.created_at).toLocaleString('pt-BR')}</p>
-                  <p><strong>Último Login:</strong> {selectedUser.last_sign_in_at ? new Date(selectedUser.last_sign_in_at).toLocaleString('pt-BR') : 'Nunca'}</p>
+                  <p><strong>ID:</strong> <span className="font-mono text-xs">{selectedUser.id}</span></p>
+                  <p><strong>Cadastro:</strong> {new Date(selectedUser.created_at).toLocaleDateString('pt-BR')}</p>
+                  <p><strong>Último Login:</strong> {selectedUser.last_sign_in_at ? new Date(selectedUser.last_sign_in_at).toLocaleDateString('pt-BR') : 'Nunca'}</p>
                 </div>
               </div>
 
               {/* Actions */}
               <div className="space-y-3">
-                <h3 className="font-medium">Ações Rápidas</h3>
+                <h3 className="font-medium text-sm">Ações Rápidas</h3>
                 <div className="flex gap-2 flex-wrap">
                   <Button 
                     variant="outline" 
                     size="sm"
                     onClick={() => handleResetUserData(selectedUser.id, 'proposals')}
+                    className="text-xs"
                   >
                     Resetar Propostas
                   </Button>
@@ -755,6 +756,7 @@ const GerenciamentoUsuariosPage = () => {
                     variant="outline" 
                     size="sm"
                     onClick={() => handleResetUserData(selectedUser.id, 'trial')}
+                    className="text-xs"
                   >
                     Resetar Trial
                   </Button>
@@ -762,6 +764,7 @@ const GerenciamentoUsuariosPage = () => {
                     variant="outline" 
                     size="sm"
                     onClick={() => handleResetUserData(selectedUser.id, 'both')}
+                    className="text-xs"
                   >
                     Resetar Tudo
                   </Button>
@@ -769,8 +772,8 @@ const GerenciamentoUsuariosPage = () => {
               </div>
 
               {/* Role */}
-              <div className="space-y-3">
-                <Label>Permissões</Label>
+              <div className="space-y-2">
+                <Label className="text-sm">Permissões</Label>
                 <Select
                   value={selectedUserRole?.role || 'user'}
                   onValueChange={(value: 'admin' | 'user') => {
@@ -782,7 +785,7 @@ const GerenciamentoUsuariosPage = () => {
                     });
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-8">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -793,8 +796,8 @@ const GerenciamentoUsuariosPage = () => {
               </div>
 
               {/* Assinatura */}
-              <div className="space-y-4">
-                <h3 className="font-medium">Assinatura</h3>
+              <div className="space-y-3">
+                <h3 className="font-medium text-sm">Assinatura</h3>
                 
                 <div className="flex items-center space-x-2">
                   <Switch
@@ -818,11 +821,11 @@ const GerenciamentoUsuariosPage = () => {
                       }
                     }}
                   />
-                  <Label>Assinatura Ativa</Label>
+                  <Label className="text-sm">Assinatura Ativa</Label>
                 </div>
 
-                <div className="space-y-3">
-                  <Label>Plano</Label>
+                <div className="space-y-2">
+                  <Label className="text-sm">Plano</Label>
                   <Select
                     value={selectedSubscriber?.subscription_tier || ''}
                     onValueChange={(value) => {
@@ -845,7 +848,7 @@ const GerenciamentoUsuariosPage = () => {
                       }
                     }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-8">
                       <SelectValue placeholder="Selecione o plano" />
                     </SelectTrigger>
                     <SelectContent>
@@ -855,72 +858,77 @@ const GerenciamentoUsuariosPage = () => {
                   </Select>
                 </div>
 
-                <div className="space-y-3">
-                  <Label>Data Início do Trial</Label>
-                  <Input
-                    type="datetime-local"
-                    value={selectedSubscriber?.trial_start_date ? 
-                      new Date(selectedSubscriber.trial_start_date).toISOString().slice(0, 16) : 
-                      ''
-                    }
-                    onChange={(e) => {
-                      const newDate = e.target.value ? new Date(e.target.value).toISOString() : undefined;
-                      if (!selectedSubscriber) {
-                        setSelectedSubscriber({
-                          id: '',
-                          email: selectedUser.email,
-                          user_id: selectedUser.id,
-                          subscribed: false,
-                          trial_start_date: newDate,
-                          trial_proposals_used: 0,
-                          created_at: new Date().toISOString(),
-                          updated_at: new Date().toISOString()
-                        });
-                      } else {
-                        setSelectedSubscriber({
-                          ...selectedSubscriber,
-                          trial_start_date: newDate
-                        });
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-sm">Início do Trial</Label>
+                    <Input
+                      type="datetime-local"
+                      className="h-8 text-xs"
+                      value={selectedSubscriber?.trial_start_date ? 
+                        new Date(selectedSubscriber.trial_start_date).toISOString().slice(0, 16) : 
+                        ''
                       }
-                    }}
-                  />
+                      onChange={(e) => {
+                        const newDate = e.target.value ? new Date(e.target.value).toISOString() : undefined;
+                        if (!selectedSubscriber) {
+                          setSelectedSubscriber({
+                            id: '',
+                            email: selectedUser.email,
+                            user_id: selectedUser.id,
+                            subscribed: false,
+                            trial_start_date: newDate,
+                            trial_proposals_used: 0,
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                          });
+                        } else {
+                          setSelectedSubscriber({
+                            ...selectedSubscriber,
+                            trial_start_date: newDate
+                          });
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm">Fim do Trial</Label>
+                    <Input
+                      type="datetime-local"
+                      className="h-8 text-xs"
+                      value={selectedSubscriber?.trial_end_date ? 
+                        new Date(selectedSubscriber.trial_end_date).toISOString().slice(0, 16) : 
+                        ''
+                      }
+                      onChange={(e) => {
+                        const newDate = e.target.value ? new Date(e.target.value).toISOString() : undefined;
+                        if (!selectedSubscriber) {
+                          setSelectedSubscriber({
+                            id: '',
+                            email: selectedUser.email,
+                            user_id: selectedUser.id,
+                            subscribed: false,
+                            trial_end_date: newDate,
+                            trial_proposals_used: 0,
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                          });
+                        } else {
+                          setSelectedSubscriber({
+                            ...selectedSubscriber,
+                            trial_end_date: newDate
+                          });
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-3">
-                  <Label>Data Fim do Trial</Label>
-                  <Input
-                    type="datetime-local"
-                    value={selectedSubscriber?.trial_end_date ? 
-                      new Date(selectedSubscriber.trial_end_date).toISOString().slice(0, 16) : 
-                      ''
-                    }
-                    onChange={(e) => {
-                      const newDate = e.target.value ? new Date(e.target.value).toISOString() : undefined;
-                      if (!selectedSubscriber) {
-                        setSelectedSubscriber({
-                          id: '',
-                          email: selectedUser.email,
-                          user_id: selectedUser.id,
-                          subscribed: false,
-                          trial_end_date: newDate,
-                          trial_proposals_used: 0,
-                          created_at: new Date().toISOString(),
-                          updated_at: new Date().toISOString()
-                        });
-                      } else {
-                        setSelectedSubscriber({
-                          ...selectedSubscriber,
-                          trial_end_date: newDate
-                        });
-                      }
-                    }}
-                  />
-                </div>
-
-                <div className="space-y-3">
-                  <Label>Propostas Usadas no Trial</Label>
+                <div className="space-y-2">
+                  <Label className="text-sm">Propostas Usadas no Trial</Label>
                   <Input
                     type="number"
+                    className="h-8"
                     value={selectedSubscriber?.trial_proposals_used || 0}
                     onChange={(e) => {
                       const newValue = parseInt(e.target.value) || 0;
@@ -944,17 +952,17 @@ const GerenciamentoUsuariosPage = () => {
                   />
                 </div>
               </div>
-
-              <div className="flex justify-end gap-3">
-                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleSaveUser}>
-                  Salvar Alterações
-                </Button>
-              </div>
             </div>
           )}
+
+          <div className="flex justify-end gap-2 pt-3 border-t mt-3 shrink-0">
+            <Button variant="outline" size="sm" onClick={() => setIsEditDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={handleSaveUser}>
+              Salvar Alterações
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
