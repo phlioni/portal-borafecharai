@@ -111,7 +111,7 @@ async function findUserByPhone(phone: string) {
   // Buscar empresas/usuários pelo telefone (busca por telefone exato e também por telefone sem formatação)
   const { data: companies, error } = await supabase
     .from('companies')
-    .select('user_id, name, email, phone')
+    .select('user_id, name, email, phone, country_code')
     .or(`phone.eq.${phone},phone.eq.${cleanPhone}`)
     .limit(1);
 
@@ -121,10 +121,10 @@ async function findUserByPhone(phone: string) {
     return companies[0];
   }
 
-  // Se não encontrou na tabela companies, buscar em todas as empresas e verificar telefones formatados
+  // Se não encontrou, buscar em todas as empresas e verificar telefones formatados
   const { data: allCompanies, error: allError } = await supabase
     .from('companies')
-    .select('user_id, name, email, phone');
+    .select('user_id, name, email, phone, country_code');
 
   console.log('Buscando em todas as empresas:', { count: allCompanies?.length, error: allError });
 
@@ -134,7 +134,16 @@ async function findUserByPhone(phone: string) {
         const companyCleanPhone = company.phone.replace(/\D/g, '');
         console.log(`Comparando: ${cleanPhone} com ${companyCleanPhone} (${company.phone})`);
         
-        if (cleanPhone === companyCleanPhone) {
+        // Verificar telefone com código do país
+        const fullPhoneWithCountry = `${company.country_code || '+55'}${companyCleanPhone}`;
+        const userPhoneWithCountry = cleanPhone.startsWith('55') ? `+${cleanPhone}` : `+55${cleanPhone}`;
+        
+        console.log(`Comparando com código do país: ${userPhoneWithCountry} com ${fullPhoneWithCountry}`);
+        
+        if (cleanPhone === companyCleanPhone || 
+            userPhoneWithCountry === fullPhoneWithCountry ||
+            phone === fullPhoneWithCountry ||
+            cleanPhone === fullPhoneWithCountry.replace(/\D/g, '')) {
           console.log('✅ Encontrado empresa com telefone compatível:', company);
           return company;
         }

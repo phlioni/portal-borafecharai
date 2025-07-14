@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,18 +7,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Upload, Settings, Image, Save, Trash2, Crown, Palette, Building, MapPin, Globe, MessageSquare, Bot } from 'lucide-react';
+import { Upload, Settings, Image, Save, Trash2, Crown, Palette, Building, MapPin, Globe, MessageSquare, Bot, Phone } from 'lucide-react';
 import { toast } from 'sonner';
 import SubscriptionPlanCard from '@/components/SubscriptionPlanCard';
 import SubscriptionStatus from '@/components/SubscriptionStatus';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const ConfiguracoesPage = () => {
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'meu-negocio';
+  const { user } = useAuth();
 
   const [companyLogo, setCompanyLogo] = useState<string>('');
   const [companyName, setCompanyName] = useState<string>('');
   const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   
   // Estado para dados completos da empresa
   const [companyData, setCompanyData] = useState({
@@ -28,11 +33,14 @@ const ConfiguracoesPage = () => {
     city: '',
     state: '',
     zipCode: '',
+    countryCode: '+55',
     phone: '',
     email: '',
     website: '',
     description: '',
   });
+
+  const [existingCompanyId, setExistingCompanyId] = useState<string | null>(null);
 
   const plans = [
     {
@@ -130,9 +138,102 @@ const ConfiguracoesPage = () => {
     toast.success('Configurações salvas com sucesso!');
   };
   
-  const handleSaveCompanyData = () => {
-    localStorage.setItem('company_data', JSON.stringify(companyData));
-    toast.success('Dados da empresa salvos com sucesso!');
+  // Carregar dados da empresa do Supabase
+  const loadCompanyData = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('user_id', user.id)
+        .limit(1);
+
+      if (error) {
+        console.error('Erro ao carregar dados da empresa:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        const company = data[0];
+        setExistingCompanyId(company.id);
+        setCompanyData({
+          name: company.name || '',
+          cnpj: company.cnpj || '',
+          address: company.address || '',
+          city: company.city || '',
+          state: company.state || '',
+          zipCode: company.zip_code || '',
+          countryCode: company.country_code || '+55',
+          phone: company.phone || '',
+          email: company.email || '',
+          website: company.website || '',
+          description: company.description || '',
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados da empresa:', error);
+    }
+  };
+
+  const handleSaveCompanyData = async () => {
+    if (!user) {
+      toast.error('Usuário não autenticado');
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const companyDataToSave = {
+        user_id: user.id,
+        name: companyData.name,
+        cnpj: companyData.cnpj,
+        address: companyData.address,
+        city: companyData.city,
+        state: companyData.state,
+        zip_code: companyData.zipCode,
+        country_code: companyData.countryCode,
+        phone: companyData.phone,
+        email: companyData.email,
+        website: companyData.website,
+        description: companyData.description,
+      };
+
+      let result;
+      
+      if (existingCompanyId) {
+        // Atualizar empresa existente
+        result = await supabase
+          .from('companies')
+          .update(companyDataToSave)
+          .eq('id', existingCompanyId)
+          .select();
+      } else {
+        // Criar nova empresa
+        result = await supabase
+          .from('companies')
+          .insert(companyDataToSave)
+          .select();
+      }
+
+      if (result.error) {
+        console.error('Erro ao salvar dados da empresa:', result.error);
+        toast.error('Erro ao salvar dados da empresa');
+        return;
+      }
+
+      if (result.data && result.data.length > 0) {
+        setExistingCompanyId(result.data[0].id);
+      }
+
+      toast.success('Dados da empresa salvos com sucesso!');
+    } catch (error) {
+      console.error('Erro ao salvar dados da empresa:', error);
+      toast.error('Erro ao salvar dados da empresa');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleRemoveLogo = () => {
@@ -142,21 +243,18 @@ const ConfiguracoesPage = () => {
   };
 
   React.useEffect(() => {
-    // Carregar configurações salvas
+    // Carregar configurações salvas do localStorage (logo)
     const savedLogo = localStorage.getItem('company_logo');
     const savedName = localStorage.getItem('company_name');
-    const savedCompanyData = localStorage.getItem('company_data');
 
     if (savedLogo) setCompanyLogo(savedLogo);
     if (savedName) setCompanyName(savedName);
-    if (savedCompanyData) {
-      try {
-        setCompanyData(JSON.parse(savedCompanyData));
-      } catch (error) {
-        console.error('Erro ao carregar dados da empresa:', error);
-      }
+
+    // Carregar dados da empresa do Supabase
+    if (user) {
+      loadCompanyData();
     }
-  }, []);
+  }, [user]);
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
@@ -358,12 +456,34 @@ const ConfiguracoesPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="companyPhone">Telefone</Label>
-                  <Input
-                    id="companyPhone"
-                    value={companyData.phone}
-                    onChange={(e) => setCompanyData({ ...companyData, phone: e.target.value })}
-                    placeholder="(11) 99999-9999"
-                  />
+                  <div className="flex gap-2">
+                    <Select
+                      value={companyData.countryCode}
+                      onValueChange={(value) => setCompanyData({ ...companyData, countryCode: value })}
+                    >
+                      <SelectTrigger className="w-24">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="+55">🇧🇷 +55</SelectItem>
+                        <SelectItem value="+1">🇺🇸 +1</SelectItem>
+                        <SelectItem value="+54">🇦🇷 +54</SelectItem>
+                        <SelectItem value="+34">🇪🇸 +34</SelectItem>
+                        <SelectItem value="+351">🇵🇹 +351</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      id="companyPhone"
+                      className="flex-1"
+                      value={companyData.phone}
+                      onChange={(e) => setCompanyData({ ...companyData, phone: e.target.value })}
+                      placeholder="(11) 99999-9999"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    <Phone className="h-3 w-3 inline mr-1" />
+                    Este telefone será usado pelo bot do Telegram para identificar você
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="companyEmail">E-mail</Label>
@@ -404,9 +524,9 @@ const ConfiguracoesPage = () => {
                   <Save className="h-4 w-4 mr-2" />
                   Salvar Logo
                 </Button>
-                <Button onClick={handleSaveCompanyData} className="flex-1">
+                <Button onClick={handleSaveCompanyData} className="flex-1" disabled={isSaving}>
                   <Save className="h-4 w-4 mr-2" />
-                  Salvar Dados da Empresa
+                  {isSaving ? 'Salvando...' : 'Salvar Dados da Empresa'}
                 </Button>
               </div>
             </CardContent>

@@ -1,0 +1,10 @@
+-- Adicionar campos faltantes na tabela companies
+ALTER TABLE public.companies 
+ADD COLUMN IF NOT EXISTS cnpj TEXT,
+ADD COLUMN IF NOT EXISTS address TEXT,
+ADD COLUMN IF NOT EXISTS city TEXT,
+ADD COLUMN IF NOT EXISTS state TEXT,
+ADD COLUMN IF NOT EXISTS zip_code TEXT,
+ADD COLUMN IF NOT EXISTS country_code TEXT DEFAULT '+55',
+ADD COLUMN IF NOT EXISTS website TEXT,
+ADD COLUMN IF NOT EXISTS description TEXT;
