@@ -67,6 +67,13 @@ const userSessions = new Map<number, UserSession>();
 const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
 
 async function sendTelegramMessage(chatId: number, text: string, replyMarkup?: any) {
+  console.log(`Enviando mensagem para chat ${chatId}:`, text);
+  
+  if (!botToken) {
+    console.error('TELEGRAM_BOT_TOKEN não configurado');
+    return;
+  }
+  
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
   
   try {
@@ -83,8 +90,11 @@ async function sendTelegramMessage(chatId: number, text: string, replyMarkup?: a
       }),
     });
 
+    const responseData = await response.json();
+    console.log('Resposta do Telegram:', responseData);
+
     if (!response.ok) {
-      console.error('Erro ao enviar mensagem Telegram:', await response.text());
+      console.error('Erro ao enviar mensagem Telegram:', responseData);
     }
   } catch (error) {
     console.error('Erro na requisição para Telegram:', error);
@@ -92,12 +102,16 @@ async function sendTelegramMessage(chatId: number, text: string, replyMarkup?: a
 }
 
 async function findUserByPhone(phone: string) {
+  console.log('Buscando usuário pelo telefone:', phone);
+  
   // Buscar empresas/usuários pelo telefone
   const { data: companies, error } = await supabase
     .from('companies')
     .select('user_id, name, email, phone')
     .eq('phone', phone)
     .single();
+
+  console.log('Resultado da busca:', { companies, error });
 
   if (error || !companies) {
     return null;
@@ -107,6 +121,9 @@ async function findUserByPhone(phone: string) {
 }
 
 async function createProposalForUser(session: UserSession) {
+  console.log('Criando proposta para usuário:', session.userId);
+  console.log('Dados da sessão:', session.data);
+  
   if (!session.userId) {
     throw new Error('Usuário não identificado');
   }
@@ -114,6 +131,8 @@ async function createProposalForUser(session: UserSession) {
   // Criar empresa se necessário
   let companyId = null;
   if (session.data.clientName) {
+    console.log('Criando empresa para o cliente:', session.data.clientName);
+    
     const { data: company, error: companyError } = await supabase
       .from('companies')
       .insert({
@@ -125,6 +144,8 @@ async function createProposalForUser(session: UserSession) {
       .select()
       .single();
 
+    console.log('Resultado da criação da empresa:', { company, companyError });
+
     if (!companyError && company) {
       companyId = company.id;
     }
@@ -134,6 +155,19 @@ async function createProposalForUser(session: UserSession) {
   const proposalValue = session.data.value ? 
     parseFloat(session.data.value.replace(/[^\d,]/g, '').replace(',', '.')) : 
     null;
+
+  console.log('Dados da proposta a ser criada:', {
+    user_id: session.userId,
+    company_id: companyId,
+    title: session.data.projectTitle || 'Proposta via Telegram',
+    service_description: session.data.serviceDescription,
+    detailed_description: session.data.detailedDescription,
+    value: proposalValue,
+    delivery_time: session.data.deliveryTime,
+    observations: session.data.observations,
+    template_id: session.data.template || 'moderno',
+    status: 'rascunho'
+  });
 
   const { data: proposal, error: proposalError } = await supabase
     .from('proposals')
@@ -152,6 +186,8 @@ async function createProposalForUser(session: UserSession) {
     .select()
     .single();
 
+  console.log('Resultado da criação da proposta:', { proposal, proposalError });
+
   if (proposalError) {
     throw proposalError;
   }
@@ -160,17 +196,24 @@ async function createProposalForUser(session: UserSession) {
 }
 
 async function handleMessage(update: TelegramUpdate) {
+  console.log('=== PROCESSANDO MENSAGEM ===');
+  console.log('Update recebido:', JSON.stringify(update, null, 2));
+  
   const message = update.message;
-  if (!message) return;
+  if (!message) {
+    console.log('Nenhuma mensagem encontrada no update');
+    return;
+  }
 
   const chatId = message.chat.id;
   const userId = message.from.id;
   const text = message.text || '';
 
-  console.log(`Mensagem recebida de ${userId}: ${text}`);
+  console.log(`Mensagem recebida de ${userId} (chat: ${chatId}): ${text}`);
 
   // Inicializar sessão se não existir
   if (!userSessions.has(userId)) {
+    console.log('Criando nova sessão para usuário:', userId);
     userSessions.set(userId, {
       step: 'start',
       data: {}
@@ -178,22 +221,26 @@ async function handleMessage(update: TelegramUpdate) {
   }
 
   const session = userSessions.get(userId)!;
+  console.log('Estado atual da sessão:', session);
 
   // Processar contato compartilhado
   if (message.contact) {
+    console.log('Contato compartilhado:', message.contact);
     session.phone = message.contact.phone_number;
     
     // Buscar usuário pelo telefone
     const user = await findUserByPhone(session.phone);
     if (user) {
       session.userId = user.user_id;
+      console.log('Usuário encontrado:', user);
       await sendTelegramMessage(chatId, 
         `✅ Telefone identificado! Olá ${user.name}!\n\nAgora vou te ajudar a criar uma proposta profissional. Vamos começar?\n\n*Qual tipo de negócio você tem?*\nEx: Agência Digital, Consultoria, E-commerce, etc.`
       );
       session.step = 'business_type';
     } else {
+      console.log('Usuário não encontrado pelo telefone:', session.phone);
       await sendTelegramMessage(chatId, 
-        `❌ Telefone não encontrado na nossa base de dados.\n\nPara usar este bot, você precisa estar cadastrado no nosso sistema. Acesse: [Link do seu sistema] e crie sua conta primeiro.`
+        `❌ Telefone não encontrado na nossa base de dados.\n\nPara usar este bot, você precisa estar cadastrado no nosso sistema. Acesse o sistema e crie sua conta primeiro.\n\nTelefone pesquisado: ${session.phone}`
       );
       userSessions.delete(userId);
     }
@@ -202,6 +249,7 @@ async function handleMessage(update: TelegramUpdate) {
 
   switch (session.step) {
     case 'start':
+      console.log('Processando comando /start');
       const keyboard = {
         keyboard: [[{
           text: "📱 Compartilhar Telefone",
@@ -218,6 +266,7 @@ async function handleMessage(update: TelegramUpdate) {
       break;
 
     case 'business_type':
+      console.log('Coletando tipo de negócio:', text);
       session.data.businessType = text;
       session.step = 'service_type';
       await sendTelegramMessage(chatId, 
@@ -226,6 +275,7 @@ async function handleMessage(update: TelegramUpdate) {
       break;
 
     case 'service_type':
+      console.log('Coletando tipo de serviço:', text);
       session.data.serviceType = text;
       session.step = 'target_audience';
       await sendTelegramMessage(chatId, 
@@ -234,6 +284,7 @@ async function handleMessage(update: TelegramUpdate) {
       break;
 
     case 'target_audience':
+      console.log('Coletando público-alvo:', text);
       session.data.targetAudience = text;
       session.step = 'tone';
       
@@ -253,6 +304,7 @@ async function handleMessage(update: TelegramUpdate) {
       break;
 
     case 'tone':
+      console.log('Coletando tom:', text);
       session.data.tone = text;
       session.step = 'template';
       
@@ -272,6 +324,7 @@ async function handleMessage(update: TelegramUpdate) {
       break;
 
     case 'template':
+      console.log('Coletando template:', text);
       session.data.template = text.toLowerCase();
       session.step = 'client_name';
       await sendTelegramMessage(chatId, 
@@ -280,6 +333,7 @@ async function handleMessage(update: TelegramUpdate) {
       break;
 
     case 'client_name':
+      console.log('Coletando nome do cliente:', text);
       session.data.clientName = text;
       session.step = 'client_email';
       await sendTelegramMessage(chatId, 
@@ -288,6 +342,7 @@ async function handleMessage(update: TelegramUpdate) {
       break;
 
     case 'client_email':
+      console.log('Coletando email do cliente:', text);
       if (text.toLowerCase() !== 'pular') {
         session.data.clientEmail = text;
       }
@@ -298,6 +353,7 @@ async function handleMessage(update: TelegramUpdate) {
       break;
 
     case 'project_title':
+      console.log('Coletando título do projeto:', text);
       session.data.projectTitle = text;
       session.step = 'service_description';
       await sendTelegramMessage(chatId, 
@@ -306,6 +362,7 @@ async function handleMessage(update: TelegramUpdate) {
       break;
 
     case 'service_description':
+      console.log('Coletando descrição do serviço:', text);
       session.data.serviceDescription = text;
       session.step = 'detailed_description';
       await sendTelegramMessage(chatId, 
@@ -314,6 +371,7 @@ async function handleMessage(update: TelegramUpdate) {
       break;
 
     case 'detailed_description':
+      console.log('Coletando descrição detalhada:', text);
       session.data.detailedDescription = text;
       session.step = 'value';
       await sendTelegramMessage(chatId, 
@@ -322,6 +380,7 @@ async function handleMessage(update: TelegramUpdate) {
       break;
 
     case 'value':
+      console.log('Coletando valor:', text);
       if (text.toLowerCase() !== 'pular') {
         session.data.value = text;
       }
@@ -332,6 +391,7 @@ async function handleMessage(update: TelegramUpdate) {
       break;
 
     case 'delivery_time':
+      console.log('Coletando prazo:', text);
       if (text.toLowerCase() !== 'pular') {
         session.data.deliveryTime = text;
       }
@@ -342,17 +402,21 @@ async function handleMessage(update: TelegramUpdate) {
       break;
 
     case 'observations':
+      console.log('Coletando observações:', text);
       if (text.toLowerCase() !== 'pular') {
         session.data.observations = text;
       }
       
       // Gerar proposta
       try {
+        console.log('Iniciando criação da proposta...');
         await sendTelegramMessage(chatId, 
           `🎯 *Gerando sua proposta...*\n\nPor favor aguarde...`
         );
 
         const proposal = await createProposalForUser(session);
+        
+        console.log('Proposta criada com sucesso:', proposal);
         
         await sendTelegramMessage(chatId, 
           `🎉 *Proposta criada com sucesso!*\n\n` +
@@ -361,7 +425,7 @@ async function handleMessage(update: TelegramUpdate) {
           `💰 *Valor:* ${session.data.value || 'A definir'}\n` +
           `⏰ *Prazo:* ${session.data.deliveryTime || 'A definir'}\n\n` +
           `✅ A proposta foi salva como rascunho na sua conta.\n\n` +
-          `🌐 Acesse o sistema para revisar e enviar: [Link do seu sistema]`
+          `🌐 Acesse o sistema para revisar e enviar a proposta!`
         );
 
         // Limpar sessão
@@ -370,29 +434,41 @@ async function handleMessage(update: TelegramUpdate) {
       } catch (error) {
         console.error('Erro ao criar proposta:', error);
         await sendTelegramMessage(chatId, 
-          `❌ *Erro ao criar proposta*\n\nOcorreu um erro interno. Tente novamente mais tarde ou use o sistema web diretamente.`
+          `❌ *Erro ao criar proposta*\n\nOcorreu um erro interno: ${error.message}\n\nTente novamente mais tarde ou use o sistema web diretamente.`
         );
         userSessions.delete(userId);
       }
       break;
 
     default:
+      console.log('Comando não reconhecido, reiniciando...');
       await sendTelegramMessage(chatId, 
         `❓ Não entendi. Digite /start para começar novamente.`
       );
       break;
   }
+
+  console.log('Sessão atualizada:', userSessions.get(userId));
 }
 
 serve(async (req) => {
+  console.log('=== WEBHOOK TELEGRAM CHAMADO ===');
+  console.log('Método:', req.method);
+  console.log('URL:', req.url);
+  console.log('Headers:', Object.fromEntries(req.headers.entries()));
+  
   if (req.method === 'OPTIONS') {
+    console.log('Requisição OPTIONS (CORS preflight)');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     if (req.method === 'POST') {
-      const update: TelegramUpdate = await req.json();
-      console.log('Webhook recebido:', JSON.stringify(update, null, 2));
+      const body = await req.text();
+      console.log('Body bruto recebido:', body);
+      
+      const update: TelegramUpdate = JSON.parse(body);
+      console.log('Update parseado:', JSON.stringify(update, null, 2));
       
       await handleMessage(update);
       
@@ -401,13 +477,21 @@ serve(async (req) => {
       });
     }
 
-    return new Response('Bot webhook ativo', {
+    // Resposta para requisições GET (teste)
+    console.log('Requisição GET recebida - webhook está ativo');
+    return new Response('Bot webhook ativo e funcionando! 🤖', {
       headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
     });
     
   } catch (error) {
-    console.error('Erro no webhook:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error('=== ERRO NO WEBHOOK ===');
+    console.error('Erro:', error);
+    console.error('Stack:', error.stack);
+    
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      stack: error.stack 
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

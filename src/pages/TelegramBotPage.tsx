@@ -24,9 +24,12 @@ import { toast } from 'sonner';
 const TelegramBotPage = () => {
   const [isConfiguring, setIsConfiguring] = useState(false);
   const [isTestingWebhook, setIsTestingWebhook] = useState(false);
+  const [isTestingPhone, setIsTestingPhone] = useState(false);
   const [webhookConfigured, setWebhookConfigured] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState('');
   const [botUsername, setBotUsername] = useState('');
+  const [testPhone, setTestPhone] = useState('');
+  const [phoneTestResult, setPhoneTestResult] = useState<any>(null);
 
   // URL do webhook
   const webhookEndpoint = `https://pakrraqbjbkkbdnwkkbt.supabase.co/functions/v1/telegram-bot-webhook`;
@@ -90,6 +93,48 @@ const TelegramBotPage = () => {
     }
   };
 
+  const testPhoneInDatabase = async () => {
+    if (!testPhone.trim()) {
+      toast.error('Digite um telefone para testar');
+      return;
+    }
+
+    setIsTestingPhone(true);
+    
+    try {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('user_id, name, email, phone')
+        .eq('phone', testPhone)
+        .single();
+
+      console.log('Resultado da busca por telefone:', { data, error });
+      
+      if (error || !data) {
+        setPhoneTestResult({
+          found: false,
+          error: error?.message || 'Telefone não encontrado'
+        });
+        toast.error('Telefone não encontrado na base de dados');
+      } else {
+        setPhoneTestResult({
+          found: true,
+          data: data
+        });
+        toast.success(`Telefone encontrado! Usuário: ${data.name}`);
+      }
+    } catch (error) {
+      console.error('Erro ao testar telefone:', error);
+      toast.error('Erro ao buscar telefone');
+      setPhoneTestResult({
+        found: false,
+        error: error.message
+      });
+    } finally {
+      setIsTestingPhone(false);
+    }
+  };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success('Copiado para a área de transferência!');
@@ -120,6 +165,64 @@ const TelegramBotPage = () => {
           <p className="text-gray-600 mt-1">Configure e gerencie seu bot de propostas no Telegram</p>
         </div>
       </div>
+
+      {/* Teste de Telefone */}
+      <Card className="border-green-200 bg-green-50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-green-900">
+            <Phone className="h-5 w-5" />
+            Teste de Telefone
+          </CardTitle>
+          <CardDescription className="text-green-800">
+            Verifique se seu telefone está cadastrado na base de dados
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label className="text-green-900 font-medium">Telefone para testar:</Label>
+            <div className="flex items-center gap-2 mt-1">
+              <Input 
+                value={testPhone} 
+                onChange={(e) => setTestPhone(e.target.value)}
+                placeholder="Ex: +5511999999999 ou (11) 99999-9999"
+                className="bg-white"
+              />
+              <Button 
+                variant="outline" 
+                onClick={testPhoneInDatabase}
+                disabled={isTestingPhone}
+              >
+                {isTestingPhone ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Phone className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+          
+          {phoneTestResult && (
+            <div className={`p-3 rounded-lg ${phoneTestResult.found ? 'bg-green-100 border-green-300' : 'bg-red-100 border-red-300'} border`}>
+              {phoneTestResult.found ? (
+                <div>
+                  <p className="font-medium text-green-900">✅ Telefone encontrado!</p>
+                  <p className="text-sm text-green-800">Nome: {phoneTestResult.data.name}</p>
+                  <p className="text-sm text-green-800">Email: {phoneTestResult.data.email}</p>
+                  <p className="text-sm text-green-800">User ID: {phoneTestResult.data.user_id}</p>
+                </div>
+              ) : (
+                <div>
+                  <p className="font-medium text-red-900">❌ Telefone não encontrado</p>
+                  <p className="text-sm text-red-800">Erro: {phoneTestResult.error}</p>
+                  <p className="text-sm text-red-800 mt-2">
+                    Para o bot funcionar, você precisa ter uma empresa cadastrada com este telefone.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Debug Info */}
       <Card className="border-blue-200 bg-blue-50">
