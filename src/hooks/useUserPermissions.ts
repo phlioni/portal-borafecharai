@@ -9,7 +9,6 @@ interface UserPermissions {
   canCreateProposal: boolean;
   canAccessAnalytics: boolean;
   canAccessPremiumTemplates: boolean;
-  canCollaborate: boolean;
   monthlyProposalCount: number;
   monthlyProposalLimit: number | null;
   loading: boolean;
@@ -23,7 +22,6 @@ export const useUserPermissions = () => {
     canCreateProposal: false,
     canAccessAnalytics: false,
     canAccessPremiumTemplates: false,
-    canCollaborate: false,
     monthlyProposalCount: 0,
     monthlyProposalLimit: null,
     loading: true,
@@ -43,7 +41,6 @@ export const useUserPermissions = () => {
       }
 
       console.log('Trial corrigido:', data);
-      // Recarregar permissões após corrigir o trial
       setTimeout(() => checkPermissions(), 1000);
     } catch (error) {
       console.error('Erro ao corrigir trial:', error);
@@ -56,7 +53,6 @@ export const useUserPermissions = () => {
       return;
     }
 
-    // Se ainda está carregando a assinatura, aguarda
     if (subscriptionLoading) {
       return;
     }
@@ -93,14 +89,12 @@ export const useUserPermissions = () => {
       const isInTrial = subscriberData?.trial_end_date && 
         new Date(subscriberData.trial_end_date) >= new Date();
 
-      // Se não há dados de subscriber ou trial não está configurado, corrigir trial
       if (!subscriberData || (!subscriberData.trial_start_date && !subscriberData.subscribed)) {
         console.log('Corrigindo configuração de trial');
         await fixTrial();
         return;
       }
       
-      // Se usuário existe mas trial expirou e não tem assinatura, corrigir trial  
       else if (!subscriberData.subscribed && subscriberData.trial_end_date && new Date(subscriberData.trial_end_date) < new Date()) {
         console.log('Trial expirado, recriando trial');
         await fixTrial();
@@ -115,7 +109,6 @@ export const useUserPermissions = () => {
             canCreateProposal: true,
             canAccessAnalytics: true,
             canAccessPremiumTemplates: true,
-            canCollaborate: true,
             monthlyProposalCount: proposalCount || 0,
             monthlyProposalLimit: null,
           };
@@ -135,7 +128,6 @@ export const useUserPermissions = () => {
             canCreateProposal: canCreate || false,
             canAccessAnalytics: false,
             canAccessPremiumTemplates: false,
-            canCollaborate: false,
             monthlyProposalCount: trialProposalsUsed,
             monthlyProposalLimit: 20,
           };
@@ -147,7 +139,6 @@ export const useUserPermissions = () => {
             canCreateProposal: false,
             canAccessAnalytics: false,
             canAccessPremiumTemplates: false,
-            canCollaborate: false,
             monthlyProposalCount: proposalCount || 0,
             monthlyProposalLimit: 0,
           };
@@ -160,7 +151,6 @@ export const useUserPermissions = () => {
               canCreateProposal: canCreate || false,
               canAccessAnalytics: false,
               canAccessPremiumTemplates: false,
-              canCollaborate: false,
               monthlyProposalCount: proposalCount || 0,
               monthlyProposalLimit: 10,
             };
@@ -171,18 +161,6 @@ export const useUserPermissions = () => {
               canCreateProposal: true,
               canAccessAnalytics: true,
               canAccessPremiumTemplates: true,
-              canCollaborate: false,
-              monthlyProposalCount: proposalCount || 0,
-              monthlyProposalLimit: null,
-            };
-
-          case 'equipes':
-            return {
-              isAdmin: false,
-              canCreateProposal: true,
-              canAccessAnalytics: true,
-              canAccessPremiumTemplates: true,
-              canCollaborate: true,
               monthlyProposalCount: proposalCount || 0,
               monthlyProposalLimit: null,
             };
@@ -193,7 +171,6 @@ export const useUserPermissions = () => {
               canCreateProposal: false,
               canAccessAnalytics: false,
               canAccessPremiumTemplates: false,
-              canCollaborate: false,
               monthlyProposalCount: proposalCount || 0,
               monthlyProposalLimit: 0,
             };

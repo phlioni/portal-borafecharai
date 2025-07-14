@@ -1,176 +1,38 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { 
+  ArrowRight, 
+  CheckCircle, 
   FileText, 
   Zap, 
-  TrendingUp, 
-  Clock, 
+  BarChart3, 
   Users, 
-  CheckCircle, 
-  Star, 
-  ArrowRight,
-  BarChart3,
-  Target,
+  Star,
+  Crown,
   Sparkles,
-  Shield,
-  HeadphonesIcon,
-  Smartphone,
-  Eye
+  MessageCircle,
+  Mail,
+  Phone
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 const LandingPage = () => {
-  const features = [
-    {
-      icon: Zap,
-      title: "IA Avançada",
-      description: "Criação automática de propostas com inteligência artificial em segundos"
-    },
-    {
-      icon: Clock,
-      title: "90% Mais Rápido",
-      description: "Reduza o tempo de criação de propostas de horas para minutos"
-    },
-    {
-      icon: TrendingUp,
-      title: "+65% Conversão",
-      description: "Propostas profissionais que aumentam suas chances de fechamento"
-    },
-    {
-      icon: BarChart3,
-      title: "Analytics Completo",
-      description: "Acompanhe visualizações, status e performance das suas propostas"
-    },
-    {
-      icon: Users,
-      title: "Gestão de Clientes",
-      description: "Organize todos seus clientes e histórico em um só lugar"
-    },
-    {
-      icon: Target,
-      title: "Templates Profissionais",
-      description: "Modelos criados por especialistas para cada tipo de negócio"
-    }
-  ];
-
-  const benefits = [
-    "Propostas criadas em 3 minutos ou menos",
-    "Templates para todos os segmentos",
-    "Assinatura eletrônica integrada", 
-    "Acompanhamento em tempo real",
-    "Relatórios de performance",
-    "Suporte especializado"
-  ];
-
-  const testimonials = [
-    {
-      name: "Teste Beta",
-      company: "Empresa Parceira",
-      content: "Estamos testando a plataforma e os resultados iniciais são muito promissores.",
-      rating: 5
-    },
-    {
-      name: "Feedback Inicial",
-      company: "Cliente Piloto",
-      content: "A ferramenta tem um potencial incrível para automatizar nossas propostas.",
-      rating: 5
-    },
-    {
-      name: "Avaliação Prévia",
-      company: "Empresa Teste",
-      content: "Interface intuitiva e funcionalidades que realmente fazem diferença.",
-      rating: 5
-    }
-  ];
-
-  const plans = [
-    {
-      name: "Essencial",
-      price: "R$ 49,90",
-      period: "/mês",
-      description: "Ideal para freelancers e pequenos negócios",
-      features: [
-        "Até 10 propostas por mês",
-        "IA para criação de textos",
-        "Templates básicos",
-        "Gestão de clientes",
-        "Suporte por email"
-      ],
-      popular: false
-    },
-    {
-      name: "Profissional",
-      price: "R$ 89,90", 
-      period: "/mês",
-      description: "Para empresas que precisam de mais recursos",
-      features: [
-        "Propostas ilimitadas",
-        "IA avançada",
-        "Todos os templates",
-        "Analytics completo",
-        "Assinatura eletrônica",
-        "Suporte prioritário"
-      ],
-      popular: true
-    },
-    {
-      name: "Equipes",
-      price: "R$ 149,90",
-      period: "/mês", 
-      description: "Para equipes que precisam colaborar",
-      features: [
-        "Tudo do Profissional",
-        "Usuários ilimitados",
-        "Colaboração em equipe",
-        "Templates personalizados",
-        "API integração",
-        "Suporte premium 24/7"
-      ],
-      popular: false
-    }
-  ];
-
-  const faqs = [
-    {
-      question: "Como funciona o período de teste gratuito?",
-      answer: "Você tem 15 dias gratuitos para testar todas as funcionalidades da plataforma, incluindo IA e templates profissionais. Não é necessário cartão de crédito."
-    },
-    {
-      question: "A IA realmente cria propostas de qualidade?",
-      answer: "Sim! Nossa IA foi treinada especificamente para criar propostas comerciais profissionais. Ela analisa seu negócio e gera textos personalizados que convertem."
-    },
-    {
-      question: "Posso cancelar a qualquer momento?",
-      answer: "Claro! Não há fidelidade. Você pode cancelar sua assinatura a qualquer momento e continuar usando até o final do período pago."
-    },
-    {
-      question: "Como funciona a assinatura eletrônica?",
-      answer: "Seus clientes podem assinar as propostas diretamente pela plataforma, com validade jurídica total conforme a Lei 14.063/2020."
-    },
-    {
-      question: "Tem suporte em português?",
-      answer: "Sim! Todo nosso suporte é em português, feito por especialistas brasileiros que entendem o mercado nacional."
-    }
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+    <div className="min-h-screen bg-white">
+      {/* Navigation */}
+      <nav className="border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <div className="bg-blue-600 p-2 rounded-xl">
-                <FileText className="h-6 w-6 text-white" />
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                <FileText className="h-5 w-5 text-white" />
               </div>
-              <div className="ml-3">
-                <h1 className="text-xl font-bold text-gray-900">BoraFecharAI</h1>
-                <p className="text-xs text-gray-600">Propostas Inteligentes</p>
-              </div>
+              <span className="text-xl font-bold text-gray-900">Bora Fechar</span>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center space-x-4">
               <Button variant="ghost" asChild>
                 <Link to="/login">Entrar</Link>
               </Button>
@@ -180,130 +42,98 @@ const LandingPage = () => {
             </div>
           </div>
         </div>
-      </header>
+      </nav>
 
       {/* Hero Section */}
-      <section className="relative py-20 lg:py-32 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-purple-600/5"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="lg:grid lg:grid-cols-2 lg:gap-8 items-center">
-            <div className="mb-12 lg:mb-0">
-              <Badge variant="secondary" className="mb-4 bg-blue-100 text-blue-800">
-                <Sparkles className="h-3 w-3 mr-1" />
-                IA Revolucionária
-              </Badge>
-              
-              <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-                Propostas que
-                <span className="text-transparent bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text block">
-                  fecham negócios
-                </span>
-              </h1>
-              
-              <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-                A única plataforma com <strong>IA especializada</strong> que cria propostas comerciais 
-                profissionais em minutos. Aumente suas vendas em até 65% com textos que convertem.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                <Button size="lg" className="text-lg px-8 py-6" asChild>
-                  <Link to="/login">
-                    Começar Teste Grátis
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Link>
-                </Button>
-                <Button variant="outline" size="lg" className="text-lg px-8 py-6" asChild>
-                  <Link to="#features">Ver Funcionalidades</Link>
-                </Button>
-              </div>
-              
-              <div className="flex items-center gap-6 text-sm text-gray-600">
-                <div className="flex items-center">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                  15 dias grátis
-                </div>
-                <div className="flex items-center">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                  Sem cartão de crédito
-                </div>
-                <div className="flex items-center">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                  Cancele quando quiser
-                </div>
-              </div>
+      <section className="pt-20 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <Badge className="mb-4 bg-blue-100 text-blue-800 hover:bg-blue-100">
+              🚀 Plataforma em constante evolução
+            </Badge>
+            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+              Crie Propostas 
+              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"> Profissionais </span>
+              em Minutos
+            </h1>
+            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+              A plataforma completa para PMEs criarem, gerenciarem e enviarem propostas comerciais 
+              de forma rápida e profissional, aumentando suas chances de fechar negócios.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button size="lg" className="text-lg px-8 py-6" asChild>
+                <Link to="/login">
+                  Começar Grátis - 20 Propostas
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" className="text-lg px-8 py-6">
+                <a href="#recursos" className="flex items-center">
+                  Ver Demonstração
+                  <Zap className="ml-2 h-5 w-5" />
+                </a>
+              </Button>
             </div>
-            
-            <div className="lg:pl-8">
-              <div className="bg-white rounded-2xl shadow-2xl p-8 hover:shadow-3xl transition-shadow duration-300">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-gray-900">Proposta Comercial</h3>
-                    <Badge variant="default" className="bg-green-100 text-green-800">Enviada</Badge>
-                  </div>
-                  <div className="border-l-4 border-blue-500 pl-4">
-                    <h4 className="font-medium">Modernização do Site Institucional</h4>
-                    <p className="text-sm text-gray-600">Para: Empresa ABC Ltda.</p>
-                  </div>
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-700 italic">
-                      "Proposta criada com IA em 90 segundos. 
-                      Cliente aprovou em 24 horas! 🚀"
-                    </p>
-                  </div>
-                  <div className="flex justify-between items-center pt-4 border-t">
-                    <span className="text-2xl font-bold text-green-600">R$ 15.900</span>
-                    <div className="flex items-center text-sm text-gray-500">
-                      <Eye className="h-4 w-4 mr-1" />
-                      Visualizada 3x
-                    </div>
-                  </div>
-                </div>
-              </div>
+          </div>
+
+          {/* Hero Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-blue-600 mb-2">Centenas</div>
+              <div className="text-gray-600">de empresas já testaram</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-purple-600 mb-2">95%</div>
+              <div className="text-gray-600">mais rápido que Word</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-green-600 mb-2">+40%</div>
+              <div className="text-gray-600">taxa de conversão</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Problem Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Cansado de perder vendas por propostas amadoras?
+      {/* Problems Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Cansado de Perder Vendas por Propostas Amadoras?
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              A maioria das PMEs perde negócios porque suas propostas não transmitem profissionalismo
+            <p className="text-xl text-gray-600">
+              Sabemos como é frustrante...
             </p>
           </div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            <Card className="border-red-200 bg-red-50">
-              <CardContent className="p-6 text-center">
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Clock className="h-6 w-6 text-red-600" />
-                </div>
-                <h3 className="font-semibold text-gray-900 mb-2">Muito Tempo Perdido</h3>
-                <p className="text-gray-600">Horas criando propostas no Word que ficam desorganizadas</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <Card className="p-6 border-red-100 bg-red-50">
+              <CardContent className="p-0">
+                <div className="text-red-600 text-4xl mb-4">😤</div>
+                <h3 className="font-semibold text-gray-900 mb-2">Propostas no Word</h3>
+                <p className="text-gray-600">
+                  Horas perdidas formatando documentos que ficam com aparência amadora
+                </p>
               </CardContent>
             </Card>
-            
-            <Card className="border-orange-200 bg-orange-50">
-              <CardContent className="p-6 text-center">
-                <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FileText className="h-6 w-6 text-orange-600" />
-                </div>
-                <h3 className="font-semibold text-gray-900 mb-2">Aparência Amadora</h3>
-                <p className="text-gray-600">Propostas mal formatadas que não transmitem confiança</p>
+
+            <Card className="p-6 border-orange-100 bg-orange-50">
+              <CardContent className="p-0">
+                <div className="text-orange-600 text-4xl mb-4">📧</div>
+                <h3 className="font-semibold text-gray-900 mb-2">Email Perdido</h3>
+                <p className="text-gray-600">
+                  Sem saber se o cliente abriu, leu ou está interessado na sua proposta
+                </p>
               </CardContent>
             </Card>
-            
-            <Card className="border-red-200 bg-red-50">
-              <CardContent className="p-6 text-center">
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <TrendingUp className="h-6 w-6 text-red-600" />
-                </div>
-                <h3 className="font-semibold text-gray-900 mb-2">Baixa Conversão</h3>
-                <p className="text-gray-600">Clientes não aprovam porque a proposta não convence</p>
+
+            <Card className="p-6 border-yellow-100 bg-yellow-50">
+              <CardContent className="p-0">
+                <div className="text-yellow-600 text-4xl mb-4">💸</div>
+                <h3 className="font-semibold text-gray-900 mb-2">Vendas Perdidas</h3>
+                <p className="text-gray-600">
+                  Clientes rejeitam propostas mal apresentadas, mesmo com bons serviços
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -311,78 +141,163 @@ const LandingPage = () => {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="recursos" className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <Badge variant="secondary" className="mb-4 bg-blue-100 text-blue-800">
-              Funcionalidades
+            <Badge className="mb-4 bg-green-100 text-green-800 hover:bg-green-100">
+              ✨ A Solução Completa
             </Badge>
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Tudo que você precisa para vender mais
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Tudo que Você Precisa para Fechar Mais Vendas
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Uma plataforma completa que revoluciona a forma como você cria e envia propostas
+              Nossa plataforma transforma a forma como você cria e gerencia propostas comerciais
             </p>
           </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <Card key={index} className="hover:shadow-lg transition-shadow duration-300">
-                <CardContent className="p-6">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-                    <feature.icon className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">{feature.title}</h3>
-                  <p className="text-gray-600">{feature.description}</p>
-                </CardContent>
-              </Card>
-            ))}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <Card className="p-6 hover:shadow-lg transition-shadow">
+              <CardContent className="p-0">
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                  <Zap className="h-6 w-6 text-blue-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Criação Rápida com IA</h3>
+                <p className="text-gray-600">
+                  Inteligência artificial gera propostas personalizadas em segundos. 
+                  Apenas descreva seu serviço e deixe a IA fazer o resto.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="p-6 hover:shadow-lg transition-shadow">
+              <CardContent className="p-0">
+                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+                  <FileText className="h-6 w-6 text-purple-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Templates Profissionais</h3>
+                <p className="text-gray-600">
+                  Designs modernos e elegantes que impressionam clientes. 
+                  Escolha entre diferentes estilos ou crie seus próprios templates.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="p-6 hover:shadow-lg transition-shadow">
+              <CardContent className="p-0">
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+                  <BarChart3 className="h-6 w-6 text-green-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Acompanhamento em Tempo Real</h3>
+                <p className="text-gray-600">
+                  Saiba exatamente quando o cliente abriu sua proposta e por quanto tempo visualizou. 
+                  Dados precisos para follow-up certeiro.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="p-6 hover:shadow-lg transition-shadow">
+              <CardContent className="p-0">
+                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
+                  <MessageCircle className="h-6 w-6 text-orange-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Chat Inteligente</h3>
+                <p className="text-gray-600">
+                  Cliente pode fazer perguntas diretamente na proposta através de um chat com IA, 
+                  aumentando o engajamento e esclarecendo dúvidas na hora.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="p-6 hover:shadow-lg transition-shadow">
+              <CardContent className="p-0">
+                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4">
+                  <Users className="h-6 w-6 text-red-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Gestão de Clientes</h3>
+                <p className="text-gray-600">
+                  Organize todos seus clientes em um só lugar. 
+                  Histórico completo de propostas e interações para cada cliente.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="p-6 hover:shadow-lg transition-shadow">
+              <CardContent className="p-0">
+                <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+                  <Sparkles className="h-6 w-6 text-indigo-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Notificações Telegram</h3>
+                <p className="text-gray-600">
+                  Receba alertas instantâneos no Telegram quando clientes 
+                  visualizam ou respondem suas propostas. Nunca perca uma oportunidade.
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
 
       {/* Benefits Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="lg:grid lg:grid-cols-2 lg:gap-12 items-center">
-            <div>
-              <h2 className="text-3xl lg:text-4xl font-bold mb-6">
-                Por que escolher o Bora Fechar Aí?
-              </h2>
-              <p className="text-xl text-blue-100 mb-8">
-                Uma plataforma moderna desenvolvida para transformar PMEs em máquinas de vendas
-              </p>
-              
-              <div className="grid gap-4">
-                {benefits.map((benefit, index) => (
-                  <div key={index} className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-400 mr-3 flex-shrink-0" />
-                    <span className="text-lg">{benefit}</span>
-                  </div>
-                ))}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Resultados que Nossos Usuários Alcançaram
+            </h2>
+            <p className="text-xl text-blue-100">
+              Veja o impacto real na sua empresa
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <div className="space-y-6">
+              <div className="flex items-start space-x-4">
+                <CheckCircle className="h-6 w-6 text-green-400 mt-1 flex-shrink-0" />
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">95% Mais Rápido</h3>
+                  <p className="text-blue-100">
+                    Em vez de gastar 2-3 horas no Word, crie propostas profissionais em 5 minutos
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-4">
+                <CheckCircle className="h-6 w-6 text-green-400 mt-1 flex-shrink-0" />
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">+40% Taxa de Conversão</h3>
+                  <p className="text-blue-100">
+                    Propostas profissionais e acompanhamento em tempo real aumentam significativamente as vendas
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-4">
+                <CheckCircle className="h-6 w-6 text-green-400 mt-1 flex-shrink-0" />
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">100% Organizado</h3>
+                  <p className="text-blue-100">
+                    Todos os clientes, propostas e históricos em um só lugar, acessível de qualquer dispositivo
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-4">
+                <CheckCircle className="h-6 w-6 text-green-400 mt-1 flex-shrink-0" />
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">Follow-up Certeiro</h3>
+                  <p className="text-blue-100">
+                    Saiba exatamente quando entrar em contato baseado no comportamento do cliente
+                  </p>
+                </div>
               </div>
             </div>
-            
-            <div className="mt-12 lg:mt-0">
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8">
-                <h3 className="text-2xl font-bold mb-6 text-center">Benefícios Esperados</h3>
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="text-center">
-                    <div className="text-4xl font-bold text-green-400 mb-2">+50%</div>
-                    <div className="text-blue-100">Meta de Aprovação</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-4xl font-bold text-green-400 mb-2">80%</div>
-                    <div className="text-blue-100">Economia de Tempo</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-4xl font-bold text-green-400 mb-2">3min</div>
-                    <div className="text-blue-100">Para Criar Proposta</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-4xl font-bold text-green-400 mb-2">24/7</div>
-                    <div className="text-blue-100">Disponibilidade</div>
-                  </div>
+
+            <div className="text-center">
+              <div className="bg-white/10 backdrop-blur rounded-2xl p-8">
+                <div className="text-6xl font-bold text-white mb-4">2x</div>
+                <div className="text-xl text-blue-100 mb-2">Mais Vendas</div>
+                <div className="text-blue-200">
+                  Média de aumento nas vendas dos nossos usuários beta
                 </div>
               </div>
             </div>
@@ -391,209 +306,366 @@ const LandingPage = () => {
       </section>
 
       {/* Testimonials */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Avaliações da versão beta
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              O que Nossos Usuários Beta Estão Dizendo
             </h2>
             <p className="text-xl text-gray-600">
-              Feedback inicial dos primeiros usuários que testaram a plataforma
+              Feedback real de empresários que testaram nossa plataforma
             </p>
           </div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <Card key={index} className="hover:shadow-lg transition-shadow duration-300">
-                <CardContent className="p-6">
-                  <div className="flex mb-4">
-                    {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
-                    ))}
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <Card className="p-6">
+              <CardContent className="p-0">
+                <div className="flex items-center mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
+                  ))}
+                </div>
+                <p className="text-gray-600 mb-4">
+                  "Incrível como consegui criar propostas profissionais em minutos. 
+                  A IA realmente entende meu negócio e cria textos que eu mesmo escreveria."
+                </p>
+                <div className="flex items-center">
+                  <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
+                    M
                   </div>
-                  <blockquote className="text-gray-700 mb-4 italic">
-                    "{testimonial.content}"
-                  </blockquote>
-                  <div>
-                    <div className="font-semibold text-gray-900">{testimonial.name}</div>
-                    <div className="text-sm text-gray-600">{testimonial.company}</div>
+                  <div className="ml-3">
+                    <div className="font-semibold text-gray-900">Maria S.</div>
+                    <div className="text-sm text-gray-500">Agência de Marketing</div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="p-6">
+              <CardContent className="p-0">
+                <div className="flex items-center mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
+                  ))}
+                </div>
+                <p className="text-gray-600 mb-4">
+                  "O acompanhamento em tempo real mudou meu jogo. Agora sei exatamente 
+                  quando fazer o follow-up e minhas vendas aumentaram 50%."
+                </p>
+                <div className="flex items-center">
+                  <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold">
+                    J
+                  </div>
+                  <div className="ml-3">
+                    <div className="font-semibold text-gray-900">João P.</div>
+                    <div className="text-sm text-gray-500">Consultor TI</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="p-6">
+              <CardContent className="p-0">
+                <div className="flex items-center mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
+                  ))}
+                </div>
+                <p className="text-gray-600 mb-4">
+                  "Economizo horas toda semana. Antes gastava uma tarde inteira 
+                  fazendo uma proposta no Word, agora faço várias em 30 minutos."
+                </p>
+                <div className="flex items-center">
+                  <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
+                    A
+                  </div>
+                  <div className="ml-3">
+                    <div className="font-semibold text-gray-900">Ana L.</div>
+                    <div className="text-sm text-gray-500">Designer Freelancer</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Planos que cabem no seu bolso
+      {/* Pricing */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Planos Simples e Transparentes
             </h2>
             <p className="text-xl text-gray-600">
-              Comece grátis e escale conforme sua empresa cresce
+              Escolha o plano ideal para o tamanho da sua empresa
             </p>
           </div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            {plans.map((plan, index) => (
-              <Card key={index} className={`relative ${plan.popular ? 'border-blue-500 border-2 shadow-xl scale-105' : ''}`}>
-                {plan.popular && (
-                  <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-blue-600">
-                    Mais Popular
-                  </Badge>
-                )}
-                <CardHeader className="text-center">
-                  <CardTitle className="text-2xl">{plan.name}</CardTitle>
-                  <CardDescription>{plan.description}</CardDescription>
-                  <div className="mt-4">
-                    <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
-                    <span className="text-gray-600">{plan.period}</span>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-3 mb-6">
-                    {plan.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-center">
-                        <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                        <span className="text-gray-700">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Button 
-                    className={`w-full ${plan.popular ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
-                    variant={plan.popular ? 'default' : 'outline'}
-                    asChild
-                  >
-                    <Link to="/login">Começar Teste Grátis</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Plano Gratuito */}
+            <Card className="p-8 border-2 border-gray-200">
+              <CardContent className="p-0">
+                <div className="text-center mb-6">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Teste Grátis</h3>
+                  <div className="text-4xl font-bold text-gray-900 mb-1">R$ 0</div>
+                  <div className="text-gray-500">20 propostas para testar</div>
+                </div>
+                
+                <ul className="space-y-3 mb-8">
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                    <span>20 propostas gratuitas</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                    <span>3 templates profissionais</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                    <span>Criação com IA</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                    <span>Acompanhamento básico</span>
+                  </li>
+                </ul>
+                
+                <Button className="w-full" size="lg" asChild>
+                  <Link to="/login">Começar Grátis</Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Plano Profissional */}
+            <Card className="p-8 border-2 border-blue-500 relative">
+              <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-blue-500">
+                Mais Popular
+              </Badge>
+              <CardContent className="p-0">
+                <div className="text-center mb-6">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Profissional</h3>
+                  <div className="text-4xl font-bold text-gray-900 mb-1">R$ 47</div>
+                  <div className="text-gray-500">por mês</div>
+                </div>
+                
+                <ul className="space-y-3 mb-8">
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                    <span>Propostas ilimitadas</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                    <span>Todos os templates + personalizados</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                    <span>IA avançada</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                    <span>Analytics completo</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                    <span>Chat com cliente</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                    <span>Notificações Telegram</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                    <span>Suporte prioritário</span>
+                  </li>
+                </ul>
+                
+                <Button className="w-full bg-blue-600 hover:bg-blue-700" size="lg" asChild>
+                  <Link to="/login">Começar Agora</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="text-center mt-8">
+            <p className="text-gray-600">
+              💡 Comece grátis e faça upgrade quando precisar de mais recursos
+            </p>
           </div>
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="py-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+      {/* FAQ */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
               Perguntas Frequentes
             </h2>
             <p className="text-xl text-gray-600">
-              Tudo que você precisa saber sobre o Bora Fechar Aí
+              Esclarecemos suas principais dúvidas
             </p>
           </div>
-          
+
           <div className="space-y-6">
-            {faqs.map((faq, index) => (
-              <Card key={index}>
-                <CardHeader>
-                  <CardTitle className="text-lg">{faq.question}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600">{faq.answer}</p>
-                </CardContent>
-              </Card>
-            ))}
+            <Card className="p-6">
+              <CardContent className="p-0">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Como funciona o período de teste gratuito?
+                </h3>
+                <p className="text-gray-600">
+                  Você pode criar até 20 propostas completamente grátis, com acesso a todas as funcionalidades básicas. 
+                  Não há cobrança automática - você só paga se decidir continuar usando.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="p-6">
+              <CardContent className="p-0">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  A IA realmente entende meu tipo de negócio?
+                </h3>
+                <p className="text-gray-600">
+                  Sim! Nossa IA foi treinada com milhares de propostas de diferentes setores. 
+                  Ela se adapta ao seu ramo de atividade e estilo de comunicação, criando textos personalizados e profissionais.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="p-6">
+              <CardContent className="p-0">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Posso cancelar a qualquer momento?
+                </h3>
+                <p className="text-gray-600">
+                  Claro! Não há fidelidade. Você pode cancelar sua assinatura a qualquer momento e 
+                  continuar usando até o fim do período pago.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="p-6">
+              <CardContent className="p-0">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Como funciona o acompanhamento das propostas?
+                </h3>
+                <p className="text-gray-600">
+                  Cada proposta tem um link único e seguro. Quando o cliente acessa, você recebe notificação 
+                  em tempo real com dados como tempo de visualização, seções mais lidas e se houve interação no chat.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="p-6">
+              <CardContent className="p-0">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Meus dados estão seguros?
+                </h3>
+                <p className="text-gray-600">
+                  Absolutamente. Utilizamos criptografia de ponta e servidores seguros. 
+                  Seus dados e os de seus clientes são protegidos com os mais altos padrões de segurança.
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold mb-6">
-            Pronto para revolucionar suas vendas?
+      {/* CTA Final */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Pronto para Dobrar Suas Vendas?
           </h2>
           <p className="text-xl text-blue-100 mb-8">
-            Junte-se aos primeiros usuários que estão revolucionando suas vendas com o Bora Fechar Aí
+            Junte-se às centenas de empresários que já estão criando propostas profissionais 
+            e fechando mais negócios com nossa plataforma.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
             <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-6" asChild>
               <Link to="/login">
-                Começar Teste Grátis Agora
+                Começar Grátis Agora
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
-            <Button variant="outline" size="lg" className="border-white text-white hover:bg-white/10 text-lg px-8 py-6" asChild>
-              <a href="mailto:contato@borafecharai.com">Falar com Especialista</a>
+            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 text-lg px-8 py-6">
+              <a href="mailto:contato@borafecharai.com" className="flex items-center">
+                Falar com Especialista
+                <MessageCircle className="ml-2 h-5 w-5" />
+              </a>
             </Button>
           </div>
-          
-          <div className="flex items-center justify-center gap-8 text-sm">
+
+          <div className="flex items-center justify-center space-x-8 text-blue-200 text-sm">
             <div className="flex items-center">
-              <Shield className="h-4 w-4 mr-2" />
-              Dados 100% Seguros
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Sem cartão de crédito
             </div>
             <div className="flex items-center">
-              <HeadphonesIcon className="h-4 w-4 mr-2" />
-              Suporte Especializado
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Suporte brasileiro
             </div>
             <div className="flex items-center">
-              <Smartphone className="h-4 w-4 mr-2" />
-              Acesso em Qualquer Lugar
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Comece em 2 minutos
             </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8">
+      <footer className="bg-gray-900 text-white py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <div className="flex items-center mb-4">
-                <div className="bg-blue-600 p-2 rounded-xl">
-                  <FileText className="h-6 w-6 text-white" />
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-white" />
                 </div>
-                <div className="ml-3">
-                  <h3 className="text-lg font-bold">BoraFecharAI</h3>
-                  <p className="text-xs text-gray-400">Propostas Inteligentes</p>
-                </div>
+                <span className="text-xl font-bold">Bora Fechar</span>
               </div>
               <p className="text-gray-400">
-                A plataforma inteligente para criação de propostas comerciais profissionais.
+                A plataforma completa para PMEs criarem propostas profissionais e fecharem mais vendas.
               </p>
             </div>
-            
+
             <div>
-              <h4 className="font-semibold mb-4">Produto</h4>
+              <h3 className="font-semibold mb-4">Produto</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><Link to="/login" className="hover:text-white">Funcionalidades</Link></li>
+                <li><a href="#recursos" className="hover:text-white">Recursos</a></li>
                 <li><Link to="/login" className="hover:text-white">Preços</Link></li>
-                <li><Link to="/login" className="hover:text-white">Começar Grátis</Link></li>
-                <li><a href="mailto:contato@borafecharai.com" className="hover:text-white">Contato</a></li>
+                <li><Link to="/login" className="hover:text-white">Demonstração</Link></li>
               </ul>
             </div>
-            
+
             <div>
-              <h4 className="font-semibold mb-4">Empresa</h4>
+              <h3 className="font-semibold mb-4">Empresa</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="mailto:contato@borafecharai.com" className="hover:text-white">Sobre</a></li>
-                <li><Link to="/login" className="hover:text-white">Cadastrar</Link></li>
-                <li><a href="mailto:contato@borafecharai.com" className="hover:text-white">Parcerias</a></li>
-                <li><a href="mailto:contato@borafecharai.com" className="hover:text-white">Contato</a></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-4">Suporte</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="mailto:contato@borafecharai.com" className="hover:text-white">Central de Ajuda</a></li>
-                <li><Link to="/login" className="hover:text-white">Começar</Link></li>
                 <li><Link to="/termos-de-uso" className="hover:text-white">Termos de Uso</Link></li>
-                <li><a href="mailto:contato@borafecharai.com" className="hover:text-white">Privacidade</a></li>
+                <li><a href="mailto:contato@borafecharai.com" className="hover:text-white">Contato</a></li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="font-semibold mb-4">Contato</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li className="flex items-center">
+                  <Mail className="h-4 w-4 mr-2" />
+                  <a href="mailto:contato@borafecharai.com" className="hover:text-white">
+                    contato@borafecharai.com
+                  </a>
+                </li>
+                <li className="flex items-center">
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  <span>Suporte via chat</span>
+                </li>
               </ul>
             </div>
           </div>
-          
+
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2025 BoraFecharAI. Todos os direitos reservados.</p>
+            <p>&copy; 2024 Bora Fechar. Todos os direitos reservados.</p>
           </div>
         </div>
       </footer>

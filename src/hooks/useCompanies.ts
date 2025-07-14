@@ -1,86 +1,143 @@
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 
-type Company = Tables<'companies'>;
-type CompanyInsert = TablesInsert<'companies'>;
-type CompanyUpdate = TablesUpdate<'companies'>;
+interface Company {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
+  country_code?: string;
+  cnpj?: string;
+  website?: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+}
 
 export const useCompanies = () => {
-  return useQuery({
-    queryKey: ['companies'],
-    queryFn: async () => {
+  const { user } = useAuth();
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchCompanies = async () => {
+    if (!user) {
+      setCompanies([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
       const { data, error } = await supabase
         .from('companies')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching companies:', error);
-        throw error;
+        return;
       }
 
-      return data;
-    },
-  });
-};
+      console.log('Fetched companies for user:', user.id, data?.length || 0);
+      setCompanies(data || []);
+    } catch (error) {
+      console.error('Error fetching companies:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-export const useCreateCompany = () => {
-  const queryClient = useQueryClient();
+  const createCompany = async (companyData: Omit<Company, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
+    if (!user) throw new Error('User not authenticated');
 
-  return useMutation({
-    mutationFn: async (company: CompanyInsert) => {
+    try {
       const { data, error } = await supabase
         .from('companies')
-        .insert(company)
+        .insert([{
+          ...companyData,
+          user_id: user.id
+        }])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating company:', error);
+        throw error;
+      }
+
+      await fetchCompanies();
       return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['companies'] });
-    },
-  });
-};
+    } catch (error) {
+      console.error('Error creating company:', error);
+      throw error;
+    }
+  };
 
-export const useUpdateCompany = () => {
-  const queryClient = useQueryClient();
+  const updateCompany = async (id: string, updates: Partial<Company>) => {
+    if (!user) throw new Error('User not authenticated');
 
-  return useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Company> }) => {
+    try {
       const { data, error } = await supabase
         .from('companies')
         .update(updates)
         .eq('id', id)
+        .eq('user_id', user.id)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating company:', error);
+        throw error;
+      }
+
+      await fetchCompanies();
       return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['companies'] });
-    },
-  });
-};
+    } catch (error) {
+      console.error('Error updating company:', error);
+      throw error;
+    }
+  };
 
-export const useDeleteCompany = () => {
-  const queryClient = useQueryClient();
+  const deleteCompany = async (id: string) => {
+    if (!user) throw new Error('User not authenticated');
 
-  return useMutation({
-    mutationFn: async (id: string) => {
+    try {
       const { error } = await supabase
         .from('companies')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.id);
 
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['companies'] });
-    },
-  });
+      if (error) {
+        console.error('Error deleting company:', error);
+        throw error;
+      }
+
+      await fetchCompanies();
+    } catch (error) {
+      console.error('Error deleting company:', error);
+      throw error;
+    }
+  };
+
+  useEffect(() => {
+    fetchCompanies();
+  }, [user]);
+
+  return {
+    companies,
+    loading,
+    fetchCompanies,
+    createCompany,
+    updateCompany,
+    deleteCompany
+  };
 };

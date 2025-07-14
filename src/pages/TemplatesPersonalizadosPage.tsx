@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,35 +15,22 @@ import {
   Trash,
   Eye,
   Crown,
-  Palette,
   Wand2,
   Sparkles,
   Save
 } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useCustomTemplates } from '@/hooks/useCustomTemplates';
+import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import ProposalTemplatePreview from '@/components/ProposalTemplatePreview';
 
 const TemplatesPersonalizadosPage = () => {
   const { subscribed, subscription_tier } = useSubscription();
-  const [templates, setTemplates] = useState([
-    {
-      id: 1,
-      name: 'Template Corporativo Premium',
-      description: 'Template elegante para propostas corporativas',
-      created_at: '2024-01-15',
-      isActive: true
-    },
-    {
-      id: 2,
-      name: 'Template Criativo Plus',
-      description: 'Design moderno para projetos criativos',
-      created_at: '2024-01-10',
-      isActive: false
-    }
-  ]);
-
+  const { canAccessPremiumTemplates, isAdmin } = useUserPermissions();
+  const { templates, loading, saveTemplate, deleteTemplate } = useCustomTemplates();
+  
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewData, setPreviewData] = useState(null);
@@ -61,8 +49,8 @@ const TemplatesPersonalizadosPage = () => {
     tone: 'profissional'
   });
 
-  // Verificar se tem permissão para templates personalizados
-  const hasPermission = subscribed && subscription_tier === 'equipes';
+  // Verificar se tem permissão para templates personalizados  
+  const hasPermission = canAccessPremiumTemplates || isAdmin;
 
   const generateWithAI = async () => {
     if (!aiForm.businessType || !aiForm.serviceType) {
@@ -106,40 +94,37 @@ const TemplatesPersonalizadosPage = () => {
     }
   };
 
-  const handleCreateTemplate = () => {
+  const handleCreateTemplate = async () => {
     if (!formData.name.trim()) {
       toast.error('Nome do template é obrigatório');
       return;
     }
 
-    const newTemplate = {
-      id: templates.length + 1,
-      name: formData.name,
-      description: formData.description,
-      created_at: new Date().toISOString().split('T')[0],
-      isActive: true,
-      content: formData.content,
-      style: formData.style
-    };
+    try {
+      await saveTemplate({
+        template_id: formData.name.toLowerCase().replace(/\s+/g, '-'),
+        name: formData.name,
+        description: formData.description,
+        html_content: formData.content
+      });
 
-    setTemplates([...templates, newTemplate]);
-    setFormData({ name: '', description: '', content: '', style: 'moderno' });
-    setAiForm({ businessType: '', serviceType: '', targetAudience: '', tone: 'profissional' });
-    setShowCreateForm(false);
-    setPreviewData(null);
-    toast.success('Template criado com sucesso!');
+      setFormData({ name: '', description: '', content: '', style: 'moderno' });
+      setAiForm({ businessType: '', serviceType: '', targetAudience: '', tone: 'profissional' });
+      setShowCreateForm(false);
+      setPreviewData(null);
+      toast.success('Template criado com sucesso!');
+    } catch (error) {
+      toast.error('Erro ao criar template');
+    }
   };
 
-  const handleDeleteTemplate = (id: number) => {
-    setTemplates(templates.filter(t => t.id !== id));
-    toast.success('Template excluído com sucesso!');
-  };
-
-  const toggleTemplateStatus = (id: number) => {
-    setTemplates(templates.map(t => 
-      t.id === id ? { ...t, isActive: !t.isActive } : t
-    ));
-    toast.success('Status do template atualizado!');
+  const handleDeleteTemplate = async (id: string) => {
+    try {
+      await deleteTemplate(id);
+      toast.success('Template excluído com sucesso!');
+    } catch (error) {
+      toast.error('Erro ao excluir template');
+    }
   };
 
   if (!hasPermission) {
@@ -165,10 +150,10 @@ const TemplatesPersonalizadosPage = () => {
             <CardContent className="text-center py-12">
               <Crown className="h-16 w-16 text-orange-500 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-orange-900 mb-2">
-                Recurso Exclusivo do Plano Equipes
+                Recurso Exclusivo do Plano Profissional
               </h3>
               <p className="text-orange-700 mb-6">
-                Para criar templates personalizados, você precisa estar no plano Equipes.
+                Para criar templates personalizados, você precisa estar no plano Profissional.
               </p>
               <Button asChild className="bg-orange-600 hover:bg-orange-700">
                 <Link to="/configuracoes?tab=planos">
@@ -410,56 +395,52 @@ const TemplatesPersonalizadosPage = () => {
 
         {/* Templates List */}
         <div className="grid gap-4">
-          {templates.map((template) => (
-            <Card key={template.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-semibold">{template.name}</h3>
-                        <Badge variant={template.isActive ? "default" : "secondary"}>
-                          {template.isActive ? 'Ativo' : 'Inativo'}
-                        </Badge>
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+              <p className="text-gray-600 mt-2">Carregando templates...</p>
+            </div>
+          ) : templates.length > 0 ? (
+            templates.map((template) => (
+              <Card key={template.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-lg font-semibold">{template.name}</h3>
+                          <Badge variant="default">Personalizado</Badge>
+                        </div>
+                        <p className="text-gray-600">{template.description}</p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Criado em {new Date(template.created_at).toLocaleDateString('pt-BR')}
+                        </p>
                       </div>
-                      <p className="text-gray-600">{template.description}</p>
-                      <p className="text-sm text-gray-500 mt-1">
-                        Criado em {new Date(template.created_at).toLocaleDateString('pt-BR')}
-                      </p>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm">
+                        <Eye className="h-4 w-4 mr-2" />
+                        Visualizar
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <Edit className="h-4 w-4 mr-2" />
+                        Editar
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleDeleteTemplate(template.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm">
-                      <Eye className="h-4 w-4 mr-2" />
-                      Visualizar
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      <Edit className="h-4 w-4 mr-2" />
-                      Editar
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => toggleTemplateStatus(template.id)}
-                    >
-                      {template.isActive ? 'Desativar' : 'Ativar'}
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleDeleteTemplate(template.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-
-          {templates.length === 0 && (
+                </CardContent>
+              </Card>
+            ))
+          ) : (
             <Card>
               <CardContent className="text-center py-12">
                 <Sparkles className="h-16 w-16 text-purple-400 mx-auto mb-4" />

@@ -1,596 +1,298 @@
+
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Link } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { 
-  ArrowLeft, 
-  Bot, 
-  Phone, 
-  CheckCircle, 
-  AlertCircle,
-  MessageSquare,
-  Settings,
-  Smartphone,
-  Copy,
-  ExternalLink,
-  RefreshCw
-} from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, MessageCircle, Bot, CheckCircle, AlertTriangle, Settings } from 'lucide-react';
+import { useUserPermissions } from '@/hooks/useUserPermissions';
+import { useTelegramBot } from '@/hooks/useTelegramBot';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
+import TelegramBotUserGuide from '@/components/TelegramBotUserGuide';
 
 const TelegramBotPage = () => {
-  const { user } = useAuth();
+  const { isAdmin } = useUserPermissions();
+  const { settings, loading, saveSettings } = useTelegramBot();
+  const [formData, setFormData] = useState({
+    bot_token: '',
+    bot_username: ''
+  });
   const [isConfiguring, setIsConfiguring] = useState(false);
-  const [isTestingWebhook, setIsTestingWebhook] = useState(false);
-  const [isTestingPhone, setIsTestingPhone] = useState(false);
-  const [webhookConfigured, setWebhookConfigured] = useState(false);
-  const [webhookUrl, setWebhookUrl] = useState('');
-  const [botUsername, setBotUsername] = useState('');
-  const [testPhone, setTestPhone] = useState('');
-  const [phoneTestResult, setPhoneTestResult] = useState<any>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [webhookStatus, setWebhookStatus] = useState<'pending' | 'success' | 'error'>('pending');
 
-  // URL do webhook
-  const webhookEndpoint = `https://pakrraqbjbkkbdnwkkbt.supabase.co/functions/v1/telegram-bot-webhook`;
-
-  // Verificar se o usuário é admin
   useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (user?.email === 'admin@borafecharai.com') {
-        setIsAdmin(true);
-        loadWebhookSettings();
-      } else {
-        // Verificar se o usuário tem role de admin
-        const { data: userRoles } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user?.id)
-          .eq('role', 'admin')
-          .single();
-          
-        if (userRoles) {
-          setIsAdmin(true);
-          loadWebhookSettings();
+    if (settings.bot_token) {
+      setFormData({
+        bot_token: settings.bot_token,
+        bot_username: settings.bot_username || ''
+      });
+    }
+  }, [settings]);
+
+  const handleSave = async () => {
+    if (!formData.bot_token.trim()) {
+      toast.error('Token do bot é obrigatório');
+      return;
+    }
+
+    setIsConfiguring(true);
+    try {
+      await saveSettings({
+        bot_token: formData.bot_token,
+        bot_username: formData.bot_username,
+        webhook_configured: false
+      });
+
+      // Configure webhook
+      const { data, error } = await supabase.functions.invoke('setup-telegram-webhook', {
+        body: {
+          bot_token: formData.bot_token
         }
-      }
-    };
-    
-    if (user) {
-      checkAdminStatus();
-    }
-  }, [user]);
-
-  // Carregar configurações do webhook do Supabase
-  const loadWebhookSettings = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('system_settings')
-        .select('setting_value')
-        .eq('user_id', user.id)
-        .eq('setting_key', 'telegram_webhook')
-        .single();
-
-      if (data?.setting_value) {
-        const settings = data.setting_value as any;
-        setWebhookConfigured(settings?.configured || false);
-        setWebhookUrl(settings?.webhook_url || '');
-        setBotUsername(settings?.bot_username || '');
-      }
-    } catch (error) {
-      console.log('Configurações do webhook não encontradas');
-    }
-  };
-
-  // Salvar configurações do webhook no Supabase
-  const saveWebhookSettings = async (settings: any) => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from('system_settings')
-        .upsert({
-          user_id: user.id,
-          setting_key: 'telegram_webhook',
-          setting_value: settings
-        });
+      });
 
       if (error) {
-        console.error('Erro ao salvar configurações:', error);
+        console.error('Erro ao configurar webhook:', error);
+        setWebhookStatus('error');
+        toast.error('Bot salvo, mas erro ao configurar webhook');
+      } else {
+        console.log('Webhook configurado:', data);
+        setWebhookStatus('success');
+        
+        // Update webhook status in database
+        await saveSettings({
+          bot_token: formData.bot_token,
+          bot_username: formData.bot_username,
+          webhook_configured: true
+        });
+        
+        toast.success('Bot configurado com sucesso!');
       }
     } catch (error) {
       console.error('Erro ao salvar configurações:', error);
-    }
-  };
-
-  const configureWebhook = async () => {
-    setIsConfiguring(true);
-    
-    try {
-      console.log('Configurando webhook do Telegram...');
-      const { data, error } = await supabase.functions.invoke('setup-telegram-webhook');
-      
-      console.log('Resposta da configuração:', data, error);
-      
-      if (error) {
-        console.error('Erro ao configurar webhook:', error);
-        toast.error(`Erro ao configurar webhook: ${error.message}`);
-        return;
-      }
-
-      if (data?.success) {
-        setWebhookConfigured(true);
-        setWebhookUrl(data.webhook_url);
-        setBotUsername(data.bot_username || '');
-        
-        // Salvar configurações no Supabase
-        await saveWebhookSettings({
-          configured: true,
-          webhook_url: data.webhook_url,
-          bot_username: data.bot_username || '',
-          configured_at: new Date().toISOString()
-        });
-        
-        toast.success('Webhook do Telegram configurado com sucesso!');
-      } else {
-        toast.error(data?.error || 'Erro ao configurar webhook');
-        console.error('Erro na resposta:', data);
-      }
-    } catch (error) {
-      console.error('Erro na requisição:', error);
-      toast.error('Erro na configuração do webhook');
+      setWebhookStatus('error');
+      toast.error('Erro ao configurar bot');
     } finally {
       setIsConfiguring(false);
     }
   };
 
-  const testWebhook = async () => {
-    setIsTestingWebhook(true);
-    
-    try {
-      // Fazer uma requisição de teste para o webhook
-      const response = await fetch(webhookEndpoint, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const responseText = await response.text();
-      console.log('Resposta do teste:', response.status, responseText);
-
-      if (response.ok) {
-        toast.success('Webhook está funcionando! Status: ' + response.status);
-      } else {
-        toast.error('Webhook com problema. Status: ' + response.status);
-      }
-    } catch (error) {
-      console.error('Erro ao testar webhook:', error);
-      toast.error('Erro ao conectar com o webhook');
-    } finally {
-      setIsTestingWebhook(false);
-    }
-  };
-
-  const testPhoneInDatabase = async () => {
-    if (!testPhone.trim()) {
-      toast.error('Digite um telefone para testar');
+  const testBot = async () => {
+    if (!settings.bot_token) {
+      toast.error('Configure o bot primeiro');
       return;
     }
 
-    setIsTestingPhone(true);
-    
     try {
-      console.log('Testando telefone:', testPhone);
-      
-      // Limpar o telefone (remover caracteres especiais)
-      const cleanPhone = testPhone.replace(/\D/g, '');
-      console.log('Telefone limpo:', cleanPhone);
-      
-      // Buscar empresas/usuários pelo telefone (busca por telefone exato e também por telefone sem formatação)
-      const { data: companies, error } = await supabase
-        .from('companies')
-        .select('user_id, name, email, phone')
-        .or(`phone.eq.${testPhone},phone.eq.${cleanPhone}`)
-        .limit(1);
+      const response = await fetch(`https://api.telegram.org/bot${settings.bot_token}/getMe`);
+      const data = await response.json();
 
-      console.log('Resultado da busca por telefone:', { companies, error });
-
-      if (companies && companies.length > 0) {
-        setPhoneTestResult({
-          found: true,
-          data: companies[0]
-        });
-        toast.success(`Telefone encontrado! Usuário: ${companies[0].name}`);
-        return;
+      if (data.ok) {
+        toast.success(`Bot "${data.result.first_name}" está funcionando!`);
+        setFormData(prev => ({
+          ...prev,
+          bot_username: data.result.username || ''
+        }));
+      } else {
+        toast.error('Token inválido ou bot não encontrado');
       }
-
-      // Se não encontrou, buscar em todas as empresas e verificar telefones formatados
-      const { data: allCompanies, error: allError } = await supabase
-        .from('companies')
-        .select('user_id, name, email, phone');
-
-      console.log('Buscando em todas as empresas:', { count: allCompanies?.length, error: allError });
-
-      if (allCompanies) {
-        for (const company of allCompanies) {
-          if (company.phone) {
-            const companyCleanPhone = company.phone.replace(/\D/g, '');
-            console.log(`Comparando: ${cleanPhone} com ${companyCleanPhone} (${company.phone})`);
-            
-            if (cleanPhone === companyCleanPhone) {
-              console.log('✅ Encontrado empresa com telefone compatível:', company);
-              setPhoneTestResult({
-                found: true,
-                data: company
-              });
-              toast.success(`Telefone encontrado! Usuário: ${company.name}`);
-              return;
-            }
-          }
-        }
-      }
-
-      setPhoneTestResult({
-        found: false,
-        error: 'Telefone não encontrado'
-      });
-      toast.error('Telefone não encontrado na base de dados');
     } catch (error) {
-      console.error('Erro ao testar telefone:', error);
-      toast.error('Erro ao buscar telefone');
-      setPhoneTestResult({
-        found: false,
-        error: error.message
-      });
-    } finally {
-      setIsTestingPhone(false);
+      console.error('Erro ao testar bot:', error);
+      toast.error('Erro ao conectar com o Telegram');
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success('Copiado para a área de transferência!');
-  };
-
-  const getWebhookInfo = () => {
-    // Fazer requisição para obter informações do webhook
-    return fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN || 'SEU_TOKEN'}/getWebhookInfo`)
-      .then(res => res.json())
-      .then(data => {
-        console.log('Info do webhook:', data);
-        return data;
-      });
-  };
-
-  // Verificação de acesso admin
-  if (!isAdmin) {
+  if (loading) {
     return (
-      <div className="p-6 max-w-4xl mx-auto">
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-900">
-              <AlertCircle className="h-5 w-5" />
-              Acesso Restrito
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-red-800">
-              Esta página é acessível apenas para administradores do sistema.
-            </p>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Bot className="h-12 w-12 text-blue-600 mx-auto mb-4 animate-spin" />
+          <p className="text-gray-600">Carregando configurações...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" asChild>
-          <Link to="/configuracoes" className="flex items-center gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Voltar
-          </Link>
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold text-gray-900">Bot do Telegram</h1>
-          <p className="text-gray-600 mt-1">Configure e gerencie seu bot de propostas no Telegram</p>
-        </div>
-      </div>
-
-      {/* Teste de Telefone */}
-      <Card className="border-green-200 bg-green-50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-green-900">
-            <Phone className="h-5 w-5" />
-            Teste de Telefone
-          </CardTitle>
-          <CardDescription className="text-green-800">
-            Verifique se seu telefone está cadastrado na base de dados
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+    <div className="min-h-screen bg-gray-50">
+      <div className="p-6 max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-6">
+          <Button variant="ghost" asChild>
+            <Link to="/configuracoes?tab=integrações">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Voltar
+            </Link>
+          </Button>
           <div>
-            <Label className="text-green-900 font-medium">Telefone para testar:</Label>
-            <div className="flex items-center gap-2 mt-1">
-              <Input 
-                value={testPhone} 
-                onChange={(e) => setTestPhone(e.target.value)}
-                placeholder="Ex: +5511999999999 ou (11) 99999-9999"
-                className="bg-white"
-              />
-              <Button 
-                variant="outline" 
-                onClick={testPhoneInDatabase}
-                disabled={isTestingPhone}
-              >
-                {isTestingPhone ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Phone className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <MessageCircle className="h-6 w-6 text-blue-600" />
+              Bot do Telegram
+            </h1>
+            <p className="text-gray-600">
+              {isAdmin ? 'Configure e gerencie o bot do Telegram' : 'Como usar o bot do Telegram'}
+            </p>
           </div>
-          
-          {phoneTestResult && (
-            <div className={`p-3 rounded-lg ${phoneTestResult.found ? 'bg-green-100 border-green-300' : 'bg-red-100 border-red-300'} border`}>
-              {phoneTestResult.found ? (
-                <div>
-                  <p className="font-medium text-green-900">✅ Telefone encontrado!</p>
-                  <p className="text-sm text-green-800">Nome: {phoneTestResult.data.name}</p>
-                  <p className="text-sm text-green-800">Email: {phoneTestResult.data.email}</p>
-                  <p className="text-sm text-green-800">User ID: {phoneTestResult.data.user_id}</p>
+        </div>
+
+        {/* Admin Configuration */}
+        {isAdmin ? (
+          <div className="space-y-6">
+            {/* Status */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Status da Configuração
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-4">
+                  {settings.bot_token ? (
+                    <Badge variant="default" className="flex items-center gap-1">
+                      <CheckCircle className="h-4 w-4" />
+                      Bot Configurado
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="flex items-center gap-1">
+                      <AlertTriangle className="h-4 w-4" />
+                      Bot Não Configurado
+                    </Badge>
+                  )}
+                  
+                  {settings.webhook_configured ? (
+                    <Badge variant="default" className="flex items-center gap-1">
+                      <CheckCircle className="h-4 w-4" />
+                      Webhook Ativo
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      <AlertTriangle className="h-4 w-4" />
+                      Webhook Pendente
+                    </Badge>
+                  )}
                 </div>
-              ) : (
+              </CardContent>
+            </Card>
+
+            {/* Configuration Form */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Configuração do Bot</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
-                  <p className="font-medium text-red-900">❌ Telefone não encontrado</p>
-                  <p className="text-sm text-red-800">Erro: {phoneTestResult.error}</p>
-                  <p className="text-sm text-red-800 mt-2">
-                    Para o bot funcionar, você precisa ter uma empresa cadastrada com este telefone.
+                  <Label htmlFor="bot_token">Token do Bot</Label>
+                  <Input
+                    id="bot_token"
+                    type="password"
+                    value={formData.bot_token}
+                    onChange={(e) => setFormData({...formData, bot_token: e.target.value})}
+                    placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    Obtenha o token conversando com @BotFather no Telegram
                   </p>
                 </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
-      {/* Debug Info */}
-      <Card className="border-blue-200 bg-blue-50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-blue-900">
-            <Settings className="h-5 w-5" />
-            Informações de Debug
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div>
-            <Label className="text-blue-900 font-medium">URL do Webhook:</Label>
-            <div className="flex items-center gap-2 mt-1">
-              <Input 
-                value={webhookEndpoint} 
-                readOnly 
-                className="bg-white"
-              />
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => copyToClipboard(webhookEndpoint)}
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
+                <div>
+                  <Label htmlFor="bot_username">Username do Bot (opcional)</Label>
+                  <Input
+                    id="bot_username"
+                    value={formData.bot_username}
+                    onChange={(e) => setFormData({...formData, bot_username: e.target.value})}
+                    placeholder="meu_bot"
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handleSave} 
+                    disabled={isConfiguring}
+                    className="flex items-center gap-2"
+                  >
+                    {isConfiguring ? (
+                      <>
+                        <Bot className="h-4 w-4 animate-spin" />
+                        Configurando...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="h-4 w-4" />
+                        Salvar Configuração
+                      </>
+                    )}
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={testBot}
+                    disabled={!formData.bot_token}
+                  >
+                    Testar Bot
+                  </Button>
+                </div>
+
+                {webhookStatus === 'success' && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 text-green-700">
+                      <CheckCircle className="h-5 w-5" />
+                      <span className="font-medium">Bot configurado com sucesso!</span>
+                    </div>
+                    <p className="text-sm text-green-600 mt-1">
+                      O webhook foi configurado e o bot está pronto para enviar notificações.
+                    </p>
+                  </div>
+                )}
+
+                {webhookStatus === 'error' && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 text-red-700">
+                      <AlertTriangle className="h-5 w-5" />
+                      <span className="font-medium">Erro na configuração do webhook</span>
+                    </div>
+                    <p className="text-sm text-red-600 mt-1">
+                      O bot foi salvo, mas houve um problema ao configurar o webhook. 
+                      Verifique se o token está correto.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Instructions */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Como criar um bot no Telegram</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-600">
+                    <strong>1.</strong> Abra o Telegram e procure por @BotFather
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <strong>2.</strong> Envie o comando /newbot
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <strong>3.</strong> Escolha um nome para seu bot
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <strong>4.</strong> Escolha um username (deve terminar com 'bot')
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <strong>5.</strong> Copie o token fornecido e cole no campo acima
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-          
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={testWebhook}
-              disabled={isTestingWebhook}
-            >
-              {isTestingWebhook ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Testando...
-                </>
-              ) : (
-                <>
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Testar Webhook
-                </>
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Status Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bot className="h-5 w-5 text-blue-600" />
-            Status do Bot
-          </CardTitle>
-          <CardDescription>
-            Configure o webhook para começar a receber mensagens
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              <span>Webhook do Telegram</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {webhookConfigured ? (
-                <>
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <Badge variant="default" className="bg-green-100 text-green-800">
-                    Configurado
-                  </Badge>
-                </>
-              ) : (
-                <>
-                  <AlertCircle className="h-4 w-4 text-orange-600" />
-                  <Badge variant="secondary">
-                    Não Configurado
-                  </Badge>
-                </>
-              )}
-            </div>
-          </div>
-
-          <Button 
-            onClick={configureWebhook}
-            disabled={isConfiguring}
-            className="w-full"
-          >
-            {isConfiguring ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Configurando...
-              </>
-            ) : (
-              <>
-                <Settings className="h-4 w-4 mr-2" />
-                {webhookConfigured ? 'Reconfigurar Webhook' : 'Configurar Webhook'}
-              </>
-            )}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Passos para configurar o bot */}
-      <Card className="border-orange-200 bg-orange-50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-orange-900">
-            <MessageSquare className="h-5 w-5" />
-            Passos para Configurar o Bot
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <div className="bg-orange-200 text-orange-900 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">1</div>
-              <div>
-                <p className="font-medium text-orange-900">Criar Bot no Telegram</p>
-                <p className="text-sm text-orange-800">Envie /newbot para @BotFather no Telegram</p>
-              </div>
-            </div>
-            
-            <div className="flex items-start gap-3">
-              <div className="bg-orange-200 text-orange-900 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">2</div>
-              <div>
-                <p className="font-medium text-orange-900">Copiar Token</p>
-                <p className="text-sm text-orange-800">Guarde o token que o BotFather fornecer</p>
-              </div>
-            </div>
-            
-            <div className="flex items-start gap-3">
-              <div className="bg-orange-200 text-orange-900 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">3</div>
-              <div>
-                <p className="font-medium text-orange-900">Adicionar Token no Supabase</p>
-                <p className="text-sm text-orange-800">TELEGRAM_BOT_TOKEN nos secrets do Supabase</p>
-              </div>
-            </div>
-            
-            <div className="flex items-start gap-3">
-              <div className="bg-orange-200 text-orange-900 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">4</div>
-              <div>
-                <p className="font-medium text-orange-900">Configurar Webhook</p>
-                <p className="text-sm text-orange-800">Clique no botão "Configurar Webhook" acima</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Como Funciona */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-purple-600" />
-            Como Funciona
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-blue-600" />
-                <span className="font-medium">1. Identificação</span>
-              </div>
-              <p className="text-sm text-gray-600 ml-6">
-                O usuário compartilha o telefone para ser identificado na base de dados
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Bot className="h-4 w-4 text-green-600" />
-                <span className="font-medium">2. Conversa Guiada</span>
-              </div>
-              <p className="text-sm text-gray-600 ml-6">
-                Bot coleta todas as informações necessárias para a proposta
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 text-purple-600" />
-                <span className="font-medium">3. Geração Automática</span>
-              </div>
-              <p className="text-sm text-gray-600 ml-6">
-                Proposta é criada automaticamente na conta do usuário
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-orange-600" />
-                <span className="font-medium">4. Finalização</span>
-              </div>
-              <p className="text-sm text-gray-600 ml-6">
-                Usuário pode revisar e enviar a proposta pelo sistema web
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Comandos do Bot */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Smartphone className="h-5 w-5" />
-            Comandos do Bot
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-              <code className="text-sm font-mono">/start</code>
-              <span className="text-sm text-gray-600">Inicia uma nova conversa</span>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-              <code className="text-sm font-mono">📱 Compartilhar Telefone</code>
-              <span className="text-sm text-gray-600">Identifica o usuário no sistema</span>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-              <code className="text-sm font-mono">pular</code>
-              <span className="text-sm text-gray-600">Pula campos opcionais</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        ) : (
+          /* User Guide */
+          <TelegramBotUserGuide />
+        )}
+      </div>
     </div>
   );
 };

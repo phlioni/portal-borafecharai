@@ -68,6 +68,39 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_proposal_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          html_content: string
+          id: string
+          name: string
+          template_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          html_content: string
+          id?: string
+          name: string
+          template_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          html_content?: string
+          id?: string
+          name?: string
+          template_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       proposals: {
         Row: {
           company_id: string | null
@@ -208,6 +241,36 @@ export type Database = {
           setting_value?: Json | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      telegram_bot_settings: {
+        Row: {
+          bot_token: string | null
+          bot_username: string | null
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+          webhook_configured: boolean | null
+        }
+        Insert: {
+          bot_token?: string | null
+          bot_username?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          webhook_configured?: boolean | null
+        }
+        Update: {
+          bot_token?: string | null
+          bot_username?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          webhook_configured?: boolean | null
         }
         Relationships: []
       }
