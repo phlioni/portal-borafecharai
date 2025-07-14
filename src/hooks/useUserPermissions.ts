@@ -29,30 +29,24 @@ export const useUserPermissions = () => {
     loading: true,
   });
 
-  const initiateTrial = async () => {
+  const fixTrial = async () => {
     if (!user) return;
 
-    console.log('Iniciando trial automático para usuário:', user.email);
+    console.log('Corrigindo trial para usuário:', user.email);
 
-    const trialEndDate = new Date();
-    trialEndDate.setDate(trialEndDate.getDate() + 15);
+    try {
+      const { data, error } = await supabase.functions.invoke('fix-trial');
+      
+      if (error) {
+        console.error('Erro ao corrigir trial:', error);
+        return;
+      }
 
-    const { error } = await supabase
-      .from('subscribers')
-      .upsert({
-        user_id: user.id,
-        email: user.email!,
-        trial_start_date: new Date().toISOString(),
-        trial_end_date: trialEndDate.toISOString(),
-        trial_proposals_used: 0,
-        subscribed: false,
-        subscription_tier: null,
-      }, { onConflict: 'user_id' });
-
-    if (error) {
-      console.error('Erro ao iniciar trial:', error);
-    } else {
-      console.log('Trial iniciado com sucesso até:', trialEndDate);
+      console.log('Trial corrigido:', data);
+      // Recarregar permissões após corrigir o trial
+      setTimeout(() => checkPermissions(), 1000);
+    } catch (error) {
+      console.error('Erro ao corrigir trial:', error);
     }
   };
 
@@ -99,47 +93,17 @@ export const useUserPermissions = () => {
       const isInTrial = subscriberData?.trial_end_date && 
         new Date(subscriberData.trial_end_date) >= new Date();
 
-      // Se não há dados de subscriber, criar automaticamente com trial
-      if (!subscriberData) {
-        console.log('Usuário novo detectado (sem registro), iniciando trial automático');
-        await initiateTrial();
-        // Refresh subscriber data after trial initiation
-        const { data: newSubscriberData } = await supabase
-          .from('subscribers')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-        
-        // Usar os novos dados para os cálculos subsequentes
-        const updatedData = newSubscriberData || subscriberData;
-        
-        // Recalcular se está em trial com os dados atualizados
-        const updatedIsInTrial = updatedData?.trial_end_date && 
-          new Date(updatedData.trial_end_date) >= new Date();
-
-        // Usar dados atualizados para as permissões de trial
-        if (updatedIsInTrial) {
-          const trialProposalsUsed = updatedData?.trial_proposals_used || 0;
-          setPermissions({
-            isAdmin: false,
-            canCreateProposal: canCreate || false,
-            canAccessAnalytics: false,
-            canAccessPremiumTemplates: false,
-            canCollaborate: false,
-            monthlyProposalCount: trialProposalsUsed,
-            monthlyProposalLimit: 20,
-            loading: false,
-          });
-          return;
-        }
+      // Se não há dados de subscriber ou trial não está configurado, corrigir trial
+      if (!subscriberData || (!subscriberData.trial_start_date && !subscriberData.subscribed)) {
+        console.log('Corrigindo configuração de trial');
+        await fixTrial();
+        return;
       }
       
-      // Se usuário existe mas não tem trial configurado e não tem assinatura, iniciar trial
-      else if (!subscriberData.subscribed && !isInTrial && !subscriberData.trial_start_date) {
-        console.log('Usuário existente sem trial, iniciando trial automático');
-        await initiateTrial();
-        // Não precisa recalcular aqui, deixa para a próxima execução
-        setPermissions(prev => ({ ...prev, loading: false }));
+      // Se usuário existe mas trial expirou e não tem assinatura, corrigir trial  
+      else if (!subscriberData.subscribed && subscriberData.trial_end_date && new Date(subscriberData.trial_end_date) < new Date()) {
+        console.log('Trial expirado, recriando trial');
+        await fixTrial();
         return;
       }
 
@@ -254,6 +218,6 @@ export const useUserPermissions = () => {
   return {
     ...permissions,
     refreshPermissions: checkPermissions,
-    initiateTrial,
+    fixTrial,
   };
 };
