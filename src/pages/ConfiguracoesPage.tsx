@@ -12,7 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useCompanies, useUpdateCompany } from '@/hooks/useCompanies';
-import { CompanyLogoUpload } from '@/components/CompanyLogoUpload';
+import CompanyLogoUpload from '@/components/CompanyLogoUpload';
 import { toast } from 'sonner';
 import GerenciamentoUsuariosPage from './GerenciamentoUsuariosPage';
 import TelegramBotUserGuide from '@/components/TelegramBotUserGuide';
@@ -21,7 +21,7 @@ import TelegramBotPage from './TelegramBotPage';
 const ConfiguracoesPage = () => {
   const { user } = useAuth();
   const { isAdmin } = useUserPermissions();
-  const { data: subscription } = useSubscription();
+  const subscription = useSubscription();
   const { data: companies } = useCompanies();
   const updateCompanyMutation = useUpdateCompany();
   
@@ -41,7 +41,7 @@ const ConfiguracoesPage = () => {
   });
 
   const company = companies?.[0];
-  const isProfessional = subscription?.subscription_tier === 'professional' || isAdmin;
+  const isProfessional = subscription.subscription_tier === 'professional' || isAdmin;
 
   useEffect(() => {
     if (company) {
@@ -94,8 +94,8 @@ const ConfiguracoesPage = () => {
     }
   };
 
-  const handleLogoUpload = (logoUrl: string) => {
-    setCompanyData(prev => ({ ...prev, logo_url: logoUrl }));
+  const handleLogoUpdate = (logoUrl: string | null) => {
+    setCompanyData(prev => ({ ...prev, logo_url: logoUrl || '' }));
   };
 
   const plans = [
@@ -110,8 +110,8 @@ const ConfiguracoesPage = () => {
         'Suporte por email',
         'Marca d\'água removida'
       ],
-      buttonText: subscription?.subscription_tier === 'basico' ? 'Plano Atual' : 'Escolher Plano',
-      current: subscription?.subscription_tier === 'basico',
+      buttonText: subscription.subscription_tier === 'basico' ? 'Plano Atual' : 'Escolher Plano',
+      current: subscription.subscription_tier === 'basico',
       popular: false
     },
     {
@@ -127,8 +127,8 @@ const ConfiguracoesPage = () => {
         'Marca d\'água removida',
         'Relatórios avançados'
       ],
-      buttonText: subscription?.subscription_tier === 'professional' ? 'Plano Atual' : 'Escolher Plano',
-      current: subscription?.subscription_tier === 'professional',
+      buttonText: subscription.subscription_tier === 'professional' ? 'Plano Atual' : 'Escolher Plano',
+      current: subscription.subscription_tier === 'professional',
       popular: true
     }
   ];
@@ -141,7 +141,7 @@ const ConfiguracoesPage = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-4">
+        <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'}`}>
           <TabsTrigger value="negocio" className="flex items-center gap-2">
             <Building className="h-4 w-4" />
             Meu Negócio
@@ -175,13 +175,10 @@ const ConfiguracoesPage = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-                <div>
-                  <Label>Logo da Empresa</Label>
-                  <CompanyLogoUpload
-                    currentLogoUrl={companyData.logo_url}
-                    onLogoUpload={handleLogoUpload}
-                  />
-                </div>
+                <CompanyLogoUpload
+                  currentLogoUrl={companyData.logo_url}
+                  onLogoUpdate={handleLogoUpdate}
+                />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
