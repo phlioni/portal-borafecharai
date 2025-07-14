@@ -53,7 +53,7 @@ serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
-      payment_method_types: ['card', 'boleto'],
+      payment_method_types: ['card'],
       line_items: [
         {
           price: priceId,
@@ -68,7 +68,12 @@ serve(async (req) => {
         plan_name: planName
       },
       billing_address_collection: 'required',
-      locale: 'pt-BR'
+      locale: 'pt-BR',
+      payment_method_configuration: undefined, // Let Stripe automatically configure Apple Pay, Google Pay, and Link
+      automatic_payment_methods: {
+        enabled: true,
+        allow_redirects: 'never'
+      }
     });
 
     logStep("Checkout session created", { sessionId: session.id, url: session.url });
