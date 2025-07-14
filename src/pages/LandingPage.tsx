@@ -66,21 +66,21 @@ const LandingPage = () => {
 
   const testimonials = [
     {
-      name: "Carlos Silva",
-      company: "Silva Consultoria",
-      content: "Aumentei minhas vendas em 40% usando o Bora Fechar Aí. As propostas ficaram muito mais profissionais.",
+      name: "Teste Beta",
+      company: "Empresa Parceira",
+      content: "Estamos testando a plataforma e os resultados iniciais são muito promissores.",
       rating: 5
     },
     {
-      name: "Ana Santos",
-      company: "Marketing Digital Pro",
-      content: "Economizo mais de 10 horas por semana na criação de propostas. É impressionante!",
+      name: "Feedback Inicial",
+      company: "Cliente Piloto",
+      content: "A ferramenta tem um potencial incrível para automatizar nossas propostas.",
       rating: 5
     },
     {
-      name: "Roberto Lima",
-      company: "Tech Solutions",
-      content: "A ferramenta de IA é fantástica. Cria textos melhores do que eu mesmo escreveria.",
+      name: "Avaliação Prévia",
+      company: "Empresa Teste",
+      content: "Interface intuitiva e funcionalidades que realmente fazem diferença.",
       rating: 5
     }
   ];
@@ -212,8 +212,8 @@ const LandingPage = () => {
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
-                <Button variant="outline" size="lg" className="text-lg px-8 py-6">
-                  Ver Demonstração
+                <Button variant="outline" size="lg" className="text-lg px-8 py-6" asChild>
+                  <Link to="#features">Ver Funcionalidades</Link>
                 </Button>
               </div>
               
@@ -234,7 +234,7 @@ const LandingPage = () => {
             </div>
             
             <div className="lg:pl-8">
-              <div className="bg-white rounded-2xl shadow-2xl p-8 transform rotate-2 hover:rotate-0 transition-transform duration-300">
+              <div className="bg-white rounded-2xl shadow-2xl p-8 hover:shadow-3xl transition-shadow duration-300">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="font-semibold text-gray-900">Proposta Comercial</h3>
@@ -311,7 +311,7 @@ const LandingPage = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-20">
+      <section id="features" className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <Badge variant="secondary" className="mb-4 bg-blue-100 text-blue-800">
@@ -347,10 +347,10 @@ const LandingPage = () => {
           <div className="lg:grid lg:grid-cols-2 lg:gap-12 items-center">
             <div>
               <h2 className="text-3xl lg:text-4xl font-bold mb-6">
-                Por que mais de 10.000 empresas confiam no Bora Fechar Aí?
+                Por que escolher o Bora Fechar Aí?
               </h2>
               <p className="text-xl text-blue-100 mb-8">
-                Resultados comprovados que transformam PMEs em máquinas de vendas
+                Uma plataforma moderna desenvolvida para transformar PMEs em máquinas de vendas
               </p>
               
               <div className="grid gap-4">
@@ -365,23 +365,23 @@ const LandingPage = () => {
             
             <div className="mt-12 lg:mt-0">
               <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8">
-                <h3 className="text-2xl font-bold mb-6 text-center">Resultados Médios dos Clientes</h3>
+                <h3 className="text-2xl font-bold mb-6 text-center">Benefícios Esperados</h3>
                 <div className="grid grid-cols-2 gap-6">
                   <div className="text-center">
-                    <div className="text-4xl font-bold text-green-400 mb-2">+65%</div>
-                    <div className="text-blue-100">Taxa de Aprovação</div>
+                    <div className="text-4xl font-bold text-green-400 mb-2">+50%</div>
+                    <div className="text-blue-100">Meta de Aprovação</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-4xl font-bold text-green-400 mb-2">90%</div>
-                    <div className="text-blue-100">Menos Tempo</div>
+                    <div className="text-4xl font-bold text-green-400 mb-2">80%</div>
+                    <div className="text-blue-100">Economia de Tempo</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-4xl font-bold text-green-400 mb-2">+40%</div>
-                    <div className="text-blue-100">Mais Vendas</div>
+                    <div className="text-4xl font-bold text-green-400 mb-2">3min</div>
+                    <div className="text-blue-100">Para Criar Proposta</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-4xl font-bold text-green-400 mb-2">15h</div>
-                    <div className="text-blue-100">Economizadas/Semana</div>
+                    <div className="text-4xl font-bold text-green-400 mb-2">24/7</div>
+                    <div className="text-blue-100">Disponibilidade</div>
                   </div>
                 </div>
               </div>
@@ -395,10 +395,10 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              O que nossos clientes dizem
+              Avaliações da versão beta
             </h2>
             <p className="text-xl text-gray-600">
-              Histórias reais de empresas que transformaram suas vendas
+              Feedback inicial dos primeiros usuários que testaram a plataforma
             </p>
           </div>
           
@@ -510,7 +510,7 @@ const LandingPage = () => {
             Pronto para revolucionar suas vendas?
           </h2>
           <p className="text-xl text-blue-100 mb-8">
-            Junte-se a mais de 10.000 empresas que já aumentaram suas vendas com o Bora Fechar Aí
+            Junte-se aos primeiros usuários que estão revolucionando suas vendas com o Bora Fechar Aí
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
@@ -520,8 +520,8 @@ const LandingPage = () => {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
-            <Button variant="outline" size="lg" className="border-white text-white hover:bg-white/10 text-lg px-8 py-6">
-              Falar com Especialista
+            <Button variant="outline" size="lg" className="border-white text-white hover:bg-white/10 text-lg px-8 py-6" asChild>
+              <a href="mailto:contato@borafecharai.com">Falar com Especialista</a>
             </Button>
           </div>
           
@@ -557,37 +557,37 @@ const LandingPage = () => {
                 </div>
               </div>
               <p className="text-gray-400">
-                A plataforma que revoluciona a criação de propostas comerciais para PMEs brasileiras.
+                A plataforma inteligente para criação de propostas comerciais profissionais.
               </p>
             </div>
             
             <div>
               <h4 className="font-semibold mb-4">Produto</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><Link to="/login" className="hover:text-white">Recursos</Link></li>
+                <li><Link to="/login" className="hover:text-white">Funcionalidades</Link></li>
                 <li><Link to="/login" className="hover:text-white">Preços</Link></li>
-                <li><Link to="/login" className="hover:text-white">Templates</Link></li>
-                <li><Link to="/login" className="hover:text-white">API</Link></li>
+                <li><Link to="/login" className="hover:text-white">Começar Grátis</Link></li>
+                <li><a href="mailto:contato@borafecharai.com" className="hover:text-white">Contato</a></li>
               </ul>
             </div>
             
             <div>
               <h4 className="font-semibold mb-4">Empresa</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white">Sobre</a></li>
-                <li><a href="#" className="hover:text-white">Blog</a></li>
-                <li><a href="#" className="hover:text-white">Carreiras</a></li>
-                <li><a href="#" className="hover:text-white">Contato</a></li>
+                <li><a href="mailto:contato@borafecharai.com" className="hover:text-white">Sobre</a></li>
+                <li><Link to="/login" className="hover:text-white">Cadastrar</Link></li>
+                <li><a href="mailto:contato@borafecharai.com" className="hover:text-white">Parcerias</a></li>
+                <li><a href="mailto:contato@borafecharai.com" className="hover:text-white">Contato</a></li>
               </ul>
             </div>
             
             <div>
               <h4 className="font-semibold mb-4">Suporte</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white">Central de Ajuda</a></li>
-                <li><a href="#" className="hover:text-white">Documentação</a></li>
+                <li><a href="mailto:contato@borafecharai.com" className="hover:text-white">Central de Ajuda</a></li>
+                <li><Link to="/login" className="hover:text-white">Começar</Link></li>
                 <li><Link to="/termos-de-uso" className="hover:text-white">Termos de Uso</Link></li>
-                <li><a href="#" className="hover:text-white">Privacidade</a></li>
+                <li><a href="mailto:contato@borafecharai.com" className="hover:text-white">Privacidade</a></li>
               </ul>
             </div>
           </div>
