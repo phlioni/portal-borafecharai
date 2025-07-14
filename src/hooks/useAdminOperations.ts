@@ -63,16 +63,38 @@ export const useAdminOperations = () => {
 
   const resetUserData = async (userId: string, resetType: 'proposals' | 'trial' | 'both') => {
     try {
-      const { data, error } = await supabase.rpc('admin_reset_user_data', {
-        target_user_id: userId,
-        reset_proposals: resetType === 'proposals' || resetType === 'both',
-        reset_trial: resetType === 'trial' || resetType === 'both'
-      });
+      // Usar direct SQL query em vez de RPC
+      if (resetType === 'proposals' || resetType === 'both') {
+        const { error: proposalsError } = await supabase
+          .from('subscribers')
+          .update({ trial_proposals_used: 0 })
+          .eq('user_id', userId);
 
-      if (error) {
-        console.error('Erro ao resetar dados:', error);
-        toast.error('Erro ao resetar dados do usuário');
-        return false;
+        if (proposalsError) {
+          console.error('Erro ao resetar propostas:', proposalsError);
+          toast.error('Erro ao resetar propostas');
+          return false;
+        }
+      }
+
+      if (resetType === 'trial' || resetType === 'both') {
+        const trialEndDate = new Date();
+        trialEndDate.setDate(trialEndDate.getDate() + 30);
+
+        const { error: trialError } = await supabase
+          .from('subscribers')
+          .update({
+            trial_start_date: new Date().toISOString(),
+            trial_end_date: trialEndDate.toISOString(),
+            trial_proposals_used: 0
+          })
+          .eq('user_id', userId);
+
+        if (trialError) {
+          console.error('Erro ao resetar trial:', trialError);
+          toast.error('Erro ao resetar trial');
+          return false;
+        }
       }
 
       toast.success('Dados do usuário resetados com sucesso!');
@@ -94,16 +116,75 @@ export const useAdminOperations = () => {
     if (!confirm(confirmMessages[action])) return false;
 
     try {
-      const { data, error } = await supabase.rpc('admin_manage_user_status', {
-        target_user_id: userId,
-        action,
-        make_admin: makeAdmin
-      });
+      // Gerenciar permissão de admin
+      if (makeAdmin) {
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .upsert({ user_id: userId, role: 'admin' });
 
-      if (error) {
-        console.error('Erro ao gerenciar usuário:', error);
-        toast.error('Erro ao gerenciar usuário');
-        return false;
+        if (roleError) {
+          console.error('Erro ao definir admin:', roleError);
+          toast.error('Erro ao definir permissões de admin');
+          return false;
+        }
+      } else {
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .delete()
+          .eq('user_id', userId)
+          .eq('role', 'admin');
+
+        if (roleError) {
+          console.error('Erro ao remover admin:', roleError);
+        }
+      }
+
+      // Processar ação
+      switch (action) {
+        case 'activate':
+          const { error: activateError } = await supabase
+            .from('subscribers')
+            .update({ subscribed: true })
+            .eq('user_id', userId);
+
+          if (activateError) {
+            console.error('Erro ao ativar usuário:', activateError);
+            toast.error('Erro ao ativar usuário');
+            return false;
+          }
+          break;
+
+        case 'deactivate':
+          const { error: deactivateError } = await supabase
+            .from('subscribers')
+            .update({ subscribed: false })
+            .eq('user_id', userId);
+
+          if (deactivateError) {
+            console.error('Erro ao desativar usuário:', deactivateError);
+            toast.error('Erro ao desativar usuário');
+            return false;
+          }
+          break;
+
+        case 'delete':
+          // Deletar dados relacionados
+          await supabase.from('proposals').delete().eq('user_id', userId);
+          await supabase.from('companies').delete().eq('user_id', userId);
+          await supabase.from('subscribers').delete().eq('user_id', userId);
+          await supabase.from('user_roles').delete().eq('user_id', userId);
+
+          // Deletar usuário via edge function
+          const { error: deleteError } = await supabase.functions.invoke('delete-user', {
+            body: { userId }
+          });
+
+          if (deleteError) {
+            console.error('Erro ao excluir usuário:', deleteError);
+            toast.error('Erro ao excluir usuário');
+            return false;
+          }
+          break;
       }
 
       const successMessages = {
@@ -125,17 +206,18 @@ export const useAdminOperations = () => {
     if (!phone) return true;
 
     try {
-      const { data, error } = await supabase.rpc('check_unique_phone_across_users', {
-        p_phone: phone,
-        p_user_id: userId
-      });
+      const { data, error } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('phone', phone)
+        .neq('user_id', userId);
 
       if (error) {
         console.error('Erro ao verificar telefone:', error);
         return false;
       }
 
-      return data;
+      return data.length === 0;
     } catch (error) {
       console.error('Erro ao verificar telefone:', error);
       return false;

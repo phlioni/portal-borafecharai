@@ -59,17 +59,18 @@ export const useCreateCompany = () => {
 
       // Verificar telefone único se fornecido
       if (companyData.phone && companyData.phone.trim()) {
-        const { data: isUnique, error: checkError } = await supabase.rpc('check_unique_phone_across_users', {
-          p_phone: companyData.phone.trim(),
-          p_user_id: user.id
-        });
+        const { data: existingCompanies, error: checkError } = await supabase
+          .from('companies')
+          .select('id')
+          .eq('phone', companyData.phone.trim())
+          .neq('user_id', user.id);
 
         if (checkError) {
           console.error('Erro ao verificar telefone:', checkError);
           throw new Error('Erro ao verificar telefone único');
         }
 
-        if (!isUnique) {
+        if (existingCompanies && existingCompanies.length > 0) {
           throw new Error('Este telefone já está sendo usado por outro usuário');
         }
       }
@@ -109,17 +110,18 @@ export const useUpdateCompany = () => {
 
       // Verificar telefone único se fornecido
       if (updates.phone && updates.phone.trim()) {
-        const { data: isUnique, error: checkError } = await supabase.rpc('check_unique_phone_across_users', {
-          p_phone: updates.phone.trim(),
-          p_user_id: user.id
-        });
+        const { data: existingCompanies, error: checkError } = await supabase
+          .from('companies')
+          .select('id')
+          .eq('phone', updates.phone.trim())
+          .neq('user_id', user.id);
 
         if (checkError) {
           console.error('Erro ao verificar telefone:', checkError);
           throw new Error('Erro ao verificar telefone único');
         }
 
-        if (!isUnique) {
+        if (existingCompanies && existingCompanies.length > 0) {
           throw new Error('Este telefone já está sendo usado por outro usuário');
         }
       }
@@ -192,17 +194,18 @@ export const useCompany = () => {
     try {
       // Verificar telefone único se fornecido
       if (companyData.phone && companyData.phone.trim()) {
-        const { data: isUnique, error: checkError } = await supabase.rpc('check_unique_phone_across_users', {
-          p_phone: companyData.phone.trim(),
-          p_user_id: user.id
-        });
+        const { data: existingCompanies, error: checkError } = await supabase
+          .from('companies')
+          .select('id')
+          .eq('phone', companyData.phone.trim())
+          .neq('user_id', user.id);
 
         if (checkError) {
           console.error('Erro ao verificar telefone:', checkError);
           throw new Error('Erro ao verificar telefone único');
         }
 
-        if (!isUnique) {
+        if (existingCompanies && existingCompanies.length > 0) {
           throw new Error('Este telefone já está sendo usado por outro usuário');
         }
       }
@@ -238,17 +241,18 @@ export const useCompany = () => {
     try {
       // Verificar telefone único se fornecido
       if (updates.phone && updates.phone.trim()) {
-        const { data: isUnique, error: checkError } = await supabase.rpc('check_unique_phone_across_users', {
-          p_phone: updates.phone.trim(),
-          p_user_id: user.id
-        });
+        const { data: existingCompanies, error: checkError } = await supabase
+          .from('companies')
+          .select('id')
+          .eq('phone', updates.phone.trim())
+          .neq('user_id', user.id);
 
         if (checkError) {
           console.error('Erro ao verificar telefone:', checkError);
           throw new Error('Erro ao verificar telefone único');
         }
 
-        if (!isUnique) {
+        if (existingCompanies && existingCompanies.length > 0) {
           throw new Error('Este telefone já está sendo usado por outro usuário');
         }
       }
