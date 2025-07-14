@@ -1,8 +1,7 @@
 
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 interface Company {
@@ -14,14 +13,14 @@ interface Company {
   city?: string;
   state?: string;
   zip_code?: string;
-  country_code?: string;
   cnpj?: string;
   website?: string;
   description?: string;
+  logo_url?: string;
+  country_code?: string;
+  user_id: string;
   created_at: string;
   updated_at: string;
-  user_id: string;
-  logo_url?: string | null;
 }
 
 export const useCompanies = () => {
@@ -39,7 +38,7 @@ export const useCompanies = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching companies:', error);
+        console.error('Erro ao buscar empresas:', error);
         throw error;
       }
 
@@ -54,181 +53,26 @@ export const useCreateCompany = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (companyData: Omit<Company, 'id' | 'created_at' | 'updated_at'>) => {
-      if (!user) throw new Error('User not authenticated');
+    mutationFn: async (companyData: Omit<Company, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
+      if (!user) throw new Error('Usuário não autenticado');
 
-      // Verificar telefone único se fornecido
-      if (companyData.phone && companyData.phone.trim()) {
-        const { data: existingCompanies, error: checkError } = await supabase
+      // Validar formato do telefone se fornecido
+      if (companyData.phone) {
+        const phoneRegex = /^55\d{2}\d{8,9}$/;
+        if (!phoneRegex.test(companyData.phone)) {
+          throw new Error('Telefone deve estar no formato 55+DDD+Número (ex: 5511999999999)');
+        }
+
+        // Verificar se já existe uma empresa com este telefone para outro usuário
+        const { data: existingCompany } = await supabase
           .from('companies')
-          .select('id')
-          .eq('phone', companyData.phone.trim())
-          .neq('user_id', user.id);
+          .select('id, user_id')
+          .eq('phone', companyData.phone)
+          .neq('user_id', user.id)
+          .maybeSingle();
 
-        if (checkError) {
-          console.error('Erro ao verificar telefone:', checkError);
-          throw new Error('Erro ao verificar telefone único');
-        }
-
-        if (existingCompanies && existingCompanies.length > 0) {
-          throw new Error('Este telefone já está sendo usado por outro usuário');
-        }
-      }
-
-      const { data, error } = await supabase
-        .from('companies')
-        .insert([companyData])
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating company:', error);
-        if (error.code === '23505') {
-          throw new Error('Este telefone já está sendo usado por outro usuário');
-        }
-        throw error;
-      }
-
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['companies'] });
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
-  });
-};
-
-export const useUpdateCompany = () => {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Company> }) => {
-      if (!user) throw new Error('User not authenticated');
-
-      // Verificar telefone único se fornecido
-      if (updates.phone && updates.phone.trim()) {
-        const { data: existingCompanies, error: checkError } = await supabase
-          .from('companies')
-          .select('id')
-          .eq('phone', updates.phone.trim())
-          .neq('user_id', user.id);
-
-        if (checkError) {
-          console.error('Erro ao verificar telefone:', checkError);
-          throw new Error('Erro ao verificar telefone único');
-        }
-
-        if (existingCompanies && existingCompanies.length > 0) {
-          throw new Error('Este telefone já está sendo usado por outro usuário');
-        }
-      }
-
-      const { data, error } = await supabase
-        .from('companies')
-        .update(updates)
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error updating company:', error);
-        if (error.code === '23505') {
-          throw new Error('Este telefone já está sendo usado por outro usuário');
-        }
-        throw error;
-      }
-
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['companies'] });
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
-  });
-};
-
-// Legacy hook for backward compatibility
-export const useCompany = () => {
-  const { user } = useAuth();
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchCompanies = async () => {
-    if (!user) {
-      setCompanies([]);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('companies')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching companies:', error);
-        return;
-      }
-
-      console.log('Fetched companies for user:', user.id, data?.length || 0);
-      setCompanies(data || []);
-    } catch (error) {
-      console.error('Error fetching companies:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const checkUniquePhone = async (phone: string, userId: string): Promise<boolean> => {
-    if (!phone || !userId) return true;
-
-    try {
-      const { data, error } = await supabase
-        .from('companies')
-        .select('id')
-        .eq('phone', phone.trim())
-        .neq('user_id', userId);
-
-      if (error) {
-        console.error('Erro ao verificar telefone:', error);
-        return false;
-      }
-
-      return (data as any[]).length === 0;
-    } catch (error) {
-      console.error('Erro ao verificar telefone:', error);
-      return false;
-    }
-  };
-
-  const createCompany = async (companyData: Omit<Company, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
-    if (!user) throw new Error('User not authenticated');
-
-    try {
-      // Verificar telefone único se fornecido
-      if (companyData.phone && companyData.phone.trim()) {
-        const { data: existingCompanies, error: checkError } = await supabase
-          .from('companies')
-          .select('id')
-          .eq('phone', companyData.phone.trim())
-          .neq('user_id', user.id);
-
-        if (checkError) {
-          console.error('Erro ao verificar telefone:', checkError);
-          throw new Error('Erro ao verificar telefone único');
-        }
-
-        if (existingCompanies && existingCompanies.length > 0) {
-          throw new Error('Este telefone já está sendo usado por outro usuário');
+        if (existingCompany) {
+          throw new Error('Este telefone já está cadastrado para outro usuário. Por favor, utilize um telefone diferente.');
         }
       }
 
@@ -242,40 +86,48 @@ export const useCompany = () => {
         .single();
 
       if (error) {
-        console.error('Error creating company:', error);
-        if (error.code === '23505') {
-          throw new Error('Este telefone já está sendo usado por outro usuário');
-        }
-        throw error;
+        console.error('Erro ao criar empresa:', error);
+        throw new Error('Erro ao criar empresa: ' + error.message);
       }
 
-      await fetchCompanies();
       return data;
-    } catch (error) {
-      console.error('Error creating company:', error);
-      throw error;
-    }
-  };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      toast.success('Empresa criada com sucesso!');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+};
 
-  const updateCompany = async (id: string, updates: Partial<Company>) => {
-    if (!user) throw new Error('User not authenticated');
+export const useUpdateCompany = () => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-    try {
-      // Verificar telefone único se fornecido
-      if (updates.phone && updates.phone.trim()) {
-        const { data: existingCompanies, error: checkError } = await supabase
-          .from('companies')
-          .select('id')
-          .eq('phone', updates.phone.trim())
-          .neq('user_id', user.id);
+  return useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Company> }) => {
+      if (!user) throw new Error('Usuário não autenticado');
 
-        if (checkError) {
-          console.error('Erro ao verificar telefone:', checkError);
-          throw new Error('Erro ao verificar telefone único');
+      // Validar formato do telefone se fornecido
+      if (updates.phone) {
+        const phoneRegex = /^55\d{2}\d{8,9}$/;
+        if (!phoneRegex.test(updates.phone)) {
+          throw new Error('Telefone deve estar no formato 55+DDD+Número (ex: 5511999999999)');
         }
 
-        if (existingCompanies && existingCompanies.length > 0) {
-          throw new Error('Este telefone já está sendo usado por outro usuário');
+        // Verificar se já existe uma empresa com este telefone para outro usuário
+        const { data: existingCompany } = await supabase
+          .from('companies')
+          .select('id, user_id')
+          .eq('phone', updates.phone)
+          .neq('user_id', user.id)
+          .neq('id', id)
+          .maybeSingle();
+
+        if (existingCompany) {
+          throw new Error('Este telefone já está cadastrado para outro usuário. Por favor, utilize um telefone diferente.');
         }
       }
 
@@ -288,25 +140,30 @@ export const useCompany = () => {
         .single();
 
       if (error) {
-        console.error('Error updating company:', error);
-        if (error.code === '23505') {
-          throw new Error('Este telefone já está sendo usado por outro usuário');
-        }
-        throw error;
+        console.error('Erro ao atualizar empresa:', error);
+        throw new Error('Erro ao atualizar empresa: ' + error.message);
       }
 
-      await fetchCompanies();
       return data;
-    } catch (error) {
-      console.error('Error updating company:', error);
-      throw error;
-    }
-  };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      toast.success('Empresa atualizada com sucesso!');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+};
 
-  const deleteCompany = async (id: string) => {
-    if (!user) throw new Error('User not authenticated');
+export const useDeleteCompany = () => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-    try {
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (!user) throw new Error('Usuário não autenticado');
+
       const { error } = await supabase
         .from('companies')
         .delete()
@@ -314,28 +171,18 @@ export const useCompany = () => {
         .eq('user_id', user.id);
 
       if (error) {
-        console.error('Error deleting company:', error);
-        throw error;
+        console.error('Erro ao excluir empresa:', error);
+        throw new Error('Erro ao excluir empresa: ' + error.message);
       }
 
-      await fetchCompanies();
-    } catch (error) {
-      console.error('Error deleting company:', error);
-      throw error;
-    }
-  };
-
-  useEffect(() => {
-    fetchCompanies();
-  }, [user]);
-
-  return {
-    companies,
-    loading,
-    fetchCompanies,
-    createCompany,
-    updateCompany,
-    deleteCompany,
-    checkUniquePhone
-  };
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      toast.success('Empresa excluída com sucesso!');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
 };

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -14,9 +15,24 @@ interface PlanPrices {
   equipes?: PlanPrice;
 }
 
+const HARDCODED_PRICES = {
+  basico: {
+    priceId: process.env.NODE_ENV === 'production' ? 'price_live_essential' : 'price_test_essential',
+    amount: 3990, // R$ 39,90 em centavos
+    currency: 'brl',
+    productId: 'prod_essential'
+  },
+  profissional: {
+    priceId: process.env.NODE_ENV === 'production' ? 'price_live_professional' : 'price_test_professional',
+    amount: 7990, // R$ 79,90 em centavos
+    currency: 'brl',
+    productId: 'prod_professional'
+  }
+};
+
 export const useStripePrices = () => {
-  const [prices, setPrices] = useState<PlanPrices>({});
-  const [loading, setLoading] = useState(true);
+  const [prices, setPrices] = useState<PlanPrices>(HARDCODED_PRICES);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchPrices = async () => {
@@ -24,21 +40,26 @@ export const useStripePrices = () => {
       setLoading(true);
       setError(null);
 
-      const { data, error: functionError } = await supabase.functions.invoke('get-product-prices');
-
-      if (functionError) {
-        console.error('Error fetching prices:', functionError);
-        setError('Erro ao buscar preços');
-        return;
-      }
-
-      if (data?.planPrices) {
-        setPrices(data.planPrices);
-        console.log('Prices fetched successfully:', data.planPrices);
+      // Usar preços hardcoded por padrão
+      setPrices(HARDCODED_PRICES);
+      
+      // Opcionalmente, tentar buscar preços dinâmicos do Stripe
+      // mas não falhar se não conseguir
+      try {
+        const { data, error: functionError } = await supabase.functions.invoke('get-product-prices');
+        
+        if (!functionError && data?.planPrices) {
+          setPrices(data.planPrices);
+          console.log('Prices fetched successfully:', data.planPrices);
+        }
+      } catch (err) {
+        console.warn('Could not fetch dynamic prices, using hardcoded values:', err);
       }
     } catch (err) {
-      console.error('Error fetching prices:', err);
+      console.error('Error in fetchPrices:', err);
       setError('Erro ao buscar preços');
+      // Manter preços hardcoded mesmo em caso de erro
+      setPrices(HARDCODED_PRICES);
     } finally {
       setLoading(false);
     }

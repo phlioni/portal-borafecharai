@@ -1,13 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Building, Crown, Users, MessageCircle, Zap, Star, Check } from 'lucide-react';
+import { Building, CreditCard, Users, MessageSquare, Crown, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -30,14 +29,15 @@ const ConfiguracoesPage = () => {
     name: '',
     email: '',
     phone: '',
-    cnpj: '',
-    website: '',
     address: '',
     city: '',
     state: '',
     zip_code: '',
+    cnpj: '',
+    website: '',
     description: '',
-    logo_url: ''
+    logo_url: '',
+    country_code: '+55'
   });
 
   const company = companies?.[0];
@@ -49,36 +49,26 @@ const ConfiguracoesPage = () => {
         name: company.name || '',
         email: company.email || '',
         phone: company.phone || '',
-        cnpj: company.cnpj || '',
-        website: company.website || '',
         address: company.address || '',
         city: company.city || '',
         state: company.state || '',
         zip_code: company.zip_code || '',
+        cnpj: company.cnpj || '',
+        website: company.website || '',
         description: company.description || '',
-        logo_url: company.logo_url || ''
+        logo_url: company.logo_url || '',
+        country_code: company.country_code || '+55'
       });
     }
   }, [company]);
 
-  const handleSaveCompany = async () => {
-    if (!company?.id) {
-      toast.error('Dados da empresa não encontrados');
-      return;
-    }
+  const handleInputChange = (field: string, value: string) => {
+    setCompanyData(prev => ({ ...prev, [field]: value }));
+  };
 
-    if (!companyData.name.trim()) {
-      toast.error('Nome da empresa é obrigatório');
-      return;
-    }
-
-    if (!companyData.phone.trim()) {
-      toast.error('Telefone é obrigatório');
-      return;
-    }
-
-    if (!companyData.email.trim()) {
-      toast.error('E-mail é obrigatório');
+  const handleSave = async () => {
+    if (!company) {
+      toast.error('Empresa não encontrada');
       return;
     }
 
@@ -87,10 +77,8 @@ const ConfiguracoesPage = () => {
         id: company.id,
         updates: companyData
       });
-      toast.success('Dados da empresa salvos com sucesso!');
     } catch (error) {
-      console.error('Erro ao salvar dados:', error);
-      toast.error('Erro ao salvar dados da empresa');
+      console.error('Erro ao salvar:', error);
     }
   };
 
@@ -98,17 +86,23 @@ const ConfiguracoesPage = () => {
     setCompanyData(prev => ({ ...prev, logo_url: logoUrl || '' }));
   };
 
+  const handleSubscribe = async (priceId: string, planName: string) => {
+    try {
+      await subscription.createCheckout(priceId, planName);
+    } catch (error) {
+      console.error('Erro ao criar checkout:', error);
+    }
+  };
+
   const plans = [
     {
       name: 'Essencial',
       price: 'R$ 39,90',
-      period: '/mês',
-      description: 'Perfeito para freelancers e pequenos negócios',
+      priceId: process.env.NODE_ENV === 'production' ? 'price_live_essential' : 'price_test_essential',
       features: [
         'Até 10 propostas por mês',
         'Templates básicos',
-        'Suporte por email',
-        'Marca d\'água removida'
+        'Suporte por email'
       ],
       buttonText: subscription.subscription_tier === 'basico' ? 'Plano Atual' : 'Escolher Plano',
       current: subscription.subscription_tier === 'basico',
@@ -117,15 +111,13 @@ const ConfiguracoesPage = () => {
     {
       name: 'Professional',
       price: 'R$ 79,90',
-      period: '/mês',
-      description: 'Para empresas que precisam de mais recursos',
+      priceId: process.env.NODE_ENV === 'production' ? 'price_live_professional' : 'price_test_professional',
       features: [
         'Propostas ilimitadas',
-        'Templates personalizados',
-        'Integração com API',
+        'Todos os templates',
+        'Analytics avançadas',
         'Suporte prioritário',
-        'Marca d\'água removida',
-        'Relatórios avançados'
+        'Telegram Bot'
       ],
       buttonText: subscription.subscription_tier === 'professional' ? 'Plano Atual' : 'Escolher Plano',
       current: subscription.subscription_tier === 'professional',
@@ -134,10 +126,10 @@ const ConfiguracoesPage = () => {
   ];
 
   return (
-    <div className="container max-w-6xl mx-auto p-6 space-y-6">
+    <div className="p-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Configurações</h1>
-        <p className="text-muted-foreground">Gerencie sua empresa, planos e configurações</p>
+        <p className="text-muted-foreground">Gerencie suas configurações e preferências</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -147,11 +139,11 @@ const ConfiguracoesPage = () => {
             Meu Negócio
           </TabsTrigger>
           <TabsTrigger value="planos" className="flex items-center gap-2">
-            <Crown className="h-4 w-4" />
+            <CreditCard className="h-4 w-4" />
             Planos
           </TabsTrigger>
           <TabsTrigger value="telegram" className="flex items-center gap-2">
-            <MessageCircle className="h-4 w-4" />
+            <MessageSquare className="h-4 w-4" />
             Bot Telegram
           </TabsTrigger>
           {isAdmin && (
@@ -162,16 +154,11 @@ const ConfiguracoesPage = () => {
           )}
         </TabsList>
 
-        <TabsContent value="negocio" className="space-y-6">
+        <TabsContent value="negocio">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building className="h-5 w-5" />
-                Informações da Empresa
-              </CardTitle>
-              <CardDescription>
-                Atualize as informações da sua empresa. Campos obrigatórios: Nome, Telefone e Email.
-              </CardDescription>
+              <CardTitle>Informações da Empresa</CardTitle>
+              <CardDescription>Configure os dados da sua empresa</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
@@ -182,12 +169,31 @@ const ConfiguracoesPage = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="name">Nome da Empresa *</Label>
+                    <Label htmlFor="name">Nome da Empresa</Label>
                     <Input
                       id="name"
                       value={companyData.name}
-                      onChange={(e) => setCompanyData({...companyData, name: e.target.value})}
-                      required
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      placeholder="Digite o nome da empresa"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email">E-mail</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={companyData.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      placeholder="contato@empresa.com"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="phone">Telefone</Label>
+                    <Input
+                      id="phone"
+                      value={companyData.phone}
+                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      placeholder="55+DDD+Número (ex: 5511999999999)"
                     />
                   </div>
                   <div>
@@ -195,26 +201,8 @@ const ConfiguracoesPage = () => {
                     <Input
                       id="cnpj"
                       value={companyData.cnpj}
-                      onChange={(e) => setCompanyData({...companyData, cnpj: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="email">E-mail *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={companyData.email}
-                      onChange={(e) => setCompanyData({...companyData, email: e.target.value})}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="phone">Telefone *</Label>
-                    <Input
-                      id="phone"
-                      value={companyData.phone}
-                      onChange={(e) => setCompanyData({...companyData, phone: e.target.value})}
-                      required
+                      onChange={(e) => handleInputChange('cnpj', e.target.value)}
+                      placeholder="00.000.000/0000-00"
                     />
                   </div>
                   <div>
@@ -222,7 +210,8 @@ const ConfiguracoesPage = () => {
                     <Input
                       id="website"
                       value={companyData.website}
-                      onChange={(e) => setCompanyData({...companyData, website: e.target.value})}
+                      onChange={(e) => handleInputChange('website', e.target.value)}
+                      placeholder="https://www.empresa.com"
                     />
                   </div>
                   <div>
@@ -230,134 +219,127 @@ const ConfiguracoesPage = () => {
                     <Input
                       id="city"
                       value={companyData.city}
-                      onChange={(e) => setCompanyData({...companyData, city: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="state">Estado</Label>
-                    <Input
-                      id="state"
-                      value={companyData.state}
-                      onChange={(e) => setCompanyData({...companyData, state: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="zip_code">CEP</Label>
-                    <Input
-                      id="zip_code"
-                      value={companyData.zip_code}
-                      onChange={(e) => setCompanyData({...companyData, zip_code: e.target.value})}
+                      onChange={(e) => handleInputChange('city', e.target.value)}
+                      placeholder="São Paulo"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="address">Endereço Completo</Label>
+                  <Label htmlFor="address">Endereço</Label>
                   <Input
                     id="address"
                     value={companyData.address}
-                    onChange={(e) => setCompanyData({...companyData, address: e.target.value})}
+                    onChange={(e) => handleInputChange('address', e.target.value)}
+                    placeholder="Rua, número, bairro"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="description">Descrição da Empresa</Label>
+                  <Label htmlFor="description">Descrição</Label>
                   <Textarea
                     id="description"
                     value={companyData.description}
-                    onChange={(e) => setCompanyData({...companyData, description: e.target.value})}
-                    placeholder="Descreva brevemente sua empresa e seus serviços..."
+                    onChange={(e) => handleInputChange('description', e.target.value)}
+                    placeholder="Descreva sua empresa..."
+                    rows={3}
                   />
                 </div>
-              </div>
 
-              <Button onClick={handleSaveCompany} disabled={updateCompanyMutation.isPending}>
-                {updateCompanyMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
-              </Button>
+                <Button onClick={handleSave} disabled={updateCompanyMutation.isPending}>
+                  {updateCompanyMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="planos" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            {plans.map((plan) => (
-              <Card key={plan.name} className={`relative ${plan.popular ? 'border-primary shadow-lg' : ''}`}>
-                {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                    <Badge className="bg-primary text-primary-foreground px-3 py-1">
-                      <Star className="h-3 w-3 mr-1" />
-                      Mais Popular
-                    </Badge>
-                  </div>
-                )}
-                <CardHeader className="text-center pb-4">
-                  <CardTitle className="text-2xl">{plan.name}</CardTitle>
-                  <div className="flex items-baseline justify-center">
-                    <span className="text-3xl font-bold">{plan.price}</span>
-                    <span className="text-muted-foreground ml-1">{plan.period}</span>
-                  </div>
-                  <CardDescription className="mt-2">{plan.description}</CardDescription>
+        <TabsContent value="planos">
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold">Escolha seu Plano</h2>
+              <p className="text-muted-foreground">Selecione o plano que melhor atende às suas necessidades</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {plans.map((plan) => (
+                <Card key={plan.name} className={`relative ${plan.popular ? 'border-blue-500 shadow-lg' : ''} ${plan.current ? 'ring-2 ring-green-500' : ''}`}>
+                  {plan.popular && (
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                      <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
+                        <Crown className="w-3 h-3" />
+                        Mais Popular
+                      </span>
+                    </div>
+                  )}
+                  {plan.current && (
+                    <div className="absolute -top-3 right-4">
+                      <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                        Seu Plano
+                      </span>
+                    </div>
+                  )}
+                  <CardHeader className="text-center">
+                    <CardTitle className="text-2xl">{plan.name}</CardTitle>
+                    <div className="text-3xl font-bold text-blue-600">{plan.price}</div>
+                    <CardDescription>por mês</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <ul className="space-y-2">
+                      {plan.features.map((feature, index) => (
+                        <li key={index} className="flex items-center gap-2">
+                          <Check className="w-4 h-4 text-green-500" />
+                          <span className="text-sm">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <Button
+                      onClick={() => handleSubscribe(plan.priceId, plan.name)}
+                      disabled={plan.current || subscription.loading}
+                      variant={plan.current ? 'outline' : plan.popular ? 'default' : 'outline'}
+                      className="w-full"
+                    >
+                      {plan.buttonText}
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {isProfessional && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Crown className="w-5 h-5 text-yellow-500" />
+                    Recursos Avançados
+                  </CardTitle>
+                  <CardDescription>Disponível apenas no plano Professional</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <ul className="space-y-2">
-                    {plan.features.map((feature, index) => (
-                      <li key={index} className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-green-500" />
-                        <span className="text-sm">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Button 
-                    className="w-full" 
-                    variant={plan.current ? "secondary" : "default"}
-                    disabled={plan.current}
-                  >
-                    {plan.buttonText}
-                  </Button>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 border rounded-lg">
+                        <h3 className="font-semibold mb-2">Analytics Avançadas</h3>
+                        <p className="text-sm text-muted-foreground">Relatórios detalhados sobre suas propostas</p>
+                      </div>
+                      <div className="p-4 border rounded-lg">
+                        <h3 className="font-semibold mb-2">Bot Telegram</h3>
+                        <p className="text-sm text-muted-foreground">Automatize seu atendimento via Telegram</p>
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
-            ))}
+            )}
           </div>
-
-          {isProfessional && (
-            <Card className="border-purple-200 bg-gradient-to-r from-purple-50 to-blue-50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-purple-700">
-                  <Crown className="h-5 w-5" />
-                  Recursos Avançados
-                </CardTitle>
-                <CardDescription>Recursos exclusivos para planos premium</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <h4 className="font-medium flex items-center gap-2">
-                      <Zap className="h-4 w-4 text-purple-600" />
-                      Templates Personalizados
-                    </h4>
-                    <p className="text-sm text-muted-foreground">
-                      Crie templates únicos para suas propostas
-                    </p>
-                    <Button variant="outline" size="sm">Acessar</Button>
-                  </div>
-                  <div className="space-y-2">
-                    <h4 className="font-medium flex items-center gap-2">
-                      <MessageCircle className="h-4 w-4 text-purple-600" />
-                      Integração API
-                    </h4>
-                    <p className="text-sm text-muted-foreground">
-                      Conecte com seus sistemas
-                    </p>
-                    <Button variant="outline" size="sm" disabled>Em breve</Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </TabsContent>
 
         <TabsContent value="telegram">
-          {isAdmin ? <TelegramBotPage /> : <TelegramBotUserGuide />}
+          {isAdmin ? (
+            <TelegramBotPage />
+          ) : (
+            <TelegramBotUserGuide />
+          )}
         </TabsContent>
 
         {isAdmin && (

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -37,7 +38,7 @@ export const useSubscription = () => {
         .from('subscribers')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (subscriberData && !subscriberError) {
         setSubscriptionData({
@@ -51,16 +52,20 @@ export const useSubscription = () => {
         return;
       }
 
-      // Se não encontrar na tabela, tenta via edge function (Stripe)
-      const { data, error } = await supabase.functions.invoke('check-subscription', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
+      // Se não encontrar na tabela, cria um registro básico para o usuário
+      if (!subscriberData) {
+        await supabase
+          .from('subscribers')
+          .upsert({
+            user_id: user.id,
+            email: user.email || '',
+            subscribed: false,
+            subscription_tier: null,
+            trial_start_date: new Date().toISOString(),
+            trial_end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days trial
+            trial_proposals_used: 0
+          }, { onConflict: 'user_id' });
 
-      if (error) {
-        console.error('Error checking subscription via edge function:', error);
-        // Se a edge function falhar, assume valores padrão
         setSubscriptionData({
           subscribed: false,
           subscription_tier: null,
@@ -72,11 +77,12 @@ export const useSubscription = () => {
         return;
       }
 
+      // Se a edge function falhar, assume valores padrão
       setSubscriptionData({
-        subscribed: data.subscribed || false,
-        subscription_tier: data.subscription_tier || null,
-        subscription_end: data.subscription_end || null,
-        cancel_at_period_end: data.cancel_at_period_end || false,
+        subscribed: false,
+        subscription_tier: null,
+        subscription_end: null,
+        cancel_at_period_end: false,
         loading: false,
         error: null,
       });
@@ -116,7 +122,11 @@ export const useSubscription = () => {
       toast.success('Redirecionando para o pagamento...');
       
       // Abrir checkout em nova aba
-      window.open(data.url, '_blank');
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      } else {
+        throw new Error('URL de checkout não encontrada');
+      }
     } catch (error) {
       toast.dismiss();
       console.error('Error creating checkout:', error);

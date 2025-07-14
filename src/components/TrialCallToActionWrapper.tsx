@@ -1,23 +1,23 @@
 
 import React from 'react';
-import TrialCallToAction from './TrialCallToAction';
-import { useUserPermissions } from '@/hooks/useUserPermissions';
+import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
+import { TrialCallToAction } from './TrialCallToAction';
 
 export const TrialCallToActionWrapper = () => {
-  const { loading: permissionsLoading, isAdmin } = useUserPermissions();
-  const { subscribed, loading: subscriptionLoading } = useSubscription();
+  const { user } = useAuth();
+  const { subscribed, subscription_tier, loading } = useSubscription();
 
-  // Se ainda está carregando, não mostra nada (sem skeleton)
-  if (permissionsLoading || subscriptionLoading) {
+  // Don't show if loading or no user
+  if (loading || !user) {
     return null;
   }
 
-  // Se é admin ou tem assinatura ativa, não mostra o call to action
-  if (isAdmin || subscribed) {
+  // Don't show if user has active subscription
+  if (subscribed) {
     return null;
   }
 
-  // Só mostra se não é admin e não tem assinatura
+  // Show trial CTA for users without subscription
   return <TrialCallToAction />;
 };
