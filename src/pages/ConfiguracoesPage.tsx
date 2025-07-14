@@ -98,11 +98,11 @@ const ConfiguracoesPage = () => {
                 period="por mês"
                 description="Ideal para freelancers e pequenos negócios"
                 features={[
-                  "10 propostas por mês",
-                  "3 templates profissionais",
-                  "Criação com IA",
-                  "Acompanhamento básico",
-                  "Suporte por email"
+                  { name: "10 propostas por mês", included: true },
+                  { name: "3 templates profissionais", included: true },
+                  { name: "Criação com IA", included: true },
+                  { name: "Acompanhamento básico", included: true },
+                  { name: "Suporte por email", included: true }
                 ]}
                 buttonText="Escolher Básico"
                 popular={false}
@@ -116,13 +116,13 @@ const ConfiguracoesPage = () => {
                 period="por mês"
                 description="Para empresas que querem crescer"
                 features={[
-                  "Propostas ilimitadas",
-                  "Templates personalizados",
-                  "IA avançada",
-                  "Analytics completo",
-                  "Chat com cliente",
-                  "Notificações Telegram",
-                  "Suporte prioritário"
+                  { name: "Propostas ilimitadas", included: true },
+                  { name: "Templates personalizados", included: true },
+                  { name: "IA avançada", included: true },
+                  { name: "Analytics completo", included: true },
+                  { name: "Chat com cliente", included: true },
+                  { name: "Notificações Telegram", included: true },
+                  { name: "Suporte prioritário", included: true }
                 ]}
                 buttonText="Escolher Profissional"
                 popular={true}
