@@ -99,13 +99,13 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Olá! 👋</h1>
-          <p className="text-gray-600">Aqui está um resumo da sua atividade</p>
+          <p className="text-muted-foreground">Aqui está um resumo da sua atividade</p>
         </div>
-        <Button asChild>
+        <Button asChild className="w-full sm:w-auto">
           <Link to="/propostas/nova">+ Nova Proposta</Link>
         </Button>
       </div>
@@ -113,7 +113,7 @@ const Dashboard = () => {
       {/* Trial Call to Action - agora com verificação otimizada */}
       <TrialCallToActionWrapper />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -198,27 +198,27 @@ const Dashboard = () => {
             </div>
           ) : (
             recentProposals.map((proposal) => (
-              <div key={proposal.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div key={proposal.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-muted/50 rounded-lg gap-4">
                 <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
                     {getStatusIcon(proposal.status || 'enviada')}
                   </div>
-                  <div>
-                    <h4 className="font-medium">{proposal.title}</h4>
-                    <p className="text-sm text-gray-600">
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-medium truncate">{proposal.title}</h4>
+                    <p className="text-sm text-muted-foreground">
                       {proposal.companies?.name || 'Cliente não definido'} • {formatDate(proposal.created_at)}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-4">
-                  <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(proposal.status || 'enviada')}`}>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                  <span className={`px-2 py-1 text-xs rounded-full self-start ${getStatusColor(proposal.status || 'enviada')}`}>
                     {getStatusText(proposal.status || 'enviada')}
                   </span>
-                  <div className="text-right">
+                  <div className="text-left sm:text-right">
                     <p className="font-semibold">
                       {proposal.value ? `R$ ${proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'Valor não definido'}
                     </p>
-                    <Button variant="link" className="h-auto p-0 text-xs" asChild>
+                    <Button variant="link" className="h-auto p-0 text-xs justify-start sm:justify-end" asChild>
                       <Link to={`/propostas/${proposal.id}`}>Ver detalhes</Link>
                     </Button>
                   </div>

@@ -52,10 +52,10 @@ const Propostas = () => {
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl font-bold">Propostas</h1>
-        <Button asChild>
+        <Button asChild className="w-full sm:w-auto">
           <Link to="/propostas/nova">
             <Plus className="h-4 w-4 mr-2" />
             Nova Proposta
@@ -86,17 +86,17 @@ const Propostas = () => {
           {proposals?.map((proposal) => (
             <Card key={proposal.id} className="hover:shadow-md transition-shadow">
               <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                    <CardTitle className="text-lg">{proposal.title}</CardTitle>
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <CardTitle className="text-lg leading-tight">{proposal.title}</CardTitle>
                     <CardDescription className="flex items-center gap-2">
-                      <Building className="h-4 w-4" />
-                      {proposal.companies?.name || 'Cliente não informado'}
+                      <Building className="h-4 w-4 flex-shrink-0" />
+                      <span className="truncate">{proposal.companies?.name || 'Cliente não informado'}</span>
                     </CardDescription>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
                     {getStatusBadge(proposal.status)}
-                    <Button variant="outline" size="sm" asChild>
+                    <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
                       <Link to={`/propostas/${proposal.id}`}>
                         <Eye className="h-4 w-4 mr-1" />
                         Ver
@@ -106,10 +106,10 @@ const Propostas = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
                   <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-green-600" />
-                    <span className="font-medium">
+                    <DollarSign className="h-4 w-4 text-green-600 flex-shrink-0" />
+                    <span className="font-medium truncate">
                       {proposal.value 
                         ? `R$ ${proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
                         : 'Valor não informado'
@@ -117,18 +117,18 @@ const Propostas = () => {
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-blue-600" />
-                    <span>
+                    <Calendar className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                    <span className="truncate">
                       Criada em {format(new Date(proposal.created_at), "dd/MM/yyyy", { locale: ptBR })}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Eye className="h-4 w-4 text-gray-600" />
+                    <Eye className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     <span>{proposal.views || 0} visualizações</span>
                   </div>
                 </div>
                 {proposal.service_description && (
-                  <p className="mt-3 text-gray-600 line-clamp-2">
+                  <p className="mt-3 text-muted-foreground line-clamp-2">
                     {proposal.service_description}
                   </p>
                 )}

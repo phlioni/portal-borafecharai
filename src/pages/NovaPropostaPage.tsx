@@ -260,37 +260,40 @@ const NovaPropostaPage = () => {
 
   return (
     <PlanLimitGuard feature="createProposal">
-      <div className="p-6 max-w-6xl mx-auto space-y-6">
+      <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" asChild>
-            <Link to="/propostas" className="flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Voltar
-            </Link>
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold text-gray-900">Nova Proposta</h1>
-            <p className="text-gray-600 mt-1">
-              Crie uma proposta profissional em minutos
-              {monthlyProposalLimit && (
-                <span className="block text-sm text-orange-600 mt-1">
-                  {monthlyProposalCount} de {monthlyProposalLimit} propostas usadas este mês
-                </span>
-              )}
-            </p>
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" asChild>
+              <Link to="/propostas" className="flex items-center gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Voltar
+              </Link>
+            </Button>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Nova Proposta</h1>
+              <p className="text-muted-foreground mt-1">
+                Crie uma proposta profissional em minutos
+                {monthlyProposalLimit && (
+                  <span className="block text-sm text-orange-600 mt-1">
+                    {monthlyProposalCount} de {monthlyProposalLimit} propostas usadas este mês
+                  </span>
+                )}
+              </p>
+            </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Button 
               variant="outline" 
               onClick={() => handleSubmit('save')} 
               disabled={createProposal.isPending}
+              className="w-full sm:w-auto"
             >
               <Save className="h-4 w-4 mr-2" />
               Salvar Rascunho
             </Button>
             <Button 
-              className="bg-blue-600 hover:bg-blue-700" 
+              className="bg-primary hover:bg-primary/90 w-full sm:w-auto" 
               onClick={() => handleSubmit('send')} 
               disabled={createProposal.isPending || !canCreateProposal}
             >
@@ -300,7 +303,7 @@ const NovaPropostaPage = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Form Section */}
         <div className="lg:col-span-2 space-y-6">
           {/* Client Information */}
@@ -367,7 +370,7 @@ const NovaPropostaPage = () => {
                           onChange={(e) => handleNewCompanyChange('nome', e.target.value)}
                         />
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <div>
                           <Label htmlFor="novoClienteEmail">E-mail</Label>
                           <Input
@@ -388,12 +391,13 @@ const NovaPropostaPage = () => {
                           />
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                       <div className="flex flex-col sm:flex-row gap-2">
                         <Button
                           type="button"
                           size="sm"
                           onClick={handleCreateCompany}
                           disabled={!newCompanyData.nome || createCompany.isPending}
+                          className="w-full sm:w-auto"
                         >
                           Criar Cliente
                         </Button>
@@ -402,6 +406,7 @@ const NovaPropostaPage = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => setShowNewCompanyForm(false)}
+                          className="w-full sm:w-auto"
                         >
                           Cancelar
                         </Button>
@@ -411,8 +416,8 @@ const NovaPropostaPage = () => {
                 )}
 
                 {!formData.clienteExistente && !showNewCompanyForm && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="sm:col-span-2">
                       <Label htmlFor="cliente">Nome da Empresa/Cliente</Label>
                       <Input
                         id="cliente"
@@ -431,7 +436,7 @@ const NovaPropostaPage = () => {
                         onChange={(e) => handleInputChange('email', e.target.value)}
                       />
                     </div>
-                    <div className="md:col-span-2">
+                    <div>
                       <Label htmlFor="telefone">Telefone (Opcional)</Label>
                       <Input
                         id="telefone"

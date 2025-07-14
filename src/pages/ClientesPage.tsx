@@ -105,12 +105,12 @@ const ClientesPage = () => {
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl font-bold">Clientes</h1>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               Novo Cliente
             </Button>
@@ -149,11 +149,11 @@ const ClientesPage = () => {
                   placeholder="(11) 99999-9999"
                 />
               </div>
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <div className="flex flex-col sm:flex-row justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="w-full sm:w-auto">
                   Cancelar
                 </Button>
-                <Button type="submit">Cadastrar</Button>
+                <Button type="submit" className="w-full sm:w-auto">Cadastrar</Button>
               </div>
             </form>
           </DialogContent>
@@ -162,7 +162,7 @@ const ClientesPage = () => {
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Buscar clientes..."
           value={searchTerm}
@@ -193,14 +193,14 @@ const ClientesPage = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {filteredCompanies?.map((company) => (
             <Card key={company.id} className="hover:shadow-md transition-shadow cursor-pointer group">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Building className="h-5 w-5" />
-                    {company.name}
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <Building className="h-5 w-5 flex-shrink-0" />
+                    <span className="truncate">{company.name}</span>
                   </div>
                   <Button
                     variant="ghost"
@@ -209,7 +209,7 @@ const ClientesPage = () => {
                       e.stopPropagation();
                       handleEditCompany(company);
                     }}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0"
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -220,15 +220,15 @@ const ClientesPage = () => {
                 onClick={() => handleEditCompany(company)}
               >
                 {company.email && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Mail className="h-4 w-4" />
-                    {company.email}
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Mail className="h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">{company.email}</span>
                   </div>
                 )}
                 {company.phone && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Phone className="h-4 w-4" />
-                    {company.phone}
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Phone className="h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">{company.phone}</span>
                   </div>
                 )}
                 <div className="pt-2">

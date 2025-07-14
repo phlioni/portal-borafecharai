@@ -10,25 +10,41 @@ import {
   LogOut, 
   PlusCircle,
   MessageSquare,
-  Home
+  Home,
+  Menu
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
+  SidebarHeader,
+  SidebarFooter,
+  useSidebar,
+} from '@/components/ui/sidebar';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
-const Layout = ({ children }: LayoutProps) => {
+function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { open, setOpen } = useSidebar();
 
   const handleSignOut = async () => {
     try {
-      console.log('Logout button clicked');
       await signOut();
-      console.log('Sign out completed, redirecting to login');
       navigate('/login', { replace: true });
       toast.success('Logout realizado com sucesso');
     } catch (error) {
@@ -49,67 +65,70 @@ const Layout = ({ children }: LayoutProps) => {
     { path: '/configuracoes', label: 'Configurações', icon: Settings },
   ];
 
+  const quickActions = [
+    { path: '/propostas/nova', label: 'Nova Proposta', icon: PlusCircle },
+    { path: '/propostas/chat', label: 'Chat IA', icon: MessageSquare },
+  ];
+
+  const getNavCls = (path: string) =>
+    isActive(path) ? 'bg-muted text-primary font-medium' : 'hover:bg-muted/50';
+
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <div className="w-64 bg-white shadow-sm border-r border-gray-200 flex flex-col">
-        {/* Logo/Brand */}
-        <div className="p-6 border-b border-gray-200">
-          <h1 className="text-xl font-bold text-gray-900">BoraFecharAI</h1>
+    <Sidebar variant="sidebar" collapsible="icon">
+      <SidebarHeader className="border-b border-border">
+        <div className="p-4">
+          <h1 className="text-xl font-bold text-foreground">BoraFecharAI</h1>
         </div>
+      </SidebarHeader>
 
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
-                  isActive(item.path)
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <Icon className="h-5 w-5" />
-                <span className="font-medium">{item.label}</span>
-              </Link>
-            );
-          })}
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navItems.map((item) => (
+                <SidebarMenuItem key={item.path}>
+                  <SidebarMenuButton asChild>
+                    <Link to={item.path} className={getNavCls(item.path)}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
-          {/* Quick Actions */}
-          <div className="pt-4 mt-4 border-t border-gray-200">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              Ações Rápidas
-            </p>
-            <Link
-              to="/propostas/nova"
-              className="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
-            >
-              <PlusCircle className="h-5 w-5" />
-              <span className="font-medium">Nova Proposta</span>
-            </Link>
-            <Link
-              to="/propostas/chat"
-              className="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
-            >
-              <MessageSquare className="h-5 w-5" />
-              <span className="font-medium">Chat IA</span>
-            </Link>
-          </div>
-        </nav>
+        <SidebarGroup>
+          <SidebarGroupLabel>Ações Rápidas</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {quickActions.map((item) => (
+                <SidebarMenuItem key={item.path}>
+                  <SidebarMenuButton asChild>
+                    <Link to={item.path} className="hover:bg-muted/50">
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
 
-        {/* User section */}
-        <div className="p-4 border-t border-gray-200">
-          <div className="flex items-center space-x-3 mb-3">
-            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-              <span className="text-white text-sm font-medium">
+      <SidebarFooter className="border-t border-border">
+        <div className="p-4 space-y-3">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+              <span className="text-primary-foreground text-sm font-medium">
                 {user?.email?.charAt(0).toUpperCase()}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
+              <p className="text-sm font-medium text-foreground truncate">
                 {user?.email}
               </p>
             </div>
@@ -119,19 +138,34 @@ const Layout = ({ children }: LayoutProps) => {
             className="w-full justify-start"
             onClick={handleSignOut}
           >
-            <LogOut className="h-4 w-4 mr-2" />
-            Sair
+            <LogOut className="h-4 w-4" />
+            <span className="ml-2">Sair</span>
           </Button>
         </div>
-      </div>
+      </SidebarFooter>
+    </Sidebar>
+  );
+}
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <main className="flex-1 overflow-y-auto">
-          {children}
-        </main>
+const Layout = ({ children }: LayoutProps) => {
+  const isMobile = useIsMobile();
+
+  return (
+    <SidebarProvider defaultOpen={!isMobile}>
+      <div className="min-h-screen flex w-full bg-background">
+        <AppSidebar />
+        
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <header className="h-12 flex items-center border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:hidden">
+            <SidebarTrigger className="ml-2" />
+          </header>
+          
+          <main className="flex-1 overflow-y-auto">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 
