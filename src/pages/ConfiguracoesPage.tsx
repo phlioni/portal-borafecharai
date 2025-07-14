@@ -23,7 +23,7 @@ const ConfiguracoesPage = () => {
   const { data: companies, isLoading: companiesLoading } = useCompanies();
   const updateCompanyMutation = useUpdateCompany();
   const createCompanyMutation = useCreateCompany();
-  
+
   const [activeTab, setActiveTab] = useState('negocio');
   const [companyData, setCompanyData] = useState({
     name: '',
@@ -46,7 +46,7 @@ const ConfiguracoesPage = () => {
   useEffect(() => {
     console.log('ConfiguracoesPage - companies:', companies);
     console.log('ConfiguracoesPage - company:', company);
-    
+
     if (company) {
       setCompanyData({
         name: company.name || '',
@@ -78,7 +78,7 @@ const ConfiguracoesPage = () => {
 
   const handleSave = async () => {
     console.log('Saving company data:', companyData);
-    
+
     try {
       if (company) {
         // Atualizar empresa existente
@@ -111,7 +111,7 @@ const ConfiguracoesPage = () => {
     {
       name: 'Essencial',
       price: 'R$ 39,90',
-      priceId: process.env.NODE_ENV === 'production' ? 'price_live_essential' : 'price_test_essential',
+      priceId: process.env.NODE_ENV === 'production' ? 'price_1RktM2IjvuQQ47SwvTDKabRJ' : 'price_test_essential',
       features: [
         'Até 10 propostas por mês',
         'Templates básicos',
@@ -124,7 +124,7 @@ const ConfiguracoesPage = () => {
     {
       name: 'Professional',
       price: 'R$ 79,90',
-      priceId: process.env.NODE_ENV === 'production' ? 'price_live_professional' : 'price_test_professional',
+      priceId: process.env.NODE_ENV === 'production' ? 'price_1RktMUIjvuQQ47Swctsuavr9' : 'price_test_professional',
       features: [
         'Propostas ilimitadas',
         'Todos os templates',
@@ -270,8 +270,8 @@ const ConfiguracoesPage = () => {
                   />
                 </div>
 
-                <Button 
-                  onClick={handleSave} 
+                <Button
+                  onClick={handleSave}
                   disabled={updateCompanyMutation.isPending || createCompanyMutation.isPending}
                 >
                   {(updateCompanyMutation.isPending || createCompanyMutation.isPending) ? 'Salvando...' : 'Salvar Alterações'}
