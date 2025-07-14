@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -52,15 +51,12 @@ export const useCreateCompany = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (companyData: Omit<Company, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
+    mutationFn: async (companyData: Omit<Company, 'id' | 'created_at' | 'updated_at'>) => {
       if (!user) throw new Error('User not authenticated');
 
       const { data, error } = await supabase
         .from('companies')
-        .insert([{
-          ...companyData,
-          user_id: user.id
-        }])
+        .insert([companyData])
         .select()
         .single();
 
