@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -76,8 +75,8 @@ const ConfiguracoesPage = () => {
     }
   };
 
-  const handleLogoUpload = (url: string) => {
-    setCompanyData({ ...companyData, logo_url: url });
+  const handleLogoUpdate = (url: string | null) => {
+    setCompanyData({ ...companyData, logo_url: url || '' });
   };
 
   const getUserStatus = () => {
@@ -140,7 +139,7 @@ const ConfiguracoesPage = () => {
                     <Label htmlFor="logo">Logo da Empresa</Label>
                     <CompanyLogoUpload 
                       currentLogoUrl={companyData.logo_url}
-                      onLogoChange={handleLogoUpload}
+                      onLogoUpdate={handleLogoUpdate}
                     />
                   </div>
                   
