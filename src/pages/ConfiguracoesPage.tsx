@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +9,7 @@ import { Building, CreditCard, Users, MessageSquare, Crown, Check } from 'lucide
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useSubscription } from '@/hooks/useSubscription';
-import { useCompanies, useUpdateCompany } from '@/hooks/useCompanies';
+import { useCompanies, useUpdateCompany, useCreateCompany } from '@/hooks/useCompanies';
 import CompanyLogoUpload from '@/components/CompanyLogoUpload';
 import { toast } from 'sonner';
 import GerenciamentoUsuariosPage from './GerenciamentoUsuariosPage';
@@ -21,8 +20,9 @@ const ConfiguracoesPage = () => {
   const { user } = useAuth();
   const { isAdmin } = useUserPermissions();
   const subscription = useSubscription();
-  const { data: companies } = useCompanies();
+  const { data: companies, isLoading: companiesLoading } = useCompanies();
   const updateCompanyMutation = useUpdateCompany();
+  const createCompanyMutation = useCreateCompany();
   
   const [activeTab, setActiveTab] = useState('negocio');
   const [companyData, setCompanyData] = useState({
@@ -44,6 +44,9 @@ const ConfiguracoesPage = () => {
   const isProfessional = subscription.subscription_tier === 'professional' || isAdmin;
 
   useEffect(() => {
+    console.log('ConfiguracoesPage - companies:', companies);
+    console.log('ConfiguracoesPage - company:', company);
+    
     if (company) {
       setCompanyData({
         name: company.name || '',
@@ -59,26 +62,36 @@ const ConfiguracoesPage = () => {
         logo_url: company.logo_url || '',
         country_code: company.country_code || '+55'
       });
+    } else if (user && !companiesLoading) {
+      // Se não há empresa e não está carregando, definir dados padrão com email do usuário
+      setCompanyData(prev => ({
+        ...prev,
+        email: user.email || '',
+        name: 'Minha Empresa'
+      }));
     }
-  }, [company]);
+  }, [company, user, companiesLoading]);
 
   const handleInputChange = (field: string, value: string) => {
     setCompanyData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSave = async () => {
-    if (!company) {
-      toast.error('Empresa não encontrada');
-      return;
-    }
-
+    console.log('Saving company data:', companyData);
+    
     try {
-      await updateCompanyMutation.mutateAsync({
-        id: company.id,
-        updates: companyData
-      });
+      if (company) {
+        // Atualizar empresa existente
+        await updateCompanyMutation.mutateAsync({
+          id: company.id,
+          updates: companyData
+        });
+      } else {
+        // Criar nova empresa
+        await createCompanyMutation.mutateAsync(companyData);
+      }
     } catch (error) {
-      console.error('Erro ao salvar:', error);
+      console.error('Erro ao salvar empresa:', error);
     }
   };
 
@@ -124,6 +137,17 @@ const ConfiguracoesPage = () => {
       popular: true
     }
   ];
+
+  if (companiesLoading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Configurações</h1>
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -246,8 +270,11 @@ const ConfiguracoesPage = () => {
                   />
                 </div>
 
-                <Button onClick={handleSave} disabled={updateCompanyMutation.isPending}>
-                  {updateCompanyMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
+                <Button 
+                  onClick={handleSave} 
+                  disabled={updateCompanyMutation.isPending || createCompanyMutation.isPending}
+                >
+                  {(updateCompanyMutation.isPending || createCompanyMutation.isPending) ? 'Salvando...' : 'Salvar Alterações'}
                 </Button>
               </div>
             </CardContent>
