@@ -69,8 +69,7 @@ const TemplatesPersonalizadosPage = () => {
     }
   };
 
-  const defaultTemplateContent = `
-<!DOCTYPE html>
+  const defaultTemplateContent = `<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -124,8 +123,7 @@ const TemplatesPersonalizadosPage = () => {
         <p>{{company.email}} | {{company.phone}}</p>
     </div>
 </body>
-</html>
-  `;
+</html>`;
 
   return (
     <PlanLimitGuard feature="premiumTemplates">
