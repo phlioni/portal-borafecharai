@@ -4,9 +4,11 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface TrialStatus {
   isInTrial: boolean;
-  daysRemaining: number;
+  daysUsed: number;
+  totalTrialDays: number;
   proposalsUsed: number;
   proposalsRemaining: number;
+  trialStartDate: Date | null;
   trialEndDate: Date | null;
   loading: boolean;
 }
@@ -15,9 +17,11 @@ export const useTrialStatus = () => {
   const { user } = useAuth();
   const [trialStatus, setTrialStatus] = useState<TrialStatus>({
     isInTrial: false,
-    daysRemaining: 0,
+    daysUsed: 0,
+    totalTrialDays: 15,
     proposalsUsed: 0,
     proposalsRemaining: 20,
+    trialStartDate: null,
     trialEndDate: null,
     loading: true,
   });
@@ -41,13 +45,17 @@ export const useTrialStatus = () => {
       }
 
       const now = new Date();
+      const trialStartDate = subscriberData.trial_start_date ? new Date(subscriberData.trial_start_date) : null;
       const trialEndDate = subscriberData.trial_end_date ? new Date(subscriberData.trial_end_date) : null;
+      
+      // Usuário está em trial se tem data de fim do trial, ainda não expirou e não tem assinatura
       const isInTrial = trialEndDate && trialEndDate >= now && !subscriberData.subscribed;
       
-      let daysRemaining = 0;
-      if (trialEndDate) {
-        const timeDiff = trialEndDate.getTime() - now.getTime();
-        daysRemaining = Math.max(0, Math.ceil(timeDiff / (1000 * 3600 * 24)));
+      // Calcular dias usados desde o início do trial
+      let daysUsed = 0;
+      if (trialStartDate) {
+        const timeDiff = now.getTime() - trialStartDate.getTime();
+        daysUsed = Math.min(15, Math.max(0, Math.floor(timeDiff / (1000 * 3600 * 24))));
       }
 
       const proposalsUsed = subscriberData.trial_proposals_used || 0;
@@ -55,9 +63,11 @@ export const useTrialStatus = () => {
 
       setTrialStatus({
         isInTrial: !!isInTrial,
-        daysRemaining,
+        daysUsed,
+        totalTrialDays: 15,
         proposalsUsed,
         proposalsRemaining,
+        trialStartDate,
         trialEndDate,
         loading: false,
       });

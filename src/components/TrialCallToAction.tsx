@@ -12,7 +12,8 @@ const TrialCallToAction = () => {
   const { isAdmin } = useUserPermissions();
   const { 
     isInTrial, 
-    daysRemaining, 
+    daysUsed, 
+    totalTrialDays, 
     proposalsUsed, 
     proposalsRemaining, 
     loading 
@@ -33,12 +34,12 @@ const TrialCallToAction = () => {
               </h3>
               <Badge variant="secondary" className="bg-green-100 text-green-700">
                 <Calendar className="h-3 w-3 mr-1" />
-                {daysRemaining} dias restantes
+                {totalTrialDays - daysUsed} dias restantes
               </Badge>
             </div>
             
             <p className="text-gray-600 mb-4">
-              Você tem {proposalsRemaining} propostas restantes e {daysRemaining} dias do seu período gratuito. O que acabar primeiro determina o fim do período gratuito.
+              Você tem {proposalsRemaining} propostas restantes e {totalTrialDays - daysUsed} dias do seu período gratuito. O que acabar primeiro determina o fim do período gratuito.
             </p>
 
             <div className="flex items-center gap-4 mb-4">
@@ -48,7 +49,7 @@ const TrialCallToAction = () => {
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <Calendar className="h-4 w-4" />
-                <span>{daysRemaining} {daysRemaining === 1 ? 'dia restante' : 'dias restantes'}</span>
+                <span>{totalTrialDays - daysUsed} {(totalTrialDays - daysUsed) === 1 ? 'dia restante' : 'dias restantes'}</span>
               </div>
             </div>
 
@@ -67,13 +68,13 @@ const TrialCallToAction = () => {
               
               {/* Barra de progresso dos dias */}
               <div className="flex justify-between text-xs text-gray-500 mt-3">
-                <span>Tempo restante</span>
-                <span>{daysRemaining}/15 dias</span>
+                <span>Tempo utilizado</span>
+                <span>{daysUsed}/{totalTrialDays} dias</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div 
                   className="bg-purple-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${((15 - daysRemaining) / 15) * 100}%` }}
+                  style={{ width: `${(daysUsed / totalTrialDays) * 100}%` }}
                 />
               </div>
             </div>
