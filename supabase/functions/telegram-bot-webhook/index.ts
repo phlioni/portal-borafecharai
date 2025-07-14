@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
@@ -434,7 +433,6 @@ async function handleMessage(update: TelegramUpdate) {
         keyboard
       );
       session.step = 'main_menu';
-      await updateSession(userId, session);
     } else {
       console.log('Usuário não encontrado pelo telefone:', session.phone);
       await sendTelegramMessage(chatId,
