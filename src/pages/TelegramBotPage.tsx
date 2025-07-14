@@ -102,27 +102,61 @@ const TelegramBotPage = () => {
     setIsTestingPhone(true);
     
     try {
-      const { data, error } = await supabase
+      console.log('Testando telefone:', testPhone);
+      
+      // Limpar o telefone (remover caracteres especiais)
+      const cleanPhone = testPhone.replace(/\D/g, '');
+      console.log('Telefone limpo:', cleanPhone);
+      
+      // Buscar empresas/usuários pelo telefone (busca por telefone exato e também por telefone sem formatação)
+      const { data: companies, error } = await supabase
         .from('companies')
         .select('user_id, name, email, phone')
-        .eq('phone', testPhone)
-        .single();
+        .or(`phone.eq.${testPhone},phone.eq.${cleanPhone}`)
+        .limit(1);
 
-      console.log('Resultado da busca por telefone:', { data, error });
-      
-      if (error || !data) {
-        setPhoneTestResult({
-          found: false,
-          error: error?.message || 'Telefone não encontrado'
-        });
-        toast.error('Telefone não encontrado na base de dados');
-      } else {
+      console.log('Resultado da busca por telefone:', { companies, error });
+
+      if (companies && companies.length > 0) {
         setPhoneTestResult({
           found: true,
-          data: data
+          data: companies[0]
         });
-        toast.success(`Telefone encontrado! Usuário: ${data.name}`);
+        toast.success(`Telefone encontrado! Usuário: ${companies[0].name}`);
+        return;
       }
+
+      // Se não encontrou, buscar em todas as empresas e verificar telefones formatados
+      const { data: allCompanies, error: allError } = await supabase
+        .from('companies')
+        .select('user_id, name, email, phone');
+
+      console.log('Buscando em todas as empresas:', { count: allCompanies?.length, error: allError });
+
+      if (allCompanies) {
+        for (const company of allCompanies) {
+          if (company.phone) {
+            const companyCleanPhone = company.phone.replace(/\D/g, '');
+            console.log(`Comparando: ${cleanPhone} com ${companyCleanPhone} (${company.phone})`);
+            
+            if (cleanPhone === companyCleanPhone) {
+              console.log('✅ Encontrado empresa com telefone compatível:', company);
+              setPhoneTestResult({
+                found: true,
+                data: company
+              });
+              toast.success(`Telefone encontrado! Usuário: ${company.name}`);
+              return;
+            }
+          }
+        }
+      }
+
+      setPhoneTestResult({
+        found: false,
+        error: 'Telefone não encontrado'
+      });
+      toast.error('Telefone não encontrado na base de dados');
     } catch (error) {
       console.error('Erro ao testar telefone:', error);
       toast.error('Erro ao buscar telefone');

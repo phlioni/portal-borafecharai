@@ -104,20 +104,46 @@ async function sendTelegramMessage(chatId: number, text: string, replyMarkup?: a
 async function findUserByPhone(phone: string) {
   console.log('Buscando usuário pelo telefone:', phone);
   
-  // Buscar empresas/usuários pelo telefone
+  // Limpar o telefone (remover caracteres especiais)
+  const cleanPhone = phone.replace(/\D/g, '');
+  console.log('Telefone limpo:', cleanPhone);
+  
+  // Buscar empresas/usuários pelo telefone (busca por telefone exato e também por telefone sem formatação)
   const { data: companies, error } = await supabase
     .from('companies')
     .select('user_id, name, email, phone')
-    .eq('phone', phone)
-    .single();
+    .or(`phone.eq.${phone},phone.eq.${cleanPhone}`)
+    .limit(1);
 
-  console.log('Resultado da busca:', { companies, error });
+  console.log('Resultado da busca na tabela companies:', { companies, error });
 
-  if (error || !companies) {
-    return null;
+  if (companies && companies.length > 0) {
+    return companies[0];
   }
 
-  return companies;
+  // Se não encontrou na tabela companies, buscar em todas as empresas e verificar telefones formatados
+  const { data: allCompanies, error: allError } = await supabase
+    .from('companies')
+    .select('user_id, name, email, phone');
+
+  console.log('Buscando em todas as empresas:', { count: allCompanies?.length, error: allError });
+
+  if (allCompanies) {
+    for (const company of allCompanies) {
+      if (company.phone) {
+        const companyCleanPhone = company.phone.replace(/\D/g, '');
+        console.log(`Comparando: ${cleanPhone} com ${companyCleanPhone} (${company.phone})`);
+        
+        if (cleanPhone === companyCleanPhone) {
+          console.log('✅ Encontrado empresa com telefone compatível:', company);
+          return company;
+        }
+      }
+    }
+  }
+
+  console.log('❌ Usuário não encontrado pelo telefone');
+  return null;
 }
 
 async function createProposalForUser(session: UserSession) {
