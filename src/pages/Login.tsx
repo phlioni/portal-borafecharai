@@ -147,8 +147,8 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 flex">
-      {/* Sidebar com informações */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 p-12 text-white relative overflow-hidden">
+      {/* Sidebar com informações - apenas desktop */}
+      <div className="hidden xl:flex xl:w-1/2 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 p-8 text-white relative overflow-hidden">
         {/* Background decorativo */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 to-transparent"></div>
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-32 translate-x-32"></div>
@@ -156,105 +156,105 @@ const Login = () => {
         
         <div className="relative z-10 flex flex-col justify-center max-w-md">
           {/* Logo e título */}
-          <div className="mb-12">
-            <div className="flex items-center mb-6">
-              <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
-                <FileText className="h-8 w-8 text-white" />
+          <div className="mb-8">
+            <div className="flex items-center mb-4">
+              <div className="bg-white/20 p-2 rounded-xl backdrop-blur-sm">
+                <FileText className="h-6 w-6 text-white" />
               </div>
-              <div className="ml-4">
-                <h1 className="text-3xl font-bold">BoraFecharAI</h1>
-                <p className="text-blue-100">Propostas Inteligentes</p>
+              <div className="ml-3">
+                <h1 className="text-2xl font-bold">BoraFecharAI</h1>
+                <p className="text-blue-100 text-sm">Propostas Inteligentes</p>
               </div>
             </div>
             
-            <h2 className="text-4xl font-bold mb-4 leading-tight">
+            <h2 className="text-3xl font-bold mb-3 leading-tight">
               A inteligência que falta para suas
               <span className="text-blue-200 block">propostas fecharem de vez</span>
             </h2>
-            <p className="text-xl text-blue-100 leading-relaxed">
+            <p className="text-lg text-blue-100 leading-relaxed">
               Propostas comerciais inteligentes com IA avançada para converter mais clientes.
             </p>
           </div>
 
-          {/* Features */}
-          <div className="space-y-6">
-            {features.map((feature, index) => (
-              <div key={index} className="flex items-start space-x-4 group">
-                <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm group-hover:bg-white/30 transition-colors">
-                  <feature.icon className="h-5 w-5 text-white" />
+          {/* Features compactas */}
+          <div className="space-y-4">
+            {features.slice(0, 4).map((feature, index) => (
+              <div key={index} className="flex items-start space-x-3 group">
+                <div className="bg-white/20 p-1.5 rounded-lg backdrop-blur-sm group-hover:bg-white/30 transition-colors">
+                  <feature.icon className="h-4 w-4 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg text-white mb-1">{feature.title}</h3>
-                  <p className="text-blue-100 text-sm">{feature.description}</p>
+                  <h3 className="font-semibold text-base text-white mb-0.5">{feature.title}</h3>
+                  <p className="text-blue-100 text-xs">{feature.description}</p>
                 </div>
               </div>
             ))}
           </div>
 
           {/* Stats */}
-          <div className="mt-12 grid grid-cols-2 gap-6">
+          <div className="mt-8 grid grid-cols-2 gap-4">
             <div className="text-center">
-              <div className="text-3xl font-bold text-white mb-1">98%</div>
-              <div className="text-blue-200 text-sm">Taxa de Aprovação</div>
+              <div className="text-2xl font-bold text-white mb-1">98%</div>
+              <div className="text-blue-200 text-xs">Taxa de Aprovação</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-white mb-1">5min</div>
-              <div className="text-blue-200 text-sm">Para Criar Proposta</div>
+              <div className="text-2xl font-bold text-white mb-1">5min</div>
+              <div className="text-blue-200 text-xs">Para Criar Proposta</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Formulário de login */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8">
         <div className="w-full max-w-md">
-          {/* Logo mobile */}
-          <div className="lg:hidden text-center mb-8">
-            <div className="flex items-center justify-center mb-4">
-              <div className="bg-blue-600 p-3 rounded-xl">
-                <FileText className="h-8 w-8 text-white" />
+          {/* Logo mobile - mais compacto */}
+          <div className="xl:hidden text-center mb-6">
+            <div className="flex items-center justify-center mb-3">
+              <div className="bg-blue-600 p-2 rounded-xl">
+                <FileText className="h-6 w-6 text-white" />
               </div>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">BoraFecharAI</h1>
-            <p className="text-gray-600">A inteligência que falta para suas propostas</p>
+            <h1 className="text-xl font-bold text-gray-900 mb-1">BoraFecharAI</h1>
+            <p className="text-gray-600 text-sm">A inteligência que falta para suas propostas</p>
           </div>
 
-          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-            <CardHeader className="space-y-1 text-center">
-              <CardTitle className="text-2xl font-bold text-gray-900">Bem-vindo de volta</CardTitle>
-              <CardDescription className="text-gray-600">
+          <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
+            <CardHeader className="space-y-1 text-center pb-4">
+              <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900">Bem-vindo de volta</CardTitle>
+              <CardDescription className="text-gray-600 text-sm">
                 Faça login ou crie sua conta para começar
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="login" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-2 bg-blue-50">
-                  <TabsTrigger value="login" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+            <CardContent className="pt-0">
+              <Tabs defaultValue="login" className="space-y-3">
+                <TabsList className="grid w-full grid-cols-2 bg-blue-50 h-9">
+                  <TabsTrigger value="login" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-sm">
                     Entrar
                   </TabsTrigger>
-                  <TabsTrigger value="signup" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+                  <TabsTrigger value="signup" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-sm">
                     Cadastrar
                   </TabsTrigger>
                 </TabsList>
 
                 {error && (
-                  <Alert variant="destructive" className="border-red-200 bg-red-50">
+                  <Alert variant="destructive" className="border-red-200 bg-red-50 py-2">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertDescription className="text-red-800">{error}</AlertDescription>
+                    <AlertDescription className="text-red-800 text-sm">{error}</AlertDescription>
                   </Alert>
                 )}
 
                 {success && (
-                  <Alert className="border-green-200 bg-green-50">
+                  <Alert className="border-green-200 bg-green-50 py-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    <AlertDescription className="text-green-800">{success}</AlertDescription>
+                    <AlertDescription className="text-green-800 text-sm">{success}</AlertDescription>
                   </Alert>
                 )}
 
-                <TabsContent value="login" className="space-y-4">
-                  <form onSubmit={handleLogin} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="login-email" className="text-gray-700">Email</Label>
+                <TabsContent value="login" className="space-y-3">
+                  <form onSubmit={handleLogin} className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="login-email" className="text-gray-700 text-sm">Email</Label>
                       <Input
                         id="login-email"
                         type="email"
@@ -263,11 +263,11 @@ const Login = () => {
                         onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
                         required
                         disabled={isLoading}
-                        className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                        className="border-gray-200 focus:border-blue-500 focus:ring-blue-500 h-10"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="login-password" className="text-gray-700">Senha</Label>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="login-password" className="text-gray-700 text-sm">Senha</Label>
                       <Input
                         id="login-password"
                         type="password"
@@ -276,12 +276,12 @@ const Login = () => {
                         onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
                         required
                         disabled={isLoading}
-                        className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                        className="border-gray-200 focus:border-blue-500 focus:ring-blue-500 h-10"
                       />
                     </div>
                     <Button 
                       type="submit" 
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5" 
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium h-10" 
                       disabled={isLoading}
                     >
                       {isLoading ? (
@@ -299,10 +299,10 @@ const Login = () => {
                   </form>
                 </TabsContent>
 
-                <TabsContent value="signup" className="space-y-4">
-                  <form onSubmit={handleSignup} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-email" className="text-gray-700">Email</Label>
+                <TabsContent value="signup" className="space-y-3">
+                  <form onSubmit={handleSignup} className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="signup-email" className="text-gray-700 text-sm">Email</Label>
                       <Input
                         id="signup-email"
                         type="email"
@@ -311,11 +311,11 @@ const Login = () => {
                         onChange={(e) => setSignupForm({ ...signupForm, email: e.target.value })}
                         required
                         disabled={isLoading}
-                        className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                        className="border-gray-200 focus:border-blue-500 focus:ring-blue-500 h-10"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-password" className="text-gray-700">Senha</Label>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="signup-password" className="text-gray-700 text-sm">Senha</Label>
                       <Input
                         id="signup-password"
                         type="password"
@@ -325,11 +325,11 @@ const Login = () => {
                         required
                         disabled={isLoading}
                         minLength={6}
-                        className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                        className="border-gray-200 focus:border-blue-500 focus:ring-blue-500 h-10"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-confirm" className="text-gray-700">Confirmar Senha</Label>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="signup-confirm" className="text-gray-700 text-sm">Confirmar Senha</Label>
                       <Input
                         id="signup-confirm"
                         type="password"
@@ -338,12 +338,12 @@ const Login = () => {
                         onChange={(e) => setSignupForm({ ...signupForm, confirmPassword: e.target.value })}
                         required
                         disabled={isLoading}
-                        className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                        className="border-gray-200 focus:border-blue-500 focus:ring-blue-500 h-10"
                       />
                     </div>
                     <Button 
                       type="submit" 
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5" 
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium h-10" 
                       disabled={isLoading}
                     >
                       {isLoading ? (
@@ -364,7 +364,7 @@ const Login = () => {
             </CardContent>
           </Card>
 
-          <div className="text-center mt-6 text-sm text-gray-500">
+          <div className="text-center mt-4 text-xs text-gray-500">
             <p>Ao criar uma conta, você concorda com nossos termos de uso</p>
           </div>
         </div>
