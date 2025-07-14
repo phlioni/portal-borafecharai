@@ -111,7 +111,8 @@ const ConfiguracoesPage = () => {
     {
       name: 'Essencial',
       price: 'R$ 39,90',
-      priceId: process.env.NODE_ENV === 'production' ? 'price_1RktM2IjvuQQ47SwvTDKabRJ' : 'price_test_essential',
+      priceId: 'price_1RktM2IjvuQQ47SwvTDKabRJ',
+      currency: 'BRL',
       features: [
         'Até 10 propostas por mês',
         'Templates básicos',
@@ -124,6 +125,7 @@ const ConfiguracoesPage = () => {
     {
       name: 'Professional',
       price: 'R$ 79,90',
+      currency: 'BRL',
       priceId: process.env.NODE_ENV === 'production' ? 'price_1RktMUIjvuQQ47Swctsuavr9' : 'price_test_professional',
       features: [
         'Propostas ilimitadas',
