@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -53,24 +52,44 @@ const Login = () => {
   }
 
   const handleGoogleLogin = async () => {
+    console.log('Starting Google login process...');
     setIsGoogleLoading(true);
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      // Get current URL origin for redirect
+      const redirectTo = `${window.location.origin}/dashboard`;
+      console.log('Google login redirect URL:', redirectTo);
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`
+          redirectTo: redirectTo,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         }
       });
 
+      console.log('Google OAuth response:', { data, error });
+
       if (error) {
         console.error('Google login error:', error);
-        setError('Erro ao fazer login com Google. Tente novamente.');
+        if (error.message.includes('Invalid login credentials')) {
+          setError('Erro de autenticação com Google. Verifique se o Google OAuth está configurado corretamente.');
+        } else if (error.message.includes('redirect')) {
+          setError('Erro de redirecionamento. Verifique se as URLs estão configuradas corretamente no Supabase.');
+        } else {
+          setError(`Erro ao fazer login com Google: ${error.message}`);
+        }
+      } else {
+        console.log('Google login initiated successfully');
+        // O redirecionamento será feito automaticamente pelo Supabase
       }
     } catch (err) {
       console.error('Unexpected error during Google login:', err);
-      setError('Erro inesperado. Tente novamente.');
+      setError('Erro inesperado durante o login com Google. Tente novamente.');
     } finally {
       setIsGoogleLoading(false);
     }
@@ -78,11 +97,12 @@ const Login = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Starting email login process...');
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log('Login form submitted');
+      console.log('Login form submitted for email:', loginForm.email);
       const { error } = await signIn(loginForm.email, loginForm.password);
       
       if (error) {
@@ -91,15 +111,17 @@ const Login = () => {
           setError('Email ou senha incorretos. Verifique suas credenciais.');
         } else if (error.message.includes('Email not confirmed')) {
           setError('Por favor, confirme seu email antes de fazer login.');
+        } else if (error.message.includes('too_many_requests')) {
+          setError('Muitas tentativas de login. Aguarde alguns minutos e tente novamente.');
         } else {
-          setError('Erro ao fazer login. Tente novamente.');
+          setError(`Erro ao fazer login: ${error.message}`);
         }
       } else {
         console.log('Login successful, should redirect');
         // Redirecionamento será feito pelo useEffect
       }
     } catch (err) {
-      console.error('Unexpected error:', err);
+      console.error('Unexpected error during login:', err);
       setError('Erro inesperado. Tente novamente.');
     } finally {
       setIsLoading(false);
@@ -108,6 +130,7 @@ const Login = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Starting signup process...');
     setIsLoading(true);
     setError(null);
     setSuccess(null);
@@ -125,23 +148,29 @@ const Login = () => {
     }
 
     try {
+      console.log('Signup form submitted for email:', signupForm.email);
       const { error } = await signUp(signupForm.email, signupForm.password);
       
       if (error) {
+        console.error('Signup error:', error);
         if (error.message.includes('User already registered')) {
           setError('Este email já está cadastrado. Tente fazer login.');
         } else if (error.message.includes('Password should be at least 6 characters')) {
           setError('A senha deve ter pelo menos 6 caracteres.');
         } else if (error.message.includes('rate limit') || error.message.includes('429')) {
           setError('Muitas tentativas de cadastro. Aguarde alguns minutos e tente novamente.');
+        } else if (error.message.includes('weak password')) {
+          setError('Senha muito fraca. Use pelo menos 8 caracteres com letras e números.');
         } else {
-          setError('Erro ao criar conta. Tente novamente.');
+          setError(`Erro ao criar conta: ${error.message}`);
         }
       } else {
+        console.log('Signup successful');
         setSuccess('Conta criada com sucesso! Você já pode fazer login.');
         setSignupForm({ email: '', password: '', confirmPassword: '' });
       }
     } catch (err) {
+      console.error('Unexpected error during signup:', err);
       setError('Erro inesperado. Tente novamente.');
     } finally {
       setIsLoading(false);
