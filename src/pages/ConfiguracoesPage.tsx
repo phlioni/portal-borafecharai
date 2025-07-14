@@ -98,11 +98,11 @@ const ConfiguracoesPage = () => {
                 period="por mês"
                 description="Ideal para freelancers e pequenos negócios"
                 features={[
-                  { name: "10 propostas por mês", included: true },
-                  { name: "3 templates profissionais", included: true },
-                  { name: "Criação com IA", included: true },
-                  { name: "Acompanhamento básico", included: true },
-                  { name: "Suporte por email", included: true }
+                  { text: "10 propostas por mês", included: true },
+                  { text: "3 templates profissionais", included: true },
+                  { text: "Criação com IA", included: true },
+                  { text: "Acompanhamento básico", included: true },
+                  { text: "Suporte por email", included: true }
                 ]}
                 buttonText="Escolher Básico"
                 popular={false}
@@ -116,13 +116,13 @@ const ConfiguracoesPage = () => {
                 period="por mês"
                 description="Para empresas que querem crescer"
                 features={[
-                  { name: "Propostas ilimitadas", included: true },
-                  { name: "Templates personalizados", included: true },
-                  { name: "IA avançada", included: true },
-                  { name: "Analytics completo", included: true },
-                  { name: "Chat com cliente", included: true },
-                  { name: "Notificações Telegram", included: true },
-                  { name: "Suporte prioritário", included: true }
+                  { text: "Propostas ilimitadas", included: true },
+                  { text: "Templates personalizados", included: true },
+                  { text: "IA avançada", included: true },
+                  { text: "Analytics completo", included: true },
+                  { text: "Chat com cliente", included: true },
+                  { text: "Notificações Telegram", included: true },
+                  { text: "Suporte prioritário", included: true }
                 ]}
                 buttonText="Escolher Profissional"
                 popular={true}
