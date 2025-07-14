@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -82,7 +81,6 @@ const ClientesPage = () => {
     try {
       await createCompanyMutation.mutateAsync({
         ...newCompany,
-        user_id: user.id,
       });
       setNewCompany({ name: '', email: '', phone: '' });
       setIsDialogOpen(false);

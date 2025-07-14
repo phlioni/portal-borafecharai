@@ -206,7 +206,6 @@ const ChatPropostaPage = () => {
       let companyId = null;
       if (proposalData.cliente && proposalData.cliente !== 'Cliente') {
         const companyResult = await createCompany.mutateAsync({
-          user_id: user.id,
           name: proposalData.cliente,
           email: proposalData.email || null,
           phone: proposalData.telefone || null

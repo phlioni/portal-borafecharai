@@ -2,7 +2,7 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
-import { TrialCallToAction } from './TrialCallToAction';
+import TrialCallToAction from './TrialCallToAction';
 
 export const TrialCallToActionWrapper = () => {
   const { user } = useAuth();

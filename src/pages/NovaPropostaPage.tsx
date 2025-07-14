@@ -134,7 +134,6 @@ const NovaPropostaPage = () => {
 
     try {
       const result = await createCompany.mutateAsync({
-        user_id: user.id,
         name: newCompanyData.nome,
         email: newCompanyData.email || null,
         phone: newCompanyData.telefone || null
@@ -183,7 +182,6 @@ const NovaPropostaPage = () => {
       if (!companyId && formData.cliente.trim()) {
         console.log('Criando novo cliente...');
         const result = await createCompany.mutateAsync({
-          user_id: user.id,
           name: formData.cliente,
           email: formData.email || null,
           phone: formData.telefone || null
