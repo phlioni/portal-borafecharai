@@ -40,45 +40,70 @@ export const useUserPermissions = () => {
 
         setMonthlyProposalCount(monthlyCount || 0);
 
-        // Check if user can create proposals
-        const { data: canCreate } = await supabase
-          .rpc('can_create_proposal', { _user_id: user.id });
+        // Verificar status do trial
+        const { data: subscriber } = await supabase
+          .from('subscribers')
+          .select('trial_end_date, trial_proposals_used, trial_start_date, subscribed, subscription_tier')
+          .eq('user_id', user.id)
+          .single();
 
-        setCanCreateProposal(canCreate || false);
+        console.log('useUserPermissions - subscriber data:', subscriber);
+        console.log('useUserPermissions - subscribed from hook:', subscribed);
+        console.log('useUserPermissions - subscription_tier from hook:', subscription_tier);
 
-        // Set limits and permissions based on subscription
+        // Verificar se pode criar propostas
+        let canCreate = false;
+        let proposalLimit = null;
+
         if (adminRole) {
-          setMonthlyProposalLimit(null); // Unlimited for admin
+          canCreate = true;
+          proposalLimit = null; // Unlimited for admin
           setCanAccessAnalytics(true);
           setCanAccessPremiumTemplates(true);
         } else if (subscribed) {
           if (subscription_tier === 'basico') {
-            setMonthlyProposalLimit(10);
+            proposalLimit = 10;
+            canCreate = monthlyCount < 10;
             setCanAccessAnalytics(false);
             setCanAccessPremiumTemplates(false);
-          } else if (subscription_tier === 'professional') {
-            setMonthlyProposalLimit(null); // Unlimited
+          } else if (subscription_tier === 'profissional') {
+            proposalLimit = null; // Unlimited
+            canCreate = true;
             setCanAccessAnalytics(true);
             setCanAccessPremiumTemplates(true);
           }
         } else {
-          // Check if user has trial access
-          const { data: subscriber } = await supabase
-            .from('subscribers')
-            .select('trial_end_date, trial_proposals_used')
-            .eq('user_id', user.id)
-            .single();
-
+          // Verificar trial
           if (subscriber?.trial_end_date && new Date(subscriber.trial_end_date) >= new Date()) {
-            setMonthlyProposalLimit(20); // Trial limit
+            const proposalsUsed = subscriber.trial_proposals_used || 0;
+            proposalLimit = 20;
+            canCreate = proposalsUsed < 20;
+            console.log('useUserPermissions - trial check:', {
+              trial_end_date: subscriber.trial_end_date,
+              proposalsUsed,
+              canCreate
+            });
             setCanAccessAnalytics(false);
             setCanAccessPremiumTemplates(false);
           } else {
-            setMonthlyProposalLimit(0);
+            proposalLimit = 0;
+            canCreate = false;
             setCanAccessAnalytics(false);
             setCanAccessPremiumTemplates(false);
           }
         }
+
+        setMonthlyProposalLimit(proposalLimit);
+        setCanCreateProposal(canCreate);
+
+        console.log('useUserPermissions - final state:', {
+          canCreateProposal: canCreate,
+          monthlyProposalLimit: proposalLimit,
+          monthlyProposalCount: monthlyCount,
+          isAdmin: adminRole,
+          subscribed,
+          subscription_tier
+        });
 
       } catch (error) {
         console.error('Error checking permissions:', error);

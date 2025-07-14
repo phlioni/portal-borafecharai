@@ -31,14 +31,6 @@ const PlanLimitGuard: React.FC<PlanLimitGuardProps> = ({
     return <div>Carregando...</div>;
   }
 
-  // Debug para propostas
-  if (feature === 'createProposal') {
-    console.log('PlanLimitGuard - canCreateProposal:', canCreateProposal);
-    console.log('PlanLimitGuard - isAdmin:', isAdmin);
-    console.log('PlanLimitGuard - monthlyProposalCount:', monthlyProposalCount);
-    console.log('PlanLimitGuard - monthlyProposalLimit:', monthlyProposalLimit);
-  }
-
   const hasAccess = () => {
     switch (feature) {
       case 'createProposal':
@@ -57,11 +49,9 @@ const PlanLimitGuard: React.FC<PlanLimitGuardProps> = ({
       case 'createProposal':
         return {
           title: 'Limite de Propostas Atingido',
-          description: monthlyProposalLimit 
-            ? `Você já criou ${monthlyProposalCount} de ${monthlyProposalLimit} propostas este mês.`
-            : 'Você precisa de uma assinatura para criar propostas.',
+          description: 'Você precisa de uma assinatura para criar propostas.',
           icon: Lock,
-          upgradeText: 'Upgrade para Profissional para propostas ilimitadas'
+          upgradeText: 'Upgrade para Profissional'
         };
       case 'analytics':
         return {
@@ -99,22 +89,31 @@ const PlanLimitGuard: React.FC<PlanLimitGuardProps> = ({
   const IconComponent = featureInfo.icon;
 
   return (
-    <Card className="border-dashed border-2 border-muted-foreground/25">
-      <CardHeader className="text-center pb-4">
-        <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-          <IconComponent className="w-6 h-6 text-muted-foreground" />
+    <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">{featureInfo.title}</h1>
+        <p className="text-muted-foreground">{featureInfo.description}</p>
+      </div>
+
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-6 max-w-md">
+          <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+            <IconComponent className="w-8 h-8 text-muted-foreground" />
+          </div>
+          
+          <div className="space-y-2">
+            <h2 className="text-xl font-semibold">{featureInfo.title}</h2>
+            <p className="text-muted-foreground">{featureInfo.description}</p>
+          </div>
+
+          <Link to="/planos">
+            <Button className="w-full">
+              {featureInfo.upgradeText}
+            </Button>
+          </Link>
         </div>
-        <CardTitle className="text-lg">{featureInfo.title}</CardTitle>
-        <CardDescription>{featureInfo.description}</CardDescription>
-      </CardHeader>
-      <CardContent className="text-center">
-        <Link to="/planos">
-          <Button variant="outline" className="w-full">
-            {featureInfo.upgradeText}
-          </Button>
-        </Link>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 

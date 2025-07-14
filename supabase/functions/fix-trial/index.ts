@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
@@ -67,18 +68,19 @@ serve(async (req) => {
       .eq('user_id', targetUserId)
       .single()
 
-    const trialEndDate = new Date()
-    trialEndDate.setDate(trialEndDate.getDate() + 15)
-
+    const now = new Date()
+    const trialStartDate = now.toISOString()
+    const trialEndDate = new Date(now.getTime() + (15 * 24 * 60 * 60 * 1000)) // 15 dias
+    
     if (existingSubscriber) {
       // Atualizar subscriber existente com trial
       const { data, error } = await supabase
         .from('subscribers')
         .update({
-          trial_start_date: new Date().toISOString(),
+          trial_start_date: trialStartDate,
           trial_end_date: trialEndDate.toISOString(),
           trial_proposals_used: 0,
-          updated_at: new Date().toISOString()
+          updated_at: now.toISOString()
         })
         .eq('user_id', targetUserId)
         .select()
@@ -99,7 +101,7 @@ serve(async (req) => {
         .insert({
           user_id: targetUserId,
           email: targetUserEmail!,
-          trial_start_date: new Date().toISOString(),
+          trial_start_date: trialStartDate,
           trial_end_date: trialEndDate.toISOString(),
           trial_proposals_used: 0,
           subscribed: false,
@@ -121,6 +123,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       success: true, 
       message: 'Trial iniciado/corrigido com sucesso',
+      trialStartDate: trialStartDate,
       trialEndDate: trialEndDate.toISOString()
     }), {
       status: 200,

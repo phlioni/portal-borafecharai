@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,6 +35,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
+import { useAdminOperations } from '@/hooks/useAdminOperations';
 
 interface User {
   id: string;
@@ -89,6 +89,8 @@ interface Proposal {
 const GerenciamentoUsuariosPage = () => {
   const { user } = useAuth();
   const { isAdmin } = useUserPermissions();
+  const { isLoading, loadUsers, resetUserData, manageUserStatus } = useAdminOperations();
+  
   const [users, setUsers] = useState<User[]>([]);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
@@ -99,7 +101,6 @@ const GerenciamentoUsuariosPage = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedSubscriber, setSelectedSubscriber] = useState<Subscriber | null>(null);
   const [selectedUserRole, setSelectedUserRole] = useState<UserRole | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('users');
   const [stats, setStats] = useState({
@@ -110,58 +111,18 @@ const GerenciamentoUsuariosPage = () => {
     totalRevenue: 0
   });
 
-  // Carregar dados dos usuários
-  const loadUsers = async () => {
-    if (!isAdmin) return;
-    
-    setIsLoading(true);
+  // Carregar dados dos usuários usando o hook
+  const loadAllData = async () => {
     try {
-      // Buscar usuários
-      const { data: authUsers, error: authError } = await supabase.functions.invoke('get-users');
+      const usersData = await loadUsers();
       
-      if (authError) {
-        console.error('Erro ao buscar usuários:', authError);
-        toast.error('Erro ao carregar usuários');
-        return;
-      }
+      // Buscar dados adicionais
+      const { data: subscribersData } = await supabase.from('subscribers').select('*');
+      const { data: rolesData } = await supabase.from('user_roles').select('*');
+      const { data: companiesData } = await supabase.from('companies').select('*');
+      const { data: proposalsData } = await supabase.from('proposals').select('*');
 
-      // Buscar assinantes
-      const { data: subscribersData, error: subscribersError } = await supabase
-        .from('subscribers')
-        .select('*');
-
-      if (subscribersError) {
-        console.error('Erro ao buscar assinantes:', subscribersError);
-      }
-
-      // Buscar roles dos usuários
-      const { data: rolesData, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('*');
-
-      if (rolesError) {
-        console.error('Erro ao buscar roles:', rolesError);
-      }
-
-      // Buscar empresas
-      const { data: companiesData, error: companiesError } = await supabase
-        .from('companies')
-        .select('*');
-
-      if (companiesError) {
-        console.error('Erro ao buscar empresas:', companiesError);
-      }
-
-      // Buscar propostas
-      const { data: proposalsData, error: proposalsError } = await supabase
-        .from('proposals')
-        .select('*');
-
-      if (proposalsError) {
-        console.error('Erro ao buscar propostas:', proposalsError);
-      }
-
-      setUsers(authUsers || []);
+      setUsers(usersData);
       setSubscribers(subscribersData || []);
       setUserRoles(rolesData || []);
       setCompanies(companiesData || []);
@@ -177,7 +138,7 @@ const GerenciamentoUsuariosPage = () => {
       }, 0) || 0;
 
       setStats({
-        totalUsers: authUsers?.length || 0,
+        totalUsers: usersData.length,
         activeSubscriptions,
         trialUsers,
         totalProposals: proposalsData?.length || 0,
@@ -185,10 +146,8 @@ const GerenciamentoUsuariosPage = () => {
       });
 
     } catch (error) {
-      console.error('Erro geral:', error);
+      console.error('Erro ao carregar dados:', error);
       toast.error('Erro ao carregar dados');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -207,7 +166,7 @@ const GerenciamentoUsuariosPage = () => {
 
   useEffect(() => {
     if (isAdmin) {
-      loadUsers();
+      loadAllData();
     }
   }, [isAdmin]);
 
@@ -224,121 +183,105 @@ const GerenciamentoUsuariosPage = () => {
     setIsEditDialogOpen(true);
   };
 
-  // Salvar alterações do usuário
+  // Salvar alterações do usuário - CORRIGIDO
   const handleSaveUser = async () => {
     if (!selectedUser) return;
 
     try {
       // Atualizar subscriber se existir
       if (selectedSubscriber) {
-        const { error: subscriberError } = await supabase
-          .from('subscribers')
-          .upsert({
-            id: selectedSubscriber.id,
-            user_id: selectedUser.id,
-            email: selectedUser.email,
-            subscribed: selectedSubscriber.subscribed,
-            subscription_tier: selectedSubscriber.subscription_tier,
-            trial_end_date: selectedSubscriber.trial_end_date,
-            trial_proposals_used: selectedSubscriber.trial_proposals_used
-          });
+        const subscriberData = {
+          user_id: selectedUser.id,
+          email: selectedUser.email,
+          subscribed: selectedSubscriber.subscribed,
+          subscription_tier: selectedSubscriber.subscription_tier,
+          trial_end_date: selectedSubscriber.trial_end_date,
+          trial_start_date: selectedSubscriber.trial_start_date,
+          trial_proposals_used: selectedSubscriber.trial_proposals_used || 0
+        };
 
-        if (subscriberError) {
-          console.error('Erro ao atualizar subscriber:', subscriberError);
-          toast.error('Erro ao atualizar assinatura');
-          return;
+        if (selectedSubscriber.id) {
+          // Update existing
+          const { error: subscriberError } = await supabase
+            .from('subscribers')
+            .update(subscriberData)
+            .eq('id', selectedSubscriber.id);
+
+          if (subscriberError) {
+            console.error('Erro ao atualizar subscriber:', subscriberError);
+            toast.error('Erro ao atualizar assinatura');
+            return;
+          }
+        } else {
+          // Insert new
+          const { error: subscriberError } = await supabase
+            .from('subscribers')
+            .insert(subscriberData);
+
+          if (subscriberError) {
+            console.error('Erro ao criar subscriber:', subscriberError);
+            toast.error('Erro ao criar assinatura');
+            return;
+          }
         }
       }
 
       // Atualizar ou criar role
-      if (selectedUserRole) {
-        const { error: roleError } = await supabase
+      if (selectedUserRole && selectedUserRole.role !== 'user') {
+        // Primeiro, deletar role existente se houver
+        await supabase
           .from('user_roles')
-          .upsert({
-            user_id: selectedUser.id,
-            role: selectedUserRole.role
-          });
+          .delete()
+          .eq('user_id', selectedUser.id);
 
-        if (roleError) {
-          console.error('Erro ao atualizar role:', roleError);
-          toast.error('Erro ao atualizar permissões');
-          return;
+        // Inserir nova role se não for 'user' (que é o padrão)
+        if (selectedUserRole.role === 'admin') {
+          const { error: roleError } = await supabase
+            .from('user_roles')
+            .insert({
+              user_id: selectedUser.id,
+              role: selectedUserRole.role
+            });
+
+          if (roleError) {
+            console.error('Erro ao atualizar role:', roleError);
+            toast.error('Erro ao atualizar permissões');
+            return;
+          }
         }
+      } else if (selectedUserRole && selectedUserRole.role === 'user') {
+        // Remover role de admin se mudar para user
+        await supabase
+          .from('user_roles')
+          .delete()
+          .eq('user_id', selectedUser.id);
       }
 
       toast.success('Usuário atualizado com sucesso!');
       setIsEditDialogOpen(false);
-      loadUsers();
+      loadAllData();
     } catch (error) {
       console.error('Erro ao salvar:', error);
       toast.error('Erro ao salvar alterações');
     }
   };
 
-  // Banir usuário
-  const handleBanUser = async (userId: string) => {
-    if (!confirm('Tem certeza que deseja banir este usuário?')) return;
-
-    try {
-      const { error } = await supabase.functions.invoke('ban-user', {
-        body: { userId, banDuration: '30d' }
-      });
-
-      if (error) {
-        console.error('Erro ao banir usuário:', error);
-        toast.error('Erro ao banir usuário');
-        return;
-      }
-
-      toast.success('Usuário banido com sucesso!');
-      loadUsers();
-    } catch (error) {
-      console.error('Erro ao banir:', error);
-      toast.error('Erro ao banir usuário');
+  // Resetar dados do usuário
+  const handleResetUserData = async (userId: string, resetType: 'proposals' | 'trial' | 'both') => {
+    const success = await resetUserData(userId, resetType);
+    if (success) {
+      loadAllData();
     }
   };
 
-  // Desbanir usuário
-  const handleUnbanUser = async (userId: string) => {
-    try {
-      const { error } = await supabase.functions.invoke('unban-user', {
-        body: { userId }
-      });
-
-      if (error) {
-        console.error('Erro ao desbanir usuário:', error);
-        toast.error('Erro ao desbanir usuário');
-        return;
+  // Gerenciar status do usuário
+  const handleManageUserStatus = async (userId: string, action: 'activate' | 'deactivate' | 'delete', makeAdmin = false) => {
+    const success = await manageUserStatus(userId, action, makeAdmin);
+    if (success) {
+      if (action === 'delete') {
+        setIsEditDialogOpen(false);
       }
-
-      toast.success('Usuário desbanido com sucesso!');
-      loadUsers();
-    } catch (error) {
-      console.error('Erro ao desbanir:', error);
-      toast.error('Erro ao desbanir usuário');
-    }
-  };
-
-  // Excluir usuário
-  const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.')) return;
-
-    try {
-      const { error } = await supabase.functions.invoke('delete-user', {
-        body: { userId }
-      });
-
-      if (error) {
-        console.error('Erro ao excluir usuário:', error);
-        toast.error('Erro ao excluir usuário');
-        return;
-      }
-
-      toast.success('Usuário excluído com sucesso!');
-      loadUsers();
-    } catch (error) {
-      console.error('Erro ao excluir:', error);
-      toast.error('Erro ao excluir usuário');
+      loadAllData();
     }
   };
 
@@ -597,7 +540,7 @@ const GerenciamentoUsuariosPage = () => {
                               <Button
                                 variant="secondary"
                                 size="sm"
-                                onClick={() => handleUnbanUser(user.id)}
+                                onClick={() => handleManageUserStatus(user.id, 'activate')}
                                 title="Desbanir"
                               >
                                 <CheckCircle className="h-4 w-4" />
@@ -606,7 +549,7 @@ const GerenciamentoUsuariosPage = () => {
                               <Button
                                 variant="secondary"
                                 size="sm"
-                                onClick={() => handleBanUser(user.id)}
+                                onClick={() => handleManageUserStatus(user.id, 'deactivate')}
                                 title="Banir"
                               >
                                 <Ban className="h-4 w-4" />
@@ -615,7 +558,7 @@ const GerenciamentoUsuariosPage = () => {
                             <Button
                               variant="destructive"
                               size="sm"
-                              onClick={() => handleDeleteUser(user.id)}
+                              onClick={() => handleManageUserStatus(user.id, 'delete')}
                               title="Excluir"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -774,7 +717,7 @@ const GerenciamentoUsuariosPage = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Dialog de Edição */}
+      {/* Dialog de Edição - CORRIGIDO */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -794,6 +737,34 @@ const GerenciamentoUsuariosPage = () => {
                   <p><strong>ID:</strong> {selectedUser.id}</p>
                   <p><strong>Cadastro:</strong> {new Date(selectedUser.created_at).toLocaleString('pt-BR')}</p>
                   <p><strong>Último Login:</strong> {selectedUser.last_sign_in_at ? new Date(selectedUser.last_sign_in_at).toLocaleString('pt-BR') : 'Nunca'}</p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="space-y-3">
+                <h3 className="font-medium">Ações Rápidas</h3>
+                <div className="flex gap-2 flex-wrap">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleResetUserData(selectedUser.id, 'proposals')}
+                  >
+                    Resetar Propostas
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleResetUserData(selectedUser.id, 'trial')}
+                  >
+                    Resetar Trial
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleResetUserData(selectedUser.id, 'both')}
+                  >
+                    Resetar Tudo
+                  </Button>
                 </div>
               </div>
 
@@ -835,6 +806,7 @@ const GerenciamentoUsuariosPage = () => {
                           email: selectedUser.email,
                           user_id: selectedUser.id,
                           subscribed: checked,
+                          trial_proposals_used: 0,
                           created_at: new Date().toISOString(),
                           updated_at: new Date().toISOString()
                         });
@@ -861,6 +833,7 @@ const GerenciamentoUsuariosPage = () => {
                           user_id: selectedUser.id,
                           subscribed: false,
                           subscription_tier: value,
+                          trial_proposals_used: 0,
                           created_at: new Date().toISOString(),
                           updated_at: new Date().toISOString()
                         });
@@ -883,6 +856,37 @@ const GerenciamentoUsuariosPage = () => {
                 </div>
 
                 <div className="space-y-3">
+                  <Label>Data Início do Trial</Label>
+                  <Input
+                    type="datetime-local"
+                    value={selectedSubscriber?.trial_start_date ? 
+                      new Date(selectedSubscriber.trial_start_date).toISOString().slice(0, 16) : 
+                      ''
+                    }
+                    onChange={(e) => {
+                      const newDate = e.target.value ? new Date(e.target.value).toISOString() : undefined;
+                      if (!selectedSubscriber) {
+                        setSelectedSubscriber({
+                          id: '',
+                          email: selectedUser.email,
+                          user_id: selectedUser.id,
+                          subscribed: false,
+                          trial_start_date: newDate,
+                          trial_proposals_used: 0,
+                          created_at: new Date().toISOString(),
+                          updated_at: new Date().toISOString()
+                        });
+                      } else {
+                        setSelectedSubscriber({
+                          ...selectedSubscriber,
+                          trial_start_date: newDate
+                        });
+                      }
+                    }}
+                  />
+                </div>
+
+                <div className="space-y-3">
                   <Label>Data Fim do Trial</Label>
                   <Input
                     type="datetime-local"
@@ -899,6 +903,7 @@ const GerenciamentoUsuariosPage = () => {
                           user_id: selectedUser.id,
                           subscribed: false,
                           trial_end_date: newDate,
+                          trial_proposals_used: 0,
                           created_at: new Date().toISOString(),
                           updated_at: new Date().toISOString()
                         });

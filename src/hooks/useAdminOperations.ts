@@ -63,7 +63,6 @@ export const useAdminOperations = () => {
 
   const resetUserData = async (userId: string, resetType: 'proposals' | 'trial' | 'both') => {
     try {
-      // Usar direct SQL query em vez de RPC
       if (resetType === 'proposals' || resetType === 'both') {
         const { error: proposalsError } = await supabase
           .from('subscribers')
@@ -78,20 +77,12 @@ export const useAdminOperations = () => {
       }
 
       if (resetType === 'trial' || resetType === 'both') {
-        const trialEndDate = new Date();
-        trialEndDate.setDate(trialEndDate.getDate() + 30);
+        const { error } = await supabase.functions.invoke('fix-trial', {
+          body: { userId }
+        });
 
-        const { error: trialError } = await supabase
-          .from('subscribers')
-          .update({
-            trial_start_date: new Date().toISOString(),
-            trial_end_date: trialEndDate.toISOString(),
-            trial_proposals_used: 0
-          })
-          .eq('user_id', userId);
-
-        if (trialError) {
-          console.error('Erro ao resetar trial:', trialError);
+        if (error) {
+          console.error('Erro ao resetar trial:', error);
           toast.error('Erro ao resetar trial');
           return false;
         }
