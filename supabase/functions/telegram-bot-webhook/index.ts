@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
@@ -38,11 +39,6 @@ interface TelegramUpdate {
 interface UserSession {
   step: string;
   data: {
-    businessType?: string;
-    serviceType?: string;
-    targetAudience?: string;
-    tone?: string;
-    template?: string;
     clientName?: string;
     clientEmail?: string;
     projectTitle?: string;
@@ -61,7 +57,7 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
-// Armazenar sessões em memória (em produção, usar banco de dados)
+// Armazenar sessões em memória
 const userSessions = new Map<number, UserSession>();
 
 const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
@@ -104,11 +100,9 @@ async function sendTelegramMessage(chatId: number, text: string, replyMarkup?: a
 async function findUserByPhone(phone: string) {
   console.log('Buscando usuário pelo telefone:', phone);
   
-  // Limpar o telefone (remover caracteres especiais)
   const cleanPhone = phone.replace(/\D/g, '');
   console.log('Telefone limpo:', cleanPhone);
   
-  // Buscar empresas/usuários pelo telefone (busca por telefone exato e também por telefone sem formatação)
   const { data: companies, error } = await supabase
     .from('companies')
     .select('user_id, name, email, phone, country_code')
@@ -121,7 +115,6 @@ async function findUserByPhone(phone: string) {
     return companies[0];
   }
 
-  // Se não encontrou, buscar em todas as empresas e verificar telefones formatados
   const { data: allCompanies, error: allError } = await supabase
     .from('companies')
     .select('user_id, name, email, phone, country_code');
@@ -134,7 +127,6 @@ async function findUserByPhone(phone: string) {
         const companyCleanPhone = company.phone.replace(/\D/g, '');
         console.log(`Comparando: ${cleanPhone} com ${companyCleanPhone} (${company.phone})`);
         
-        // Verificar telefone com código do país
         const fullPhoneWithCountry = `${company.country_code || '+55'}${companyCleanPhone}`;
         const userPhoneWithCountry = cleanPhone.startsWith('55') ? `+${cleanPhone}` : `+55${cleanPhone}`;
         
@@ -144,7 +136,7 @@ async function findUserByPhone(phone: string) {
             userPhoneWithCountry === fullPhoneWithCountry ||
             phone === fullPhoneWithCountry ||
             cleanPhone === fullPhoneWithCountry.replace(/\D/g, '')) {
-          console.log('✅ Encontrado empresa com telefone compatível:', company);
+          console.log('✅ Encontrada empresa com telefone compatível:', company);
           return company;
         }
       }
@@ -163,7 +155,6 @@ async function createProposalForUser(session: UserSession) {
     throw new Error('Usuário não identificado');
   }
 
-  // Criar empresa se necessário
   let companyId = null;
   if (session.data.clientName) {
     console.log('Criando empresa para o cliente:', session.data.clientName);
@@ -186,7 +177,6 @@ async function createProposalForUser(session: UserSession) {
     }
   }
 
-  // Criar proposta
   const proposalValue = session.data.value ? 
     parseFloat(session.data.value.replace(/[^\d,]/g, '').replace(',', '.')) : 
     null;
@@ -200,7 +190,7 @@ async function createProposalForUser(session: UserSession) {
     value: proposalValue,
     delivery_time: session.data.deliveryTime,
     observations: session.data.observations,
-    template_id: session.data.template || 'moderno',
+    template_id: 'moderno',
     status: 'rascunho'
   });
 
@@ -215,7 +205,7 @@ async function createProposalForUser(session: UserSession) {
       value: proposalValue,
       delivery_time: session.data.deliveryTime,
       observations: session.data.observations,
-      template_id: session.data.template || 'moderno',
+      template_id: 'moderno',
       status: 'rascunho'
     })
     .select()
@@ -246,7 +236,6 @@ async function handleMessage(update: TelegramUpdate) {
 
   console.log(`Mensagem recebida de ${userId} (chat: ${chatId}): ${text}`);
 
-  // Inicializar sessão se não existir
   if (!userSessions.has(userId)) {
     console.log('Criando nova sessão para usuário:', userId);
     userSessions.set(userId, {
@@ -258,18 +247,15 @@ async function handleMessage(update: TelegramUpdate) {
   const session = userSessions.get(userId)!;
   console.log('Estado atual da sessão:', session);
 
-  // Processar contato compartilhado
   if (message.contact) {
     console.log('Contato compartilhado:', message.contact);
     session.phone = message.contact.phone_number;
     
-    // Buscar usuário pelo telefone
     const user = await findUserByPhone(session.phone);
     if (user) {
       session.userId = user.user_id;
       console.log('Usuário encontrado:', user);
       
-      // Buscar informações da empresa para personalizar a conversa
       const { data: companyData } = await supabase
         .from('companies')
         .select('*')
@@ -283,9 +269,13 @@ async function handleMessage(update: TelegramUpdate) {
         `Usuário: ${user.name}`;
       
       await sendTelegramMessage(chatId, 
-        `✅ Telefone identificado! Olá ${user.name}!\n\n` +
+        `✅ *Telefone identificado!* Olá ${user.name}!\n\n` +
         `📋 ${businessInfo}\n\n` +
-        `🚀 Vou te ajudar a criar uma proposta profissional rapidamente!\n\n` +
+        `🤖 *Bem-vindo ao @borafecharai_bot!*\n\n` +
+        `🚀 Posso te ajudar a:\n` +
+        `• Criar propostas profissionais\n` +
+        `• Enviar notificações sobre suas propostas\n` +
+        `• Acompanhar status das propostas\n\n` +
         `*Para qual cliente você quer criar uma proposta?*\n` +
         `Digite o nome da empresa ou cliente:`
       );
@@ -293,7 +283,12 @@ async function handleMessage(update: TelegramUpdate) {
     } else {
       console.log('Usuário não encontrado pelo telefone:', session.phone);
       await sendTelegramMessage(chatId, 
-        `❌ Telefone não encontrado na nossa base de dados.\n\nPara usar este bot, você precisa estar cadastrado no nosso sistema. Acesse o sistema e crie sua conta primeiro.\n\nTelefone pesquisado: ${session.phone}`
+        `❌ *Telefone não encontrado na nossa base de dados.*\n\n` +
+        `Para usar este bot, você precisa:\n` +
+        `1. Ter uma conta no sistema Bora Fechar Aí\n` +
+        `2. Cadastrar seu telefone em "Configurações > Meu Negócio"\n\n` +
+        `📱 Telefone pesquisado: ${session.phone}\n\n` +
+        `💡 Acesse o sistema e verifique se seu telefone está correto em suas configurações.`
       );
       userSessions.delete(userId);
     }
@@ -313,7 +308,14 @@ async function handleMessage(update: TelegramUpdate) {
       };
       
       await sendTelegramMessage(chatId, 
-        `👋 Olá! Eu sou o assistente de propostas!\n\nPara começar, preciso identificar você pelo seu telefone cadastrado no sistema.\n\n👇 Clique no botão abaixo para compartilhar seu telefone:`,
+        `🤖 *Olá! Eu sou o @borafecharai_bot!*\n\n` +
+        `Sou seu assistente para criação de propostas profissionais.\n\n` +
+        `📲 *Funcionalidades:*\n` +
+        `• Criar propostas pelo Telegram\n` +
+        `• Receber notificações em tempo real\n` +
+        `• Acompanhar status das propostas\n\n` +
+        `Para começar, preciso identificar você pelo seu telefone cadastrado no sistema.\n\n` +
+        `👇 *Clique no botão abaixo para compartilhar seu telefone:*`,
         keyboard
       );
       break;
@@ -323,7 +325,7 @@ async function handleMessage(update: TelegramUpdate) {
       session.data.clientName = text;
       session.step = 'client_email';
       await sendTelegramMessage(chatId, 
-        `✅ Cliente: *${text}*\n\n*Qual o e-mail do cliente?* (opcional - digite "pular" para pular)`
+        `✅ Cliente: *${text}*\n\n*Qual o e-mail do cliente?*\n(opcional - digite "pular" para pular)`
       );
       break;
 
@@ -393,7 +395,6 @@ async function handleMessage(update: TelegramUpdate) {
         session.data.observations = text;
       }
       
-      // Gerar proposta
       try {
         console.log('Iniciando criação da proposta...');
         await sendTelegramMessage(chatId, 
@@ -411,10 +412,10 @@ async function handleMessage(update: TelegramUpdate) {
           `💰 *Valor:* ${session.data.value || 'A definir'}\n` +
           `⏰ *Prazo:* ${session.data.deliveryTime || 'A definir'}\n\n` +
           `✅ A proposta foi salva como rascunho na sua conta.\n\n` +
-          `🌐 Acesse o sistema para revisar e enviar a proposta!`
+          `🌐 Acesse o sistema para revisar e enviar a proposta!\n\n` +
+          `💡 Para criar outra proposta, digite /start novamente.`
         );
 
-        // Limpar sessão
         userSessions.delete(userId);
         
       } catch (error) {
@@ -463,9 +464,8 @@ serve(async (req) => {
       });
     }
 
-    // Resposta para requisições GET (teste)
     console.log('Requisição GET recebida - webhook está ativo');
-    return new Response('Bot webhook ativo e funcionando! 🤖', {
+    return new Response('🤖 @borafecharai_bot webhook ativo e funcionando!', {
       headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
     });
     

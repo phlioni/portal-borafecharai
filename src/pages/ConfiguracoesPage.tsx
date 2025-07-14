@@ -5,6 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { 
   User, 
   CreditCard, 
@@ -14,7 +17,10 @@ import {
   Sparkles,
   BarChart3,
   CheckCircle,
-  ArrowRight
+  ArrowRight,
+  Building2,
+  Phone,
+  Mail
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
@@ -23,7 +29,7 @@ import { Link } from 'react-router-dom';
 
 const ConfiguracoesPage = () => {
   const [searchParams] = useSearchParams();
-  const initialTab = searchParams.get('tab') || 'perfil';
+  const initialTab = searchParams.get('tab') || 'negocio';
   const { user } = useAuth();
   const { isAdmin } = useUserPermissions();
 
@@ -37,9 +43,9 @@ const ConfiguracoesPage = () => {
 
         <Tabs defaultValue={initialTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="perfil" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Perfil
+            <TabsTrigger value="negocio" className="flex items-center gap-2">
+              <Building2 className="h-4 w-4" />
+              Meu Negócio
             </TabsTrigger>
             <TabsTrigger value="planos" className="flex items-center gap-2">
               <CreditCard className="h-4 w-4" />
@@ -55,10 +61,83 @@ const ConfiguracoesPage = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="perfil" className="space-y-6">
+          <TabsContent value="negocio" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Informações da Conta</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5" />
+                  Informações do Negócio
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="company-name">Nome da Empresa</Label>
+                    <Input id="company-name" placeholder="Digite o nome da sua empresa" />
+                  </div>
+                  <div>
+                    <Label htmlFor="cnpj">CNPJ</Label>
+                    <Input id="cnpj" placeholder="00.000.000/0000-00" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="email">E-mail Comercial</Label>
+                    <Input id="email" type="email" placeholder="contato@empresa.com" />
+                  </div>
+                  <div>
+                    <Label htmlFor="phone">Telefone/WhatsApp</Label>
+                    <Input id="phone" placeholder="(11) 99999-9999" />
+                    <p className="text-xs text-gray-500 mt-1">
+                      ⚠️ Importante: Este número é usado pelo bot do Telegram para identificar sua conta
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="website">Website</Label>
+                  <Input id="website" placeholder="https://www.empresa.com" />
+                </div>
+
+                <div>
+                  <Label htmlFor="description">Descrição do Negócio</Label>
+                  <Textarea 
+                    id="description" 
+                    placeholder="Descreva brevemente seu negócio e principais serviços"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="city">Cidade</Label>
+                    <Input id="city" placeholder="São Paulo" />
+                  </div>
+                  <div>
+                    <Label htmlFor="state">Estado</Label>
+                    <Input id="state" placeholder="SP" />
+                  </div>
+                  <div>
+                    <Label htmlFor="cep">CEP</Label>
+                    <Input id="cep" placeholder="00000-000" />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="address">Endereço Completo</Label>
+                  <Input id="address" placeholder="Rua, Número, Bairro" />
+                </div>
+
+                <Button>
+                  Salvar Informações
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Conta do Usuário</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -90,11 +169,11 @@ const ConfiguracoesPage = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-              {/* Plano Básico */}
+              {/* Plano Essencial */}
               <SubscriptionPlanCard
-                title="Básico"
+                title="Essencial"
                 description="Ideal para freelancers e pequenos negócios"
-                price="R$ 27"
+                price="R$ 39,90"
                 priceId="price_basic"
                 productId="prod_basic"
                 planTier="basico"
@@ -112,7 +191,7 @@ const ConfiguracoesPage = () => {
               <SubscriptionPlanCard
                 title="Profissional"
                 description="Para empresas que querem crescer"
-                price="R$ 47"
+                price="R$ 79,90"
                 priceId="price_professional"
                 productId="prod_professional"
                 planTier="profissional"
@@ -122,7 +201,7 @@ const ConfiguracoesPage = () => {
                   { text: "IA avançada", included: true },
                   { text: "Analytics completo", included: true },
                   { text: "Chat com cliente", included: true },
-                  { text: "Notificações Telegram", included: true },
+                  { text: "Bot do Telegram", included: true },
                   { text: "Suporte prioritário", included: true }
                 ]}
                 popular={true}
@@ -143,7 +222,7 @@ const ConfiguracoesPage = () => {
                         <tr className="border-b">
                           <th className="text-left py-3 px-4">Recurso</th>
                           <th className="text-center py-3 px-4">Teste Grátis</th>
-                          <th className="text-center py-3 px-4">Básico</th>
+                          <th className="text-center py-3 px-4">Essencial</th>
                           <th className="text-center py-3 px-4">Profissional</th>
                         </tr>
                       </thead>
@@ -179,13 +258,13 @@ const ConfiguracoesPage = () => {
                           <td className="text-center py-3 px-4"><CheckCircle className="h-4 w-4 text-green-600 mx-auto" /></td>
                         </tr>
                         <tr className="border-b">
-                          <td className="py-3 px-4">Templates personalizados</td>
+                          <td className="py-3 px-4">Bot do Telegram</td>
                           <td className="text-center py-3 px-4">-</td>
                           <td className="text-center py-3 px-4">-</td>
                           <td className="text-center py-3 px-4"><CheckCircle className="h-4 w-4 text-green-600 mx-auto" /></td>
                         </tr>
                         <tr>
-                          <td className="py-3 px-4">Notificações Telegram</td>
+                          <td className="py-3 px-4">Templates personalizados</td>
                           <td className="text-center py-3 px-4">-</td>
                           <td className="text-center py-3 px-4">-</td>
                           <td className="text-center py-3 px-4"><CheckCircle className="h-4 w-4 text-green-600 mx-auto" /></td>
@@ -197,7 +276,6 @@ const ConfiguracoesPage = () => {
               </Card>
             </div>
 
-            {/* CTA para Templates Personalizados */}
             <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Send, CheckCircle, AlertCircle } from 'lucide-react';
+import { MessageCircle, Send, CheckCircle, AlertCircle, Bot, FileText, Bell, Users } from 'lucide-react';
 
 const TelegramBotUserGuide = () => {
   return (
@@ -19,10 +19,10 @@ const TelegramBotUserGuide = () => {
             <div className="flex items-start gap-3">
               <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
               <div>
-                <h4 className="font-medium text-blue-900 mb-1">Bot Disponível</h4>
+                <h4 className="font-medium text-blue-900 mb-1">Bot Disponível - @borafecharai_bot</h4>
                 <p className="text-blue-700 text-sm">
                   O bot do Telegram já está configurado e pronto para uso. 
-                  Você pode receber notificações sobre suas propostas diretamente no Telegram.
+                  Você pode criar propostas e receber notificações diretamente no Telegram.
                 </p>
               </div>
             </div>
@@ -33,7 +33,17 @@ const TelegramBotUserGuide = () => {
             
             <div className="space-y-3">
               <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                <Send className="h-5 w-5 text-green-600 mt-0.5" />
+                <Bot className="h-5 w-5 text-green-600 mt-0.5" />
+                <div>
+                  <h5 className="font-medium text-gray-900">Criar Proposta pelo Bot</h5>
+                  <p className="text-sm text-gray-600">
+                    Crie propostas completas conversando com o bot. Ele irá coletar todas as informações necessárias
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                <Bell className="h-5 w-5 text-orange-600 mt-0.5" />
                 <div>
                   <h5 className="font-medium text-gray-900">Notificações de Propostas</h5>
                   <p className="text-sm text-gray-600">
@@ -47,8 +57,23 @@ const TelegramBotUserGuide = () => {
                 <div>
                   <h5 className="font-medium text-gray-900">Status das Propostas</h5>
                   <p className="text-sm text-gray-600">
-                    Acompanhe quando suas propostas são aceitas ou rejeitadas
+                    Acompanhe quando suas propostas são aceitas ou rejeitadas em tempo real
                   </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 mt-4">
+            <div className="flex items-start gap-3">
+              <Users className="h-5 w-5 text-yellow-600 mt-0.5" />
+              <div>
+                <h4 className="font-medium text-yellow-900 mb-1">Como começar</h4>
+                <div className="text-yellow-800 text-sm space-y-1">
+                  <p>1. Procure por <strong>@borafecharai_bot</strong> no Telegram</p>
+                  <p>2. Inicie uma conversa enviando /start</p>
+                  <p>3. Compartilhe seu telefone quando solicitado (para identificação)</p>
+                  <p>4. Siga as instruções do bot para criar propostas</p>
                 </div>
               </div>
             </div>
@@ -64,7 +89,8 @@ const TelegramBotUserGuide = () => {
               </span>
             </div>
             <p className="text-xs text-gray-500">
-              As notificações serão enviadas automaticamente quando houver atividade em suas propostas.
+              ⚠️ Certifique-se de que seu telefone está cadastrado corretamente em "Meu Negócio" 
+              para que o bot possa identificar sua conta.
             </p>
           </div>
         </CardContent>
