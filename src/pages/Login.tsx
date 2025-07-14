@@ -106,11 +106,13 @@ const Login = () => {
           setError('Este email já está cadastrado. Tente fazer login.');
         } else if (error.message.includes('Password should be at least 6 characters')) {
           setError('A senha deve ter pelo menos 6 caracteres.');
+        } else if (error.message.includes('rate limit') || error.message.includes('429')) {
+          setError('Muitas tentativas de cadastro. Aguarde alguns minutos e tente novamente.');
         } else {
           setError('Erro ao criar conta. Tente novamente.');
         }
       } else {
-        setSuccess('Conta criada com sucesso! Verifique seu email para confirmar o cadastro.');
+        setSuccess('Conta criada com sucesso! Você já pode fazer login.');
         setSignupForm({ email: '', password: '', confirmPassword: '' });
       }
     } catch (err) {
