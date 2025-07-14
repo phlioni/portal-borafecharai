@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,34 +33,11 @@ export const useTrialStatus = () => {
     }
 
     try {
-      // Primeiro verificar se o subscriber existe, se não existir, criar automaticamente
-      let { data: subscriberData } = await supabase
+      const { data: subscriberData } = await supabase
         .from('subscribers')
         .select('*')
         .eq('user_id', user.id)
         .single();
-
-      // Se não existir subscriber, criar automaticamente
-      if (!subscriberData) {
-        const trialStartDate = new Date();
-        const trialEndDate = new Date(trialStartDate.getTime() + (15 * 24 * 60 * 60 * 1000));
-        
-        const { data: newSubscriber } = await supabase
-          .from('subscribers')
-          .insert({
-            user_id: user.id,
-            email: user.email || '',
-            trial_start_date: trialStartDate.toISOString(),
-            trial_end_date: trialEndDate.toISOString(),
-            trial_proposals_used: 0,
-            subscribed: false,
-            subscription_tier: null,
-          })
-          .select()
-          .single();
-
-        subscriberData = newSubscriber;
-      }
 
       if (!subscriberData) {
         setTrialStatus(prev => ({ ...prev, loading: false }));

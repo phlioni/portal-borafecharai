@@ -40,36 +40,16 @@ export const useUserPermissions = () => {
 
         setMonthlyProposalCount(monthlyCount || 0);
 
-        // Verificar ou criar status do trial
-        let { data: subscriber } = await supabase
+        // Verificar status do trial
+        const { data: subscriber } = await supabase
           .from('subscribers')
-          .select('*')
+          .select('trial_end_date, trial_proposals_used, trial_start_date, subscribed, subscription_tier')
           .eq('user_id', user.id)
           .single();
 
-        // Se não existir subscriber, criar automaticamente
-        if (!subscriber) {
-          const trialStartDate = new Date();
-          const trialEndDate = new Date(trialStartDate.getTime() + (15 * 24 * 60 * 60 * 1000));
-          
-          const { data: newSubscriber } = await supabase
-            .from('subscribers')
-            .insert({
-              user_id: user.id,
-              email: user.email || '',
-              trial_start_date: trialStartDate.toISOString(),
-              trial_end_date: trialEndDate.toISOString(),
-              trial_proposals_used: 0,
-              subscribed: false,
-              subscription_tier: null,
-            })
-            .select()
-            .single();
-
-          subscriber = newSubscriber;
-        }
-
         console.log('useUserPermissions - subscriber data:', subscriber);
+        console.log('useUserPermissions - subscribed from hook:', subscribed);
+        console.log('useUserPermissions - subscription_tier from hook:', subscription_tier);
 
         // Verificar se pode criar propostas
         let canCreate = false;
@@ -93,7 +73,7 @@ export const useUserPermissions = () => {
             setCanAccessPremiumTemplates(true);
           }
         } else {
-          // Verificar trial - deve ter trial_end_date >= now() E propostas < 20
+          // Verificar trial
           if (subscriber?.trial_end_date && new Date(subscriber.trial_end_date) >= new Date()) {
             const proposalsUsed = subscriber.trial_proposals_used || 0;
             proposalLimit = 20;
@@ -101,8 +81,7 @@ export const useUserPermissions = () => {
             console.log('useUserPermissions - trial check:', {
               trial_end_date: subscriber.trial_end_date,
               proposalsUsed,
-              canCreate,
-              trialValid: new Date(subscriber.trial_end_date) >= new Date()
+              canCreate
             });
             setCanAccessAnalytics(false);
             setCanAccessPremiumTemplates(false);
@@ -123,9 +102,7 @@ export const useUserPermissions = () => {
           monthlyProposalCount: monthlyCount,
           isAdmin: adminRole,
           subscribed,
-          subscription_tier,
-          trialEndDate: subscriber?.trial_end_date,
-          trialProposalsUsed: subscriber?.trial_proposals_used
+          subscription_tier
         });
 
       } catch (error) {
