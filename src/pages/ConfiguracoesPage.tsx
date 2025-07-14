@@ -21,17 +21,17 @@ import {
   Users,
   Trash2,
   UserCheck,
-  RotateCcw
+  RotateCcw,
+  Bell
 } from 'lucide-react';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
-import { useCompany, useCompanies } from '@/hooks/useCompanies';
+import { useCompany } from '@/hooks/useCompanies';
 import { useAdminOperations } from '@/hooks/useAdminOperations';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import CompanyLogoUpload from '@/components/CompanyLogoUpload';
-import { supabase } from '@/integrations/supabase/client';
 
 interface User {
   id: string;
@@ -148,8 +148,21 @@ const ConfiguracoesPage = () => {
         await updateCompany(companyData.id, values as Partial<Company>);
         toast.success('Empresa atualizada com sucesso!');
       } else {
-        // Create new company
-        await createCompany(values as Omit<Company, 'created_at' | 'id' | 'updated_at' | 'user_id'>);
+        // Create new company - ensure required fields are present
+        const companyToCreate = {
+          name: values.name,
+          email: values.email,
+          phone: values.phone,
+          address: values.address || '',
+          city: values.city || '',
+          state: values.state || '',
+          zip_code: values.zip_code || '',
+          country_code: values.country_code || '',
+          cnpj: values.cnpj || '',
+          website: values.website || '',
+          description: values.description || '',
+        };
+        await createCompany(companyToCreate);
         toast.success('Empresa criada com sucesso!');
       }
     } catch (error: any) {
@@ -212,6 +225,16 @@ const ConfiguracoesPage = () => {
     }
   }, [isAdmin]);
 
+  const tabsList = [
+    { value: "perfil", label: "Perfil & Empresa", icon: Building },
+    { value: "plano", label: "Plano & Assinatura", icon: CreditCard },
+    { value: "notificacoes", label: "Notificações", icon: Bell },
+  ];
+
+  if (isAdmin) {
+    tabsList.push({ value: "admin", label: "Admin", icon: Users });
+  }
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -219,11 +242,13 @@ const ConfiguracoesPage = () => {
       </div>
 
       <Tabs defaultValue="perfil" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="perfil">Perfil & Empresa</TabsTrigger>
-          <TabsTrigger value="plano">Plano & Assinatura</TabsTrigger>
-          <TabsTrigger value="notificacoes">Notificações</TabsTrigger>
-          {isAdmin && <TabsTrigger value="admin">Admin</TabsTrigger>}
+        <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'}`}>
+          {tabsList.map((tab) => (
+            <TabsTrigger key={tab.value} value={tab.value}>
+              <tab.icon className="h-4 w-4 mr-2" />
+              {tab.label}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
         <TabsContent value="perfil" className="space-y-6">
@@ -371,7 +396,9 @@ const ConfiguracoesPage = () => {
                 <>
                   <p>
                     Seu plano atual é:{' '}
-                    <span className="font-medium">{subscription.subscription_tier}</span>
+                    <span className="font-medium">
+                      {subscription.subscription_tier === 'basico' ? 'Essencial' : 'Professional'}
+                    </span>
                   </p>
                   <p>
                     Status da assinatura:{' '}
@@ -394,7 +421,10 @@ const ConfiguracoesPage = () => {
         <TabsContent value="notificacoes" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Notificações</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5" />
+                Notificações
+              </CardTitle>
               <CardDescription>
                 Gerencie suas preferências de notificação
               </CardDescription>
@@ -405,7 +435,7 @@ const ConfiguracoesPage = () => {
           </Card>
         </TabsContent>
 
-        {/* Admin Tab */}
+        {/* Admin Tab - only shown if user is admin */}
         {isAdmin && (
           <TabsContent value="admin" className="space-y-6">
             <Card>

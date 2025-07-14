@@ -1,9 +1,25 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Plus, Eye, Calendar, DollarSign, Building } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { 
+  FileText, 
+  Plus, 
+  Eye, 
+  Calendar, 
+  DollarSign, 
+  Building, 
+  Search, 
+  Edit,
+  Trash2,
+  Send,
+  Share
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useProposals } from '@/hooks/useProposals';
 import { format } from 'date-fns';
@@ -12,6 +28,12 @@ import { ModernLoader } from '@/components/ModernLoader';
 
 const Propostas = () => {
   const { data: proposals, isLoading, error } = useProposals();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedProposal, setSelectedProposal] = useState<any>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  
+  const itemsPerPage = 10;
 
   if (isLoading) {
     return <ModernLoader message="Carregando propostas..." />;
@@ -51,8 +73,25 @@ const Propostas = () => {
     }
   };
 
+  // Filtrar propostas com base no termo de busca
+  const filteredProposals = proposals?.filter(proposal =>
+    proposal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    proposal.companies?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    proposal.service_description?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
+
+  // Cálculo da paginação
+  const totalPages = Math.ceil(filteredProposals.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedProposals = filteredProposals.slice(startIndex, startIndex + itemsPerPage);
+
+  const handleViewProposal = (proposal: any) => {
+    setSelectedProposal(proposal);
+    setIsViewModalOpen(true);
+  };
+
   return (
-    <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl font-bold">Propostas</h1>
         <Button asChild className="w-full sm:w-auto">
@@ -82,61 +121,215 @@ const Propostas = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
-          {proposals?.map((proposal) => (
-            <Card key={proposal.id} className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                  <div className="space-y-1 min-w-0 flex-1">
-                    <CardTitle className="text-lg leading-tight">{proposal.title}</CardTitle>
-                    <CardDescription className="flex items-center gap-2">
-                      <Building className="h-4 w-4 flex-shrink-0" />
-                      <span className="truncate">{proposal.companies?.name || 'Cliente não informado'}</span>
-                    </CardDescription>
-                  </div>
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
-                    {getStatusBadge(proposal.status)}
-                    <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
-                      <Link to={`/propostas/${proposal.id}`}>
-                        <Eye className="h-4 w-4 mr-1" />
-                        Ver
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span className="font-medium truncate">
-                      {proposal.value 
-                        ? `R$ ${proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
-                        : 'Valor não informado'
-                      }
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-blue-600 flex-shrink-0" />
-                    <span className="truncate">
-                      Criada em {format(new Date(proposal.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Eye className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <span>{proposal.views || 0} visualizações</span>
-                  </div>
-                </div>
-                {proposal.service_description && (
-                  <p className="mt-3 text-muted-foreground line-clamp-2">
-                    {proposal.service_description}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <div>
+                <CardTitle>Suas Propostas</CardTitle>
+                <CardDescription>
+                  Gerencie todas as suas propostas enviadas
+                </CardDescription>
+              </div>
+              <div className="relative w-full sm:w-80">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar propostas..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Título</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Valor</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Criado em</TableHead>
+                    <TableHead>Visualizações</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedProposals.map((proposal) => (
+                    <TableRow 
+                      key={proposal.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => handleViewProposal(proposal)}
+                    >
+                      <TableCell className="font-medium">
+                        {proposal.title}
+                      </TableCell>
+                      <TableCell>
+                        {proposal.companies?.name || 'Cliente não informado'}
+                      </TableCell>
+                      <TableCell>
+                        {proposal.value 
+                          ? `R$ ${proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                          : 'Não informado'
+                        }
+                      </TableCell>
+                      <TableCell>
+                        {getStatusBadge(proposal.status)}
+                      </TableCell>
+                      <TableCell>
+                        {format(new Date(proposal.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                      </TableCell>
+                      <TableCell>
+                        {proposal.views || 0}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            asChild
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Link to={`/propostas/${proposal.id}`}>
+                              <Eye className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            asChild
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Link to={`/propostas/${proposal.id}/editar`}>
+                              <Edit className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // TODO: Implementar delete
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {totalPages > 1 && (
+              <div className="mt-4">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      />
+                    </PaginationItem>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          onClick={() => setCurrentPage(page)}
+                          isActive={currentPage === page}
+                          className="cursor-pointer"
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
+
+      {/* Modal de Visualização */}
+      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedProposal?.title}</DialogTitle>
+          </DialogHeader>
+          {selectedProposal && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Cliente</p>
+                  <p>{selectedProposal.companies?.name || 'Não informado'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Status</p>
+                  {getStatusBadge(selectedProposal.status)}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Valor</p>
+                  <p>{selectedProposal.value 
+                    ? `R$ ${selectedProposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                    : 'Não informado'
+                  }</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Prazo de Entrega</p>
+                  <p>{selectedProposal.delivery_time || 'Não informado'}</p>
+                </div>
+              </div>
+              
+              {selectedProposal.service_description && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Resumo do Serviço</p>
+                  <p>{selectedProposal.service_description}</p>
+                </div>
+              )}
+              
+              {selectedProposal.detailed_description && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Descrição Detalhada</p>
+                  <p className="whitespace-pre-wrap">{selectedProposal.detailed_description}</p>
+                </div>
+              )}
+              
+              {selectedProposal.observations && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Observações</p>
+                  <p className="whitespace-pre-wrap">{selectedProposal.observations}</p>
+                </div>
+              )}
+              
+              <div className="flex gap-2 pt-4">
+                <Button asChild>
+                  <Link to={`/propostas/${selectedProposal.id}`}>
+                    <Eye className="h-4 w-4 mr-2" />
+                    Visualizar Completa
+                  </Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link to={`/propostas/${selectedProposal.id}/editar`}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Editar
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

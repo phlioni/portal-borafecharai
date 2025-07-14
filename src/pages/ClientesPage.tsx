@@ -1,10 +1,13 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Building, Plus, Mail, Phone, Users, Search, Edit } from 'lucide-react';
+import { Building, Plus, Mail, Phone, Users, Search, Edit, Trash2 } from 'lucide-react';
 import { useCompanies, useCreateCompany } from '@/hooks/useCompanies';
 import { ModernLoader } from '@/components/ModernLoader';
 import { useToast } from '@/hooks/use-toast';
@@ -18,13 +21,17 @@ const ClientesPage = () => {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectedCompany, setSelectedCompany] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [newCompany, setNewCompany] = useState({
     name: '',
     email: '',
     phone: '',
   });
+
+  const itemsPerPage = 10;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,12 +75,23 @@ const ClientesPage = () => {
 
   const filteredCompanies = companies?.filter(company =>
     company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    company.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    company.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    company.phone?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
+
+  // Cálculo da paginação
+  const totalPages = Math.ceil(filteredCompanies.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedCompanies = filteredCompanies.slice(startIndex, startIndex + itemsPerPage);
 
   const handleEditCompany = (company: any) => {
     setSelectedCompany(company);
     setIsEditModalOpen(true);
+  };
+
+  const handleViewCompany = (company: any) => {
+    setSelectedCompany(company);
+    setIsViewModalOpen(true);
   };
 
   const handleCompanyUpdated = () => {
@@ -105,7 +123,7 @@ const ClientesPage = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl font-bold">Clientes</h1>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -160,18 +178,7 @@ const ClientesPage = () => {
         </Dialog>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar clientes..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
-      </div>
-
-      {filteredCompanies && filteredCompanies.length === 0 ? (
+      {companies && companies.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
             <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
@@ -193,55 +200,202 @@ const ClientesPage = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          {filteredCompanies?.map((company) => (
-            <Card key={company.id} className="hover:shadow-md transition-shadow cursor-pointer group">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <Building className="h-5 w-5 flex-shrink-0" />
-                    <span className="truncate">{company.name}</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEditCompany(company);
-                    }}
-                    className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent 
-                className="space-y-2"
-                onClick={() => handleEditCompany(company)}
-              >
-                {company.email && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Mail className="h-4 w-4 flex-shrink-0" />
-                    <span className="truncate">{company.email}</span>
-                  </div>
-                )}
-                {company.phone && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Phone className="h-4 w-4 flex-shrink-0" />
-                    <span className="truncate">{company.phone}</span>
-                  </div>
-                )}
-                <div className="pt-2">
-                  <Button variant="outline" size="sm" className="w-full">
-                    <Edit className="h-4 w-4 mr-2" />
-                    Editar Dados
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <div>
+                <CardTitle>Seus Clientes</CardTitle>
+                <CardDescription>
+                  Gerencie todos os seus clientes cadastrados
+                </CardDescription>
+              </div>
+              <div className="relative w-full sm:w-80">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar clientes..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome da Empresa</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Telefone</TableHead>
+                    <TableHead>CNPJ</TableHead>
+                    <TableHead>Cidade</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedCompanies.map((company) => (
+                    <TableRow 
+                      key={company.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => handleViewCompany(company)}
+                    >
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <Building className="h-4 w-4" />
+                          {company.name}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {company.email || 'Não informado'}
+                      </TableCell>
+                      <TableCell>
+                        {company.phone || 'Não informado'}
+                      </TableCell>
+                      <TableCell>
+                        {company.cnpj || 'Não informado'}
+                      </TableCell>
+                      <TableCell>
+                        {company.city || 'Não informado'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditCompany(company);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // TODO: Implementar delete
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {totalPages > 1 && (
+              <div className="mt-4">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      />
+                    </PaginationItem>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          onClick={() => setCurrentPage(page)}
+                          isActive={currentPage === page}
+                          className="cursor-pointer"
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
+
+      {/* Modal de Visualização */}
+      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Cliente</DialogTitle>
+          </DialogHeader>
+          {selectedCompany && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Nome da Empresa</p>
+                  <p className="font-medium">{selectedCompany.name}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Email</p>
+                  <p>{selectedCompany.email || 'Não informado'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Telefone</p>
+                  <p>{selectedCompany.phone || 'Não informado'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">CNPJ</p>
+                  <p>{selectedCompany.cnpj || 'Não informado'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Website</p>
+                  <p>{selectedCompany.website || 'Não informado'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Cidade</p>
+                  <p>{selectedCompany.city || 'Não informado'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Estado</p>
+                  <p>{selectedCompany.state || 'Não informado'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">CEP</p>
+                  <p>{selectedCompany.zip_code || 'Não informado'}</p>
+                </div>
+              </div>
+              
+              {selectedCompany.address && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Endereço</p>
+                  <p>{selectedCompany.address}</p>
+                </div>
+              )}
+              
+              {selectedCompany.description && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Descrição</p>
+                  <p className="whitespace-pre-wrap">{selectedCompany.description}</p>
+                </div>
+              )}
+              
+              <div className="flex gap-2 pt-4">
+                <Button onClick={() => {
+                  setIsViewModalOpen(false);
+                  handleEditCompany(selectedCompany);
+                }}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Editar Cliente
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de Edição */}
       <ClientEditModal
