@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,8 +20,21 @@ const TrialCallToAction = () => {
     loading 
   } = useTrialStatus();
 
+  console.log('TrialCallToAction - Status:', {
+    isInTrial,
+    daysUsed,
+    totalTrialDays,
+    proposalsUsed,
+    proposalsRemaining,
+    loading,
+    isAdmin
+  });
+
   // Não mostrar para admins ou se estiver carregando
   if (isAdmin || loading) return null;
+
+  // Só mostrar se estiver em trial ativo
+  if (!isInTrial) return null;
 
   return (
     <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 shadow-md">

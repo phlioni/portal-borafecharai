@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,16 +34,27 @@ export const useTrialStatus = () => {
     }
 
     try {
-      const { data: subscriberData } = await supabase
+      console.log('useTrialStatus - Checking trial status for user:', user.id);
+      
+      const { data: subscriberData, error } = await supabase
         .from('subscribers')
         .select('*')
         .eq('user_id', user.id)
         .single();
 
-      if (!subscriberData) {
+      if (error) {
+        console.error('useTrialStatus - Error fetching subscriber:', error);
         setTrialStatus(prev => ({ ...prev, loading: false }));
         return;
       }
+
+      if (!subscriberData) {
+        console.log('useTrialStatus - No subscriber data found');
+        setTrialStatus(prev => ({ ...prev, loading: false }));
+        return;
+      }
+
+      console.log('useTrialStatus - Subscriber data:', subscriberData);
 
       const now = new Date();
       const trialStartDate = subscriberData.trial_start_date ? new Date(subscriberData.trial_start_date) : null;
@@ -53,13 +65,23 @@ export const useTrialStatus = () => {
       
       // Calcular dias usados desde o início do trial
       let daysUsed = 0;
-      if (trialStartDate) {
+      if (trialStartDate && trialEndDate) {
         const timeDiff = now.getTime() - trialStartDate.getTime();
-        daysUsed = Math.min(15, Math.max(0, Math.floor(timeDiff / (1000 * 3600 * 24))));
+        const daysPassed = Math.floor(timeDiff / (1000 * 3600 * 24));
+        daysUsed = Math.min(15, Math.max(0, daysPassed));
       }
 
       const proposalsUsed = subscriberData.trial_proposals_used || 0;
       const proposalsRemaining = Math.max(0, 20 - proposalsUsed);
+
+      console.log('useTrialStatus - Calculated status:', {
+        isInTrial: !!isInTrial,
+        daysUsed,
+        proposalsUsed,
+        proposalsRemaining,
+        trialStartDate,
+        trialEndDate
+      });
 
       setTrialStatus({
         isInTrial: !!isInTrial,
@@ -73,7 +95,7 @@ export const useTrialStatus = () => {
       });
 
     } catch (error) {
-      console.error('Erro ao verificar status do trial:', error);
+      console.error('useTrialStatus - Erro ao verificar status do trial:', error);
       setTrialStatus(prev => ({ ...prev, loading: false }));
     }
   };

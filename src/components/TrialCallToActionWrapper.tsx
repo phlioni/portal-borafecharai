@@ -2,14 +2,24 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useTrialStatus } from '@/hooks/useTrialStatus';
 import TrialCallToAction from './TrialCallToAction';
 
 export const TrialCallToActionWrapper = () => {
   const { user } = useAuth();
-  const { subscribed, subscription_tier, loading } = useSubscription();
+  const { subscribed, loading: subscriptionLoading } = useSubscription();
+  const { isInTrial, loading: trialLoading } = useTrialStatus();
+
+  console.log('TrialCallToActionWrapper - Status:', {
+    user: !!user,
+    subscribed,
+    isInTrial,
+    subscriptionLoading,
+    trialLoading
+  });
 
   // Don't show if loading or no user
-  if (loading || !user) {
+  if (subscriptionLoading || trialLoading || !user) {
     return null;
   }
 
@@ -18,6 +28,10 @@ export const TrialCallToActionWrapper = () => {
     return null;
   }
 
-  // Show trial CTA for users without subscription
-  return <TrialCallToAction />;
+  // Show trial CTA only if user is in trial
+  if (isInTrial) {
+    return <TrialCallToAction />;
+  }
+
+  return null;
 };

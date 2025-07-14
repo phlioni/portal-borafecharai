@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,15 +31,22 @@ export const useSubscription = () => {
 
     try {
       setSubscriptionData(prev => ({ ...prev, loading: true, error: null }));
+      console.log('useSubscription - Checking subscription for user:', user.id);
       
-      // Primeiro tenta buscar diretamente na tabela subscribers
+      // Buscar diretamente na tabela subscribers
       const { data: subscriberData, error: subscriberError } = await supabase
         .from('subscribers')
         .select('*')
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (subscriberData && !subscriberError) {
+      if (subscriberError) {
+        console.error('useSubscription - Error fetching subscriber:', subscriberError);
+        throw subscriberError;
+      }
+
+      if (subscriberData) {
+        console.log('useSubscription - Found subscriber data:', subscriberData);
         setSubscriptionData({
           subscribed: subscriberData.subscribed || false,
           subscription_tier: subscriberData.subscription_tier || null,
@@ -52,32 +58,23 @@ export const useSubscription = () => {
         return;
       }
 
-      // Se não encontrar na tabela, cria um registro básico para o usuário
-      if (!subscriberData) {
-        await supabase
-          .from('subscribers')
-          .upsert({
-            user_id: user.id,
-            email: user.email || '',
-            subscribed: false,
-            subscription_tier: null,
-            trial_start_date: new Date().toISOString(),
-            trial_end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days trial
-            trial_proposals_used: 0
-          }, { onConflict: 'user_id' });
+      // Se não encontrar na tabela, criar um registro básico para o usuário (fallback de segurança)
+      console.log('useSubscription - No subscriber found, creating trial record');
+      const trialEndDate = new Date();
+      trialEndDate.setDate(trialEndDate.getDate() + 15);
 
-        setSubscriptionData({
+      await supabase
+        .from('subscribers')
+        .insert({
+          user_id: user.id,
+          email: user.email || '',
           subscribed: false,
           subscription_tier: null,
-          subscription_end: null,
-          cancel_at_period_end: false,
-          loading: false,
-          error: null,
+          trial_start_date: new Date().toISOString(),
+          trial_end_date: trialEndDate.toISOString(),
+          trial_proposals_used: 0
         });
-        return;
-      }
 
-      // Se a edge function falhar, assume valores padrão
       setSubscriptionData({
         subscribed: false,
         subscription_tier: null,
@@ -86,8 +83,9 @@ export const useSubscription = () => {
         loading: false,
         error: null,
       });
+
     } catch (error) {
-      console.error('Error checking subscription:', error);
+      console.error('useSubscription - Error checking subscription:', error);
       setSubscriptionData(prev => ({
         ...prev,
         loading: false,

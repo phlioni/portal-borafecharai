@@ -24,6 +24,7 @@ export const useUserPermissions = () => {
 
       try {
         setLoading(true);
+        console.log('useUserPermissions - Checking permissions for user:', user.id);
 
         // Check if user is admin
         const { data: userRoles } = await supabase
@@ -40,10 +41,21 @@ export const useUserPermissions = () => {
 
         setMonthlyProposalCount(monthlyCount || 0);
 
-        // Verificar status do trial
+        // Usar a função do banco para verificar se pode criar proposta
+        const { data: canCreate, error: canCreateError } = await supabase
+          .rpc('can_create_proposal', { _user_id: user.id });
+
+        if (canCreateError) {
+          console.error('useUserPermissions - Error checking can_create_proposal:', canCreateError);
+          setCanCreateProposal(false);
+        } else {
+          setCanCreateProposal(canCreate || false);
+        }
+
+        // Verificar dados do subscriber para determinar limites e acessos
         const { data: subscriber } = await supabase
           .from('subscribers')
-          .select('trial_end_date, trial_proposals_used, trial_start_date, subscribed, subscription_tier')
+          .select('*')
           .eq('user_id', user.id)
           .single();
 
@@ -51,50 +63,37 @@ export const useUserPermissions = () => {
         console.log('useUserPermissions - subscribed from hook:', subscribed);
         console.log('useUserPermissions - subscription_tier from hook:', subscription_tier);
 
-        // Verificar se pode criar propostas
-        let canCreate = false;
+        // Determinar limites e acessos baseado no status
         let proposalLimit = null;
 
         if (adminRole) {
-          canCreate = true;
           proposalLimit = null; // Unlimited for admin
           setCanAccessAnalytics(true);
           setCanAccessPremiumTemplates(true);
         } else if (subscribed) {
           if (subscription_tier === 'basico') {
             proposalLimit = 10;
-            canCreate = monthlyCount < 10;
             setCanAccessAnalytics(false);
             setCanAccessPremiumTemplates(false);
           } else if (subscription_tier === 'profissional') {
             proposalLimit = null; // Unlimited
-            canCreate = true;
             setCanAccessAnalytics(true);
             setCanAccessPremiumTemplates(true);
           }
         } else {
-          // Verificar trial
+          // Trial ou sem acesso
           if (subscriber?.trial_end_date && new Date(subscriber.trial_end_date) >= new Date()) {
-            const proposalsUsed = subscriber.trial_proposals_used || 0;
             proposalLimit = 20;
-            canCreate = proposalsUsed < 20;
-            console.log('useUserPermissions - trial check:', {
-              trial_end_date: subscriber.trial_end_date,
-              proposalsUsed,
-              canCreate
-            });
-            setCanAccessAnalytics(false);
-            setCanAccessPremiumTemplates(false);
+            console.log('useUserPermissions - User in trial, limit 20 proposals');
           } else {
             proposalLimit = 0;
-            canCreate = false;
-            setCanAccessAnalytics(false);
-            setCanAccessPremiumTemplates(false);
+            console.log('useUserPermissions - User trial expired, no access');
           }
+          setCanAccessAnalytics(false);
+          setCanAccessPremiumTemplates(false);
         }
 
         setMonthlyProposalLimit(proposalLimit);
-        setCanCreateProposal(canCreate);
 
         console.log('useUserPermissions - final state:', {
           canCreateProposal: canCreate,
@@ -106,7 +105,8 @@ export const useUserPermissions = () => {
         });
 
       } catch (error) {
-        console.error('Error checking permissions:', error);
+        console.error('useUserPermissions - Error checking permissions:', error);
+        setCanCreateProposal(false);
       } finally {
         setLoading(false);
       }
