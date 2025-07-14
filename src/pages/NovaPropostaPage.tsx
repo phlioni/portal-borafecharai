@@ -65,7 +65,7 @@ const NovaPropostaPage = () => {
     telefone: ''
   });
 
-  // Buscar templates personalizados para usuários do plano Equipes
+  // Buscar templates personalizados para usuários do plano Profissional
   const { data: customTemplates } = useQuery({
     queryKey: ['custom-templates'],
     queryFn: async () => {

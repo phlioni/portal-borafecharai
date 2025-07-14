@@ -1,12 +1,13 @@
+
 import React from 'react';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Lock, Crown, Users } from 'lucide-react';
+import { Lock, Crown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface PlanLimitGuardProps {
-  feature: 'createProposal' | 'analytics' | 'premiumTemplates' | 'collaboration';
+  feature: 'createProposal' | 'analytics' | 'premiumTemplates';
   children: React.ReactNode;
   fallback?: React.ReactNode;
 }
@@ -20,7 +21,6 @@ const PlanLimitGuard: React.FC<PlanLimitGuardProps> = ({
     canCreateProposal,
     canAccessAnalytics,
     canAccessPremiumTemplates,
-    canCollaborate,
     monthlyProposalCount,
     monthlyProposalLimit,
     loading,
@@ -47,8 +47,6 @@ const PlanLimitGuard: React.FC<PlanLimitGuardProps> = ({
         return canAccessAnalytics;
       case 'premiumTemplates':
         return canAccessPremiumTemplates;
-      case 'collaboration':
-        return canCollaborate;
       default:
         return false;
     }
@@ -78,13 +76,6 @@ const PlanLimitGuard: React.FC<PlanLimitGuardProps> = ({
           description: 'Acesse templates avançados e personalizáveis.',
           icon: Crown,
           upgradeText: 'Upgrade para Profissional'
-        };
-      case 'collaboration':
-        return {
-          title: 'Colaboração em Equipe',
-          description: 'Trabalhe em equipe com usuários ilimitados.',
-          icon: Users,
-          upgradeText: 'Upgrade para Equipes'
         };
       default:
         return {

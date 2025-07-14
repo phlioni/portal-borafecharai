@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface Proposal {
   id: string;
@@ -21,9 +22,121 @@ interface Proposal {
   last_viewed_at?: string;
   company_id?: string;
   user_id: string;
+  companies?: {
+    name: string;
+    email?: string;
+    phone?: string;
+  };
 }
 
 export const useProposals = () => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useQuery({
+    queryKey: ['proposals', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from('proposals')
+        .select(`
+          *,
+          companies (
+            name,
+            email,
+            phone
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching proposals:', error);
+        throw error;
+      }
+
+      return data || [];
+    },
+    enabled: !!user,
+  });
+};
+
+export const useCreateProposal = () => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (proposalData: Omit<Proposal, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
+      if (!user) throw new Error('User not authenticated');
+
+      const { data, error } = await supabase
+        .from('proposals')
+        .insert([{
+          ...proposalData,
+          user_id: user.id
+        }])
+        .select(`
+          *,
+          companies (
+            name,
+            email,
+            phone
+          )
+        `)
+        .single();
+
+      if (error) {
+        console.error('Error creating proposal:', error);
+        throw error;
+      }
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proposals'] });
+    },
+  });
+};
+
+export const useUpdateProposal = () => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Proposal> }) => {
+      if (!user) throw new Error('User not authenticated');
+
+      const { data, error } = await supabase
+        .from('proposals')
+        .update(updates)
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .select(`
+          *,
+          companies (
+            name,
+            email,
+            phone
+          )
+        `)
+        .single();
+
+      if (error) {
+        console.error('Error updating proposal:', error);
+        throw error;
+      }
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proposals'] });
+    },
+  });
+};
+
+// Legacy hook for backward compatibility
+export const useProposal = () => {
   const { user } = useAuth();
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +152,14 @@ export const useProposals = () => {
     try {
       const { data, error } = await supabase
         .from('proposals')
-        .select('*')
+        .select(`
+          *,
+          companies (
+            name,
+            email,
+            phone
+          )
+        `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -67,7 +187,14 @@ export const useProposals = () => {
           ...proposalData,
           user_id: user.id
         }])
-        .select()
+        .select(`
+          *,
+          companies (
+            name,
+            email,
+            phone
+          )
+        `)
         .single();
 
       if (error) {
@@ -92,7 +219,14 @@ export const useProposals = () => {
         .update(updates)
         .eq('id', id)
         .eq('user_id', user.id)
-        .select()
+        .select(`
+          *,
+          companies (
+            name,
+            email,
+            phone
+          )
+        `)
         .single();
 
       if (error) {

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface Company {
   id: string;
@@ -22,6 +23,62 @@ interface Company {
 }
 
 export const useCompanies = () => {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['companies', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching companies:', error);
+        throw error;
+      }
+
+      return data || [];
+    },
+    enabled: !!user,
+  });
+};
+
+export const useCreateCompany = () => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (companyData: Omit<Company, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
+      if (!user) throw new Error('User not authenticated');
+
+      const { data, error } = await supabase
+        .from('companies')
+        .insert([{
+          ...companyData,
+          user_id: user.id
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating company:', error);
+        throw error;
+      }
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+    },
+  });
+};
+
+// Legacy hook for backward compatibility
+export const useCompany = () => {
   const { user } = useAuth();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
