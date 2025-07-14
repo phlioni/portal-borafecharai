@@ -30,6 +30,7 @@ import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { useCompany, useCompanies } from '@/hooks/useCompanies';
 import { useAdminOperations } from '@/hooks/useAdminOperations';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
+import CompanyLogoUpload from '@/components/CompanyLogoUpload';
 import { supabase } from '@/integrations/supabase/client';
 
 interface User {
@@ -86,8 +87,10 @@ const ConfiguracoesPage = () => {
     }),
     email: z.string().email({
       message: "Por favor, insira um email válido.",
-    }).optional().or(z.literal('')),
-    phone: z.string().optional().or(z.literal('')),
+    }),
+    phone: z.string().min(1, {
+      message: "O telefone é obrigatório.",
+    }),
     address: z.string().optional().or(z.literal('')),
     city: z.string().optional().or(z.literal('')),
     state: z.string().optional().or(z.literal('')),
@@ -154,6 +157,12 @@ const ConfiguracoesPage = () => {
       toast.error(error.message || 'Erro ao salvar empresa');
     } finally {
       setIsCompanyFormLoading(false);
+    }
+  };
+
+  const handleLogoUpdate = (logoUrl: string | null) => {
+    if (companyData) {
+      setCompanyData({ ...companyData, logo_url: logoUrl });
     }
   };
 
@@ -225,14 +234,19 @@ const ConfiguracoesPage = () => {
                 Informações da Empresa
               </CardTitle>
               <CardDescription>
-                Atualize as informações da sua empresa
+                Atualize as informações da sua empresa. Campos obrigatórios: Nome, Telefone e Email.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
+              <CompanyLogoUpload 
+                currentLogoUrl={companyData?.logo_url || null}
+                onLogoUpdate={handleLogoUpdate}
+              />
+
               <form onSubmit={companyForm.handleSubmit(onSubmitCompany)} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="name">Nome da Empresa</Label>
+                    <Label htmlFor="name">Nome da Empresa *</Label>
                     <Input
                       id="name"
                       placeholder="Nome da Empresa"
@@ -243,7 +257,7 @@ const ConfiguracoesPage = () => {
                     )}
                   </div>
                   <div>
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email">Email *</Label>
                     <Input
                       id="email"
                       type="email"
@@ -258,7 +272,7 @@ const ConfiguracoesPage = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="phone">Telefone</Label>
+                    <Label htmlFor="phone">Telefone *</Label>
                     <Input
                       id="phone"
                       placeholder="Telefone"
@@ -275,9 +289,6 @@ const ConfiguracoesPage = () => {
                       placeholder="CNPJ"
                       {...companyForm.register("cnpj")}
                     />
-                    {companyForm.formState.errors.cnpj && (
-                      <p className="text-sm text-red-500">{companyForm.formState.errors.cnpj.message}</p>
-                    )}
                   </div>
                 </div>
 
@@ -289,9 +300,6 @@ const ConfiguracoesPage = () => {
                       placeholder="Endereço"
                       {...companyForm.register("address")}
                     />
-                    {companyForm.formState.errors.address && (
-                      <p className="text-sm text-red-500">{companyForm.formState.errors.address.message}</p>
-                    )}
                   </div>
                   <div>
                     <Label htmlFor="website">Website</Label>
@@ -300,9 +308,6 @@ const ConfiguracoesPage = () => {
                       placeholder="Website"
                       {...companyForm.register("website")}
                     />
-                    {companyForm.formState.errors.website && (
-                      <p className="text-sm text-red-500">{companyForm.formState.errors.website.message}</p>
-                    )}
                   </div>
                 </div>
 
@@ -314,9 +319,6 @@ const ConfiguracoesPage = () => {
                       placeholder="Cidade"
                       {...companyForm.register("city")}
                     />
-                    {companyForm.formState.errors.city && (
-                      <p className="text-sm text-red-500">{companyForm.formState.errors.city.message}</p>
-                    )}
                   </div>
                   <div>
                     <Label htmlFor="state">Estado</Label>
@@ -325,9 +327,6 @@ const ConfiguracoesPage = () => {
                       placeholder="Estado"
                       {...companyForm.register("state")}
                     />
-                    {companyForm.formState.errors.state && (
-                      <p className="text-sm text-red-500">{companyForm.formState.errors.state.message}</p>
-                    )}
                   </div>
                   <div>
                     <Label htmlFor="zip_code">CEP</Label>
@@ -336,9 +335,6 @@ const ConfiguracoesPage = () => {
                       placeholder="CEP"
                       {...companyForm.register("zip_code")}
                     />
-                    {companyForm.formState.errors.zip_code && (
-                      <p className="text-sm text-red-500">{companyForm.formState.errors.zip_code.message}</p>
-                    )}
                   </div>
                 </div>
 
@@ -349,9 +345,6 @@ const ConfiguracoesPage = () => {
                     placeholder="Descrição"
                     {...companyForm.register("description")}
                   />
-                  {companyForm.formState.errors.description && (
-                    <p className="text-sm text-red-500">{companyForm.formState.errors.description.message}</p>
-                  )}
                 </div>
 
                 <Button type="submit" disabled={isCompanyFormLoading}>

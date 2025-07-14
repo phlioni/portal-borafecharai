@@ -244,17 +244,20 @@ const ProposalTemplates: React.FC<ProposalTemplatesProps> = ({
     }
   ];
 
-  const customTemplatesList = customTemplates.map(template => ({
-    id: template.template_id,
-    name: template.name,
-    description: template.description || 'Template personalizado',
-    preview: '🎯',
-    isPremium: true
-  }));
+  // Incluir templates personalizados apenas se o usuário tem acesso
+  const customTemplatesList = (canAccessPremiumTemplates || isAdmin) 
+    ? customTemplates.map(template => ({
+        id: template.template_id,
+        name: template.name,
+        description: template.description || 'Template personalizado',
+        preview: '🎯',
+        isPremium: true
+      }))
+    : [];
 
   const allTemplates = [
     ...defaultTemplates,
-    ...(canAccessPremiumTemplates || isAdmin ? customTemplatesList : [])
+    ...customTemplatesList
   ];
 
   if (loading) {
@@ -276,7 +279,7 @@ const ProposalTemplates: React.FC<ProposalTemplatesProps> = ({
           <h3 className="text-lg font-semibold">Templates Disponíveis</h3>
           <p className="text-sm text-gray-600">Escolha o template para sua proposta</p>
         </div>
-        {!canAccessPremiumTemplates && !isAdmin && customTemplatesList.length > 0 && (
+        {!canAccessPremiumTemplates && !isAdmin && customTemplates.length > 0 && (
           <Badge variant="outline" className="border-purple-200 text-purple-700">
             Upgrade para acessar templates personalizados
           </Badge>
