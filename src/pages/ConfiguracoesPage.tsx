@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,8 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -70,9 +73,9 @@ interface Company {
 const ConfiguracoesPage = () => {
   const { user } = useAuth();
   const { isAdmin } = useUserPermissions();
-  const { data: subscription } = useSubscription();
-  const { data: trialStatus } = useTrialStatus();
-  const { companies, loading: companiesLoading, createCompany, updateCompany, deleteCompany } = useCompany();
+  const subscription = useSubscription();
+  const trialStatus = useTrialStatus();
+  const { companies, loading: companiesLoading, createCompany, updateCompany, deleteCompany, checkUniquePhone } = useCompany();
   const { loadUsers, resetUserData, manageUserStatus } = useAdminOperations();
   
   const [companyData, setCompanyData] = useState<Company | null>(null);
@@ -128,13 +131,23 @@ const ConfiguracoesPage = () => {
   const onSubmitCompany = async (values: z.infer<typeof companySchema>) => {
     setIsCompanyFormLoading(true);
     try {
+      // Validar telefone único se foi fornecido
+      if (values.phone && values.phone.trim() !== '') {
+        const phoneIsUnique = await checkUniquePhone(values.phone, user?.id || '');
+        if (!phoneIsUnique) {
+          toast.error('Este telefone já está sendo usado por outro usuário.');
+          setIsCompanyFormLoading(false);
+          return;
+        }
+      }
+
       if (companyData) {
         // Update existing company
-        await updateCompany({ id: companyData.id, updates: values });
+        await updateCompany({ id: companyData.id, updates: values as Omit<Company, 'created_at' | 'id' | 'updated_at' | 'user_id'> });
         toast.success('Empresa atualizada com sucesso!');
       } else {
         // Create new company
-        await createCompany(values);
+        await createCompany(values as Omit<Company, 'created_at' | 'id' | 'updated_at' | 'user_id'>);
         toast.success('Empresa criada com sucesso!');
       }
     } catch (error: any) {
@@ -142,28 +155,6 @@ const ConfiguracoesPage = () => {
       toast.error(error.message || 'Erro ao salvar empresa');
     } finally {
       setIsCompanyFormLoading(false);
-    }
-  };
-
-  const checkUniquePhone = async (phone: string): Promise<boolean> => {
-    if (!phone || !user) return true;
-
-    try {
-      const { data, error } = await supabase
-        .from('companies')
-        .select('id')
-        .eq('phone', phone)
-        .neq('user_id', user.id);
-
-      if (error) {
-        console.error('Erro ao verificar telefone:', error);
-        return false;
-      }
-
-      return data.length === 0;
-    } catch (error) {
-      console.error('Erro ao verificar telefone:', error);
-      return false;
     }
   };
 
@@ -384,7 +375,7 @@ const ConfiguracoesPage = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {subscription ? (
+              {subscription.subscribed ? (
                 <>
                   <p>
                     Seu plano atual é:{' '}
@@ -395,10 +386,10 @@ const ConfiguracoesPage = () => {
                     <Switch checked={subscription.subscribed} disabled />
                   </p>
                 </>
-              ) : trialStatus?.trial_end_date ? (
+              ) : trialStatus.trialEndDate ? (
                 <p>
                   Você está no período de trial. Termina em:{' '}
-                  {new Date(trialStatus.trial_end_date).toLocaleDateString()}
+                  {trialStatus.trialEndDate.toLocaleDateString()}
                 </p>
               ) : (
                 <p>Você está no plano gratuito.</p>
