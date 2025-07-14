@@ -68,12 +68,7 @@ serve(async (req) => {
         plan_name: planName
       },
       billing_address_collection: 'required',
-      locale: 'pt-BR',
-      payment_method_configuration: undefined, // Let Stripe automatically configure Apple Pay, Google Pay, and Link
-      automatic_payment_methods: {
-        enabled: true,
-        allow_redirects: 'never'
-      }
+      locale: 'pt-BR'
     });
 
     logStep("Checkout session created", { sessionId: session.id, url: session.url });
