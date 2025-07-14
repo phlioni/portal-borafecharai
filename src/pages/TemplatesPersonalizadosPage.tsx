@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -68,7 +69,8 @@ const TemplatesPersonalizadosPage = () => {
     }
   };
 
-  const defaultTemplateContent = `<!DOCTYPE html>
+  const defaultTemplateContent = `
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -84,45 +86,46 @@ const TemplatesPersonalizadosPage = () => {
 </head>
 <body>
     <div class="header">
-        \{\{#if company.logo_url\}\}
-        <img src="\{\{company.logo_url\}\}" alt="\{\{company.name\}\}" class="company-logo">
-        \{\{/if\}\}
+        {{#if company.logo_url}}
+        <img src="{{company.logo_url}}" alt="{{company.name}}" class="company-logo">
+        {{/if}}
         <h1>Proposta Comercial</h1>
-        <h2>\{\{title\}\}</h2>
+        <h2>{{title}}</h2>
     </div>
 
     <div class="content">
         <div class="section">
             <h3>Descrição do Serviço</h3>
-            <p>\{\{service_description\}\}</p>
+            <p>{{service_description}}</p>
         </div>
 
         <div class="section">
             <h3>Detalhes</h3>
-            <p>\{\{detailed_description\}\}</p>
+            <p>{{detailed_description}}</p>
         </div>
 
         <div class="section">
             <h3>Informações Comerciais</h3>
-            <p><strong>Valor:</strong> \{\{#if value\}\}R$ \{\{value\}\}\{\{else\}\}A definir\{\{/if\}\}</p>
-            <p><strong>Prazo de Entrega:</strong> \{\{delivery_time\}\}</p>
-            <p><strong>Validade:</strong> \{\{validity_date\}\}</p>
+            <p><strong>Valor:</strong> {{#if value}}R$ {{value}}{{else}}A definir{{/if}}</p>
+            <p><strong>Prazo de Entrega:</strong> {{delivery_time}}</p>
+            <p><strong>Validade:</strong> {{validity_date}}</p>
         </div>
 
-        \{\{#if observations\}\}
+        {{#if observations}}
         <div class="section">
             <h3>Observações</h3>
-            <p>\{\{observations\}\}</p>
+            <p>{{observations}}</p>
         </div>
-        \{\{/if\}\}
+        {{/if}}
     </div>
 
     <div class="footer">
-        <p>\{\{company.name\}\}</p>
-        <p>\{\{company.email\}\} | \{\{company.phone\}\}</p>
+        <p>{{company.name}}</p>
+        <p>{{company.email}} | {{company.phone}}</p>
     </div>
 </body>
-</html>`;
+</html>
+  `;
 
   return (
     <PlanLimitGuard feature="premiumTemplates">
@@ -201,7 +204,7 @@ const TemplatesPersonalizadosPage = () => {
                     required
                   />
                   <p className="text-sm text-muted-foreground mt-2">
-                    Use variáveis como {'{{title}}'}, {'{{company.name}}'}, {'{{service_description}}'}, etc.
+                    Use variáveis como {{title}}, {{company.name}}, {{service_description}}, etc.
                   </p>
                 </div>
                 

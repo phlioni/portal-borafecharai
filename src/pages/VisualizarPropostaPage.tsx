@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -113,11 +112,7 @@ const VisualizarPropostaPage = () => {
         {/* Proposal Preview */}
         <div className="bg-white rounded-lg shadow-sm p-1">
           <div className="transform scale-75 origin-top">
-            <ProposalTemplateRenderer 
-              templateId={proposal.template_id || 'moderno'}
-              proposal={proposal} 
-              company={{ logo_url: companyLogo }} 
-            />
+            <ProposalTemplateRenderer proposal={proposal} companyLogo={companyLogo} />
           </div>
         </div>
       </div>

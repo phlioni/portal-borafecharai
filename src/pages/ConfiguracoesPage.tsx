@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCompanies, useCreateCompany, useUpdateCompany } from '@/hooks/useCompanies';
+import { useCompanies } from '@/hooks/useCompanies';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
@@ -17,9 +18,7 @@ import TemplatesPersonalizadosPage from './TemplatesPersonalizadosPage';
 
 const ConfiguracoesPage = () => {
   const { user } = useAuth();
-  const { data: companies, isLoading: companiesLoading } = useCompanies();
-  const createCompanyMutation = useCreateCompany();
-  const updateCompanyMutation = useUpdateCompany();
+  const { companies, loading: companiesLoading, createCompany, updateCompany } = useCompanies();
   const { canAccessPremiumTemplates } = useUserPermissions();
   const { subscribed, subscription_tier } = useSubscription();
   const { isInTrial } = useTrialStatus();
@@ -39,7 +38,7 @@ const ConfiguracoesPage = () => {
   });
 
   React.useEffect(() => {
-    if (companies && companies.length > 0) {
+    if (companies.length > 0) {
       const company = companies[0];
       setCompanyData({
         name: company.name || '',
@@ -62,21 +61,20 @@ const ConfiguracoesPage = () => {
     e.preventDefault();
     
     try {
-      if (companies && companies.length > 0) {
-        await updateCompanyMutation.mutateAsync({
-          id: companies[0].id,
-          updates: companyData
-        });
+      if (companies.length > 0) {
+        await updateCompany(companies[0].id, companyData);
+        toast.success('Empresa atualizada com sucesso!');
       } else {
-        await createCompanyMutation.mutateAsync(companyData);
+        await createCompany(companyData);
+        toast.success('Empresa criada com sucesso!');
       }
     } catch (error) {
       toast.error('Erro ao salvar empresa');
     }
   };
 
-  const handleLogoUpdate = (url: string | null) => {
-    setCompanyData({ ...companyData, logo_url: url || '' });
+  const handleLogoUpload = (url: string) => {
+    setCompanyData({ ...companyData, logo_url: url });
   };
 
   const getUserStatus = () => {
@@ -138,8 +136,8 @@ const ConfiguracoesPage = () => {
                   <div>
                     <Label htmlFor="logo">Logo da Empresa</Label>
                     <CompanyLogoUpload 
+                      onUpload={handleLogoUpload}
                       currentLogoUrl={companyData.logo_url}
-                      onLogoUpdate={handleLogoUpdate}
                     />
                   </div>
                   
@@ -248,11 +246,8 @@ const ConfiguracoesPage = () => {
                   </div>
                 </div>
 
-                <Button 
-                  type="submit" 
-                  disabled={companiesLoading || createCompanyMutation.isPending || updateCompanyMutation.isPending}
-                >
-                  {(createCompanyMutation.isPending || updateCompanyMutation.isPending) ? 'Salvando...' : 'Salvar Configurações'}
+                <Button type="submit" disabled={companiesLoading}>
+                  {companiesLoading ? 'Salvando...' : 'Salvar Configurações'}
                 </Button>
               </form>
             </CardContent>

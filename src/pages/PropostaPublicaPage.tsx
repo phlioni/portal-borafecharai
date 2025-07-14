@@ -271,9 +271,8 @@ const PropostaPublicaPage = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div className="bg-white rounded-lg shadow-sm">
             <ProposalTemplateRenderer 
-              templateId={proposal.template_id || 'moderno'}
               proposal={proposal} 
-              company={proposal.companies || {}} 
+              companyLogo="" 
             />
           </div>
         </div>
