@@ -21,6 +21,7 @@ import Index from '@/pages/Index';
 import NotFound from '@/pages/NotFound';
 import Planos from '@/pages/Planos';
 import TemplatesPersonalizadosPage from '@/pages/TemplatesPersonalizadosPage';
+import TelegramBotPage from '@/pages/TelegramBotPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -113,6 +114,13 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <TemplatesPersonalizadosPage />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/telegram-bot" element={
+              <ProtectedRoute>
+                <Layout>
+                  <TelegramBotPage />
                 </Layout>
               </ProtectedRoute>
             } />

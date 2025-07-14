@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Upload, Settings, Image, Save, Trash2, Crown, Palette, Building, MapPin, Globe } from 'lucide-react';
+import { Upload, Settings, Image, Save, Trash2, Crown, Palette, Building, MapPin, Globe, MessageSquare, Bot } from 'lucide-react';
 import { toast } from 'sonner';
 import SubscriptionPlanCard from '@/components/SubscriptionPlanCard';
 import SubscriptionStatus from '@/components/SubscriptionStatus';
@@ -173,10 +173,14 @@ const ConfiguracoesPage = () => {
 
       {/* Tabs */}
       <Tabs defaultValue={defaultTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="meu-negocio">
             <Building className="h-4 w-4 mr-2" />
             Meu Negócio
+          </TabsTrigger>
+          <TabsTrigger value="bot-telegram">
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Bot Telegram
           </TabsTrigger>
           <TabsTrigger value="planos">
             <Crown className="h-4 w-4 mr-2" />
@@ -404,6 +408,46 @@ const ConfiguracoesPage = () => {
                   <Save className="h-4 w-4 mr-2" />
                   Salvar Dados da Empresa
                 </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Bot Telegram Tab */}
+        <TabsContent value="bot-telegram" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bot className="h-5 w-5 text-blue-600" />
+                Bot do Telegram
+              </CardTitle>
+              <CardDescription>
+                Configure seu bot para criar propostas via Telegram
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <Bot className="h-16 w-16 text-blue-600 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Configure seu Bot do Telegram</h3>
+                <p className="text-gray-600 mb-6">
+                  Permita que seus clientes criem propostas diretamente pelo Telegram
+                </p>
+                <Button asChild className="bg-blue-600 hover:bg-blue-700">
+                  <Link to="/telegram-bot">
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Configurar Bot
+                  </Link>
+                </Button>
+              </div>
+              
+              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="font-medium text-blue-900 mb-2">Como funciona:</h4>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• Cliente inicia conversa com o bot</li>
+                  <li>• Bot identifica o cliente pelo telefone</li>
+                  <li>• Coleta todas as informações da proposta</li>
+                  <li>• Cria proposta automaticamente no sistema</li>
+                </ul>
               </div>
             </CardContent>
           </Card>
