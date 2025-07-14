@@ -1,5 +1,7 @@
 
 import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useCustomTemplates } from '@/hooks/useCustomTemplates';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 
@@ -8,6 +10,7 @@ interface Template {
   name: string;
   description: string;
   preview?: string;
+  isPremium?: boolean;
 }
 
 interface ProposalTemplatesProps {
@@ -222,55 +225,137 @@ const ProposalTemplates: React.FC<ProposalTemplatesProps> = ({
       id: 'moderno',
       name: 'Moderno',
       description: 'Design limpo e contemporâneo',
-      preview: '🎨'
+      preview: '🎨',
+      isPremium: false
     },
     {
       id: 'executivo',
       name: 'Executivo',
       description: 'Estilo formal e profissional',
-      preview: '💼'
+      preview: '💼',
+      isPremium: false
     },
     {
       id: 'criativo',
       name: 'Criativo',
       description: 'Visual diferenciado e inovador',
-      preview: '✨'
+      preview: '✨',
+      isPremium: false
     }
   ];
 
+  const customTemplatesList = customTemplates.map(template => ({
+    id: template.template_id,
+    name: template.name,
+    description: template.description || 'Template personalizado',
+    preview: '🎯',
+    isPremium: true
+  }));
+
   const allTemplates = [
     ...defaultTemplates,
-    ...(canAccessPremiumTemplates || isAdmin ? customTemplates.map(template => ({
-      id: template.template_id,
-      name: template.name,
-      description: template.description || 'Template personalizado',
-      preview: '🎯'
-    })) : [])
+    ...(canAccessPremiumTemplates || isAdmin ? customTemplatesList : [])
   ];
 
   if (loading) {
-    return <div className="text-center py-4">Carregando templates...</div>;
+    return (
+      <Card>
+        <CardContent className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando templates...</p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {allTemplates.map((template) => (
-        <div
-          key={template.id}
-          className={`border rounded-lg p-4 cursor-pointer transition-all ${
-            selectedTemplate === template.id
-              ? 'border-blue-500 bg-blue-50'
-              : 'border-gray-200 hover:border-gray-300'
-          }`}
-          onClick={() => onTemplateSelect(template.id)}
-        >
-          <div className="text-center">
-            <div className="text-2xl mb-2">{template.preview}</div>
-            <h3 className="font-semibold text-gray-900">{template.name}</h3>
-            <p className="text-sm text-gray-600 mt-1">{template.description}</p>
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold">Templates Disponíveis</h3>
+          <p className="text-sm text-gray-600">Escolha o template para sua proposta</p>
         </div>
-      ))}
+        {!canAccessPremiumTemplates && !isAdmin && customTemplatesList.length > 0 && (
+          <Badge variant="outline" className="border-purple-200 text-purple-700">
+            Upgrade para acessar templates personalizados
+          </Badge>
+        )}
+      </div>
+
+      {/* Templates Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {allTemplates.map((template) => {
+          const isSelected = selectedTemplate === template.id;
+          const canSelect = !template.isPremium || canAccessPremiumTemplates || isAdmin;
+          
+          return (
+            <Card
+              key={template.id}
+              className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
+                isSelected
+                  ? 'ring-2 ring-primary border-primary shadow-lg'
+                  : canSelect
+                  ? 'border-gray-200 hover:border-gray-300'
+                  : 'border-gray-100 opacity-60 cursor-not-allowed'
+              }`}
+              onClick={() => canSelect && onTemplateSelect(template.id)}
+            >
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-3xl">{template.preview}</div>
+                  {template.isPremium && (
+                    <Badge variant="secondary" className="bg-purple-100 text-purple-700 text-xs">
+                      Premium
+                    </Badge>
+                  )}
+                </div>
+                <CardTitle className="text-lg">{template.name}</CardTitle>
+                <CardDescription className="text-sm">
+                  {template.description}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="flex items-center justify-between">
+                  {isSelected && (
+                    <Badge variant="default" className="text-xs">
+                      Selecionado
+                    </Badge>
+                  )}
+                  {!canSelect && (
+                    <Badge variant="outline" className="text-xs border-purple-200 text-purple-600">
+                      Requer Upgrade
+                    </Badge>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Empty State */}
+      {allTemplates.length === 0 && (
+        <Card>
+          <CardContent className="text-center py-8">
+            <div className="text-gray-400 text-4xl mb-4">📄</div>
+            <p className="text-gray-600">Nenhum template disponível</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Custom Templates Info */}
+      {(canAccessPremiumTemplates || isAdmin) && customTemplatesList.length === 0 && (
+        <Card className="border-purple-200 bg-purple-50">
+          <CardContent className="text-center py-6">
+            <div className="text-purple-600 text-3xl mb-2">🎨</div>
+            <p className="text-purple-800 font-medium">Crie seus próprios templates!</p>
+            <p className="text-purple-600 text-sm mt-1">
+              Acesse a área de Templates Personalizados para criar designs únicos
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

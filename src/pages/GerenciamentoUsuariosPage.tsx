@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Users, 
   Search, 
@@ -19,7 +21,16 @@ import {
   Shield,
   AlertCircle,
   Calendar,
-  Mail
+  Mail,
+  Phone,
+  Building,
+  CreditCard,
+  Activity,
+  Settings,
+  Ban,
+  CheckCircle,
+  XCircle,
+  Crown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,6 +44,8 @@ interface User {
   last_sign_in_at?: string;
   email_confirmed_at?: string;
   raw_user_meta_data?: any;
+  banned_until?: string;
+  is_anonymous?: boolean;
 }
 
 interface UserRole {
@@ -55,45 +68,47 @@ interface Subscriber {
   updated_at: string;
 }
 
+interface Company {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  user_id: string;
+  created_at: string;
+}
+
+interface Proposal {
+  id: string;
+  title: string;
+  status: string;
+  value?: number;
+  created_at: string;
+  user_id: string;
+}
+
 const GerenciamentoUsuariosPage = () => {
   const { user } = useAuth();
-  const { fixTrial } = useUserPermissions();
+  const { isAdmin } = useUserPermissions();
   const [users, setUsers] = useState<User[]>([]);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [proposals, setProposals] = useState<Proposal[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedSubscriber, setSelectedSubscriber] = useState<Subscriber | null>(null);
   const [selectedUserRole, setSelectedUserRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-
-  // Verificar se o usuário é admin
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (user?.email === 'admin@borafecharai.com') {
-        setIsAdmin(true);
-      } else {
-        // Verificar se o usuário tem role de admin
-        const { data: userRoles } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user?.id)
-          .eq('role', 'admin')
-          .single();
-          
-        if (userRoles) {
-          setIsAdmin(true);
-        }
-      }
-    };
-    
-    if (user) {
-      checkAdminStatus();
-    }
-  }, [user]);
+  const [activeTab, setActiveTab] = useState('users');
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    activeSubscriptions: 0,
+    trialUsers: 0,
+    totalProposals: 0,
+    totalRevenue: 0
+  });
 
   // Carregar dados dos usuários
   const loadUsers = async () => {
@@ -101,7 +116,7 @@ const GerenciamentoUsuariosPage = () => {
     
     setIsLoading(true);
     try {
-      // Buscar usuários (usando edge function para acessar auth.users)
+      // Buscar usuários
       const { data: authUsers, error: authError } = await supabase.functions.invoke('get-users');
       
       if (authError) {
@@ -117,8 +132,6 @@ const GerenciamentoUsuariosPage = () => {
 
       if (subscribersError) {
         console.error('Erro ao buscar assinantes:', subscribersError);
-        toast.error('Erro ao carregar assinantes');
-        return;
       }
 
       // Buscar roles dos usuários
@@ -128,13 +141,49 @@ const GerenciamentoUsuariosPage = () => {
 
       if (rolesError) {
         console.error('Erro ao buscar roles:', rolesError);
-        toast.error('Erro ao carregar roles');
-        return;
+      }
+
+      // Buscar empresas
+      const { data: companiesData, error: companiesError } = await supabase
+        .from('companies')
+        .select('*');
+
+      if (companiesError) {
+        console.error('Erro ao buscar empresas:', companiesError);
+      }
+
+      // Buscar propostas
+      const { data: proposalsData, error: proposalsError } = await supabase
+        .from('proposals')
+        .select('*');
+
+      if (proposalsError) {
+        console.error('Erro ao buscar propostas:', proposalsError);
       }
 
       setUsers(authUsers || []);
       setSubscribers(subscribersData || []);
       setUserRoles(rolesData || []);
+      setCompanies(companiesData || []);
+      setProposals(proposalsData || []);
+
+      // Calcular estatísticas
+      const activeSubscriptions = subscribersData?.filter(s => s.subscribed).length || 0;
+      const trialUsers = subscribersData?.filter(s => s.trial_end_date && new Date(s.trial_end_date) > new Date()).length || 0;
+      const totalRevenue = subscribersData?.reduce((sum, s) => {
+        if (s.subscription_tier === 'basico') return sum + 39.90;
+        if (s.subscription_tier === 'profissional') return sum + 79.90;
+        return sum;
+      }, 0) || 0;
+
+      setStats({
+        totalUsers: authUsers?.length || 0,
+        activeSubscriptions,
+        trialUsers,
+        totalProposals: proposalsData?.length || 0,
+        totalRevenue
+      });
+
     } catch (error) {
       console.error('Erro geral:', error);
       toast.error('Erro ao carregar dados');
@@ -156,7 +205,6 @@ const GerenciamentoUsuariosPage = () => {
     }
   }, [users, searchTerm]);
 
-  // Carregar dados quando o componente montar
   useEffect(() => {
     if (isAdmin) {
       loadUsers();
@@ -167,11 +215,9 @@ const GerenciamentoUsuariosPage = () => {
   const handleEditUser = (user: User) => {
     setSelectedUser(user);
     
-    // Encontrar subscriber correspondente
     const subscriber = subscribers.find(s => s.user_id === user.id || s.email === user.email);
     setSelectedSubscriber(subscriber || null);
     
-    // Encontrar role correspondente
     const role = userRoles.find(r => r.user_id === user.id);
     setSelectedUserRole(role || null);
     
@@ -187,13 +233,15 @@ const GerenciamentoUsuariosPage = () => {
       if (selectedSubscriber) {
         const { error: subscriberError } = await supabase
           .from('subscribers')
-          .update({
+          .upsert({
+            id: selectedSubscriber.id,
+            user_id: selectedUser.id,
+            email: selectedUser.email,
             subscribed: selectedSubscriber.subscribed,
             subscription_tier: selectedSubscriber.subscription_tier,
             trial_end_date: selectedSubscriber.trial_end_date,
             trial_proposals_used: selectedSubscriber.trial_proposals_used
-          })
-          .eq('id', selectedSubscriber.id);
+          });
 
         if (subscriberError) {
           console.error('Erro ao atualizar subscriber:', subscriberError);
@@ -220,23 +268,62 @@ const GerenciamentoUsuariosPage = () => {
 
       toast.success('Usuário atualizado com sucesso!');
       setIsEditDialogOpen(false);
-      loadUsers(); // Recarregar dados
+      loadUsers();
     } catch (error) {
       console.error('Erro ao salvar:', error);
       toast.error('Erro ao salvar alterações');
     }
   };
 
-  // Excluir usuário
-  const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
+  // Banir usuário
+  const handleBanUser = async (userId: string) => {
+    if (!confirm('Tem certeza que deseja banir este usuário?')) return;
 
     try {
-      // Primeiro, excluir registros relacionados
-      await supabase.from('user_roles').delete().eq('user_id', userId);
-      await supabase.from('subscribers').delete().eq('user_id', userId);
-      
-      // Excluir usuário via edge function
+      const { error } = await supabase.functions.invoke('ban-user', {
+        body: { userId, banDuration: '30d' }
+      });
+
+      if (error) {
+        console.error('Erro ao banir usuário:', error);
+        toast.error('Erro ao banir usuário');
+        return;
+      }
+
+      toast.success('Usuário banido com sucesso!');
+      loadUsers();
+    } catch (error) {
+      console.error('Erro ao banir:', error);
+      toast.error('Erro ao banir usuário');
+    }
+  };
+
+  // Desbanir usuário
+  const handleUnbanUser = async (userId: string) => {
+    try {
+      const { error } = await supabase.functions.invoke('unban-user', {
+        body: { userId }
+      });
+
+      if (error) {
+        console.error('Erro ao desbanir usuário:', error);
+        toast.error('Erro ao desbanir usuário');
+        return;
+      }
+
+      toast.success('Usuário desbanido com sucesso!');
+      loadUsers();
+    } catch (error) {
+      console.error('Erro ao desbanir:', error);
+      toast.error('Erro ao desbanir usuário');
+    }
+  };
+
+  // Excluir usuário
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.')) return;
+
+    try {
       const { error } = await supabase.functions.invoke('delete-user', {
         body: { userId }
       });
@@ -248,46 +335,30 @@ const GerenciamentoUsuariosPage = () => {
       }
 
       toast.success('Usuário excluído com sucesso!');
-      loadUsers(); // Recarregar dados
+      loadUsers();
     } catch (error) {
       console.error('Erro ao excluir:', error);
       toast.error('Erro ao excluir usuário');
     }
   };
 
-  // Obter subscriber de um usuário
+  // Obter dados do usuário
   const getUserSubscriber = (userId: string, email: string) => {
     return subscribers.find(s => s.user_id === userId || s.email === email);
   };
 
-  // Obter role de um usuário
   const getUserRole = (userId: string) => {
     return userRoles.find(r => r.user_id === userId);
   };
 
-  // Corrigir trial de um usuário específico
-  const handleFixUserTrial = async (userId: string, userEmail: string) => {
-    try {
-      // Usar edge function fix-trial para o usuário específico
-      const { error } = await supabase.functions.invoke('fix-trial', {
-        body: { userId, userEmail }
-      });
-      
-      if (error) {
-        console.error('Erro ao corrigir trial:', error);
-        toast.error('Erro ao corrigir trial do usuário');
-        return;
-      }
-      
-      toast.success('Trial do usuário corrigido com sucesso!');
-      loadUsers(); // Recarregar dados
-    } catch (error) {
-      console.error('Erro ao corrigir trial:', error);
-      toast.error('Erro ao corrigir trial do usuário');
-    }
+  const getUserCompany = (userId: string) => {
+    return companies.find(c => c.user_id === userId);
   };
 
-  // Verificação de acesso admin
+  const getUserProposals = (userId: string) => {
+    return proposals.filter(p => p.user_id === userId);
+  };
+
   if (!isAdmin) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
@@ -319,7 +390,7 @@ const GerenciamentoUsuariosPage = () => {
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -327,8 +398,61 @@ const GerenciamentoUsuariosPage = () => {
             <Users className="h-8 w-8" />
             Gerenciamento de Usuários
           </h1>
-          <p className="text-gray-600 mt-1">Gerencie todos os usuários do sistema</p>
+          <p className="text-gray-600 mt-1">Painel administrativo completo</p>
         </div>
+      </div>
+
+      {/* Estatísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Usuários</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalUsers}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Assinantes Ativos</CardTitle>
+            <Crown className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.activeSubscriptions}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Usuários em Trial</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.trialUsers}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Propostas</CardTitle>
+            <Mail className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalProposals}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Receita Mensal</CardTitle>
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">R$ {stats.totalRevenue.toFixed(2)}</div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filtros */}
@@ -336,7 +460,7 @@ const GerenciamentoUsuariosPage = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="h-5 w-5" />
-            Filtrar Usuários
+            Filtrar Dados
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -354,119 +478,301 @@ const GerenciamentoUsuariosPage = () => {
         </CardContent>
       </Card>
 
-      {/* Lista de Usuários */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Usuários ({filteredUsers.length})</CardTitle>
-          <CardDescription>
-            Lista de todos os usuários cadastrados no sistema
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Email</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Plano</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Cadastro</TableHead>
-                <TableHead>Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers.map((user) => {
-                const subscriber = getUserSubscriber(user.id, user.email);
-                const role = getUserRole(user.id);
-                
-                return (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{user.email}</p>
-                        {user.raw_user_meta_data?.full_name && (
-                          <p className="text-sm text-gray-500">{user.raw_user_meta_data.full_name}</p>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {user.email_confirmed_at ? (
-                        <Badge variant="default" className="bg-green-100 text-green-800">
-                          <UserCheck className="h-3 w-3 mr-1" />
-                          Ativo
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="bg-orange-100 text-orange-800">
-                          <UserX className="h-3 w-3 mr-1" />
-                          Pendente
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {subscriber?.subscribed ? (
-                        <Badge variant="default" className="bg-blue-100 text-blue-800">
-                          {subscriber.subscription_tier || 'Assinante'}
-                        </Badge>
-                      ) : subscriber?.trial_end_date ? (
-                        <Badge variant="outline" className="border-purple-200 text-purple-800">
-                          Trial
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary">
-                          Gratuito
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {role?.role === 'admin' ? (
-                        <Badge variant="destructive">
-                          <Shield className="h-3 w-3 mr-1" />
-                          Admin
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline">
-                          Usuário
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm text-gray-500">
-                        {new Date(user.created_at).toLocaleDateString('pt-BR')}
-                      </div>
-                    </TableCell>
-                     <TableCell>
-                       <div className="flex gap-2">
-                         <Button
-                           variant="outline"
-                           size="sm"
-                           onClick={() => handleEditUser(user)}
-                         >
-                           <Edit className="h-4 w-4" />
-                         </Button>
-                         <Button
-                           variant="secondary"
-                           size="sm"
-                           onClick={() => handleFixUserTrial(user.id, user.email)}
-                           title="Corrigir Trial"
-                         >
-                           🔧
-                         </Button>
-                         <Button
-                           variant="destructive"
-                           size="sm"
-                           onClick={() => handleDeleteUser(user.id)}
-                         >
-                           <Trash2 className="h-4 w-4" />
-                         </Button>
-                       </div>
-                     </TableCell>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="users">Usuários</TabsTrigger>
+          <TabsTrigger value="companies">Empresas</TabsTrigger>
+          <TabsTrigger value="proposals">Propostas</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="users" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Usuários ({filteredUsers.length})</CardTitle>
+              <CardDescription>
+                Gerencie todos os usuários do sistema
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Usuário</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Plano</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Cadastro</TableHead>
+                    <TableHead>Último Login</TableHead>
+                    <TableHead>Ações</TableHead>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.map((user) => {
+                    const subscriber = getUserSubscriber(user.id, user.email);
+                    const role = getUserRole(user.id);
+                    const company = getUserCompany(user.id);
+                    const userProposals = getUserProposals(user.id);
+                    const isBanned = user.banned_until && new Date(user.banned_until) > new Date();
+                    
+                    return (
+                      <TableRow key={user.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{user.email}</p>
+                            {user.raw_user_meta_data?.full_name && (
+                              <p className="text-sm text-gray-500">{user.raw_user_meta_data.full_name}</p>
+                            )}
+                            {company && (
+                              <p className="text-xs text-blue-600">{company.name}</p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {isBanned ? (
+                            <Badge variant="destructive" className="bg-red-100 text-red-800">
+                              <Ban className="h-3 w-3 mr-1" />
+                              Banido
+                            </Badge>
+                          ) : user.email_confirmed_at ? (
+                            <Badge variant="default" className="bg-green-100 text-green-800">
+                              <UserCheck className="h-3 w-3 mr-1" />
+                              Ativo
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                              <UserX className="h-3 w-3 mr-1" />
+                              Pendente
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {subscriber?.subscribed ? (
+                            <Badge variant="default" className="bg-blue-100 text-blue-800">
+                              {subscriber.subscription_tier === 'basico' ? 'Essencial' : 'Profissional'}
+                            </Badge>
+                          ) : subscriber?.trial_end_date ? (
+                            <Badge variant="outline" className="border-purple-200 text-purple-800">
+                              Trial ({subscriber.trial_proposals_used || 0}/20)
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary">
+                              Gratuito
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {role?.role === 'admin' ? (
+                            <Badge variant="destructive">
+                              <Shield className="h-3 w-3 mr-1" />
+                              Admin
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline">
+                              Usuário
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm text-gray-500">
+                            {new Date(user.created_at).toLocaleDateString('pt-BR')}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm text-gray-500">
+                            {user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString('pt-BR') : 'Nunca'}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditUser(user)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            {isBanned ? (
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => handleUnbanUser(user.id)}
+                                title="Desbanir"
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => handleBanUser(user.id)}
+                                title="Banir"
+                              >
+                                <Ban className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteUser(user.id)}
+                              title="Excluir"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="companies" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Empresas ({companies.length})</CardTitle>
+              <CardDescription>
+                Todas as empresas cadastradas no sistema
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Telefone</TableHead>
+                    <TableHead>Usuário</TableHead>
+                    <TableHead>Criado em</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {companies.map((company) => {
+                    const owner = users.find(u => u.id === company.user_id);
+                    return (
+                      <TableRow key={company.id}>
+                        <TableCell className="font-medium">{company.name}</TableCell>
+                        <TableCell>{company.email || '-'}</TableCell>
+                        <TableCell>{company.phone || '-'}</TableCell>
+                        <TableCell>{owner?.email || 'Desconhecido'}</TableCell>
+                        <TableCell>{new Date(company.created_at).toLocaleDateString('pt-BR')}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="proposals" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Propostas ({proposals.length})</CardTitle>
+              <CardDescription>
+                Todas as propostas criadas no sistema
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Título</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Valor</TableHead>
+                    <TableHead>Usuário</TableHead>
+                    <TableHead>Criado em</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {proposals.slice(0, 50).map((proposal) => {
+                    const owner = users.find(u => u.id === proposal.user_id);
+                    return (
+                      <TableRow key={proposal.id}>
+                        <TableCell className="font-medium">{proposal.title}</TableCell>
+                        <TableCell>
+                          <Badge variant={
+                            proposal.status === 'aceita' ? 'default' : 
+                            proposal.status === 'rejeitada' ? 'destructive' : 
+                            'secondary'
+                          }>
+                            {proposal.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {proposal.value ? `R$ ${proposal.value.toLocaleString('pt-BR')}` : '-'}
+                        </TableCell>
+                        <TableCell>{owner?.email || 'Desconhecido'}</TableCell>
+                        <TableCell>{new Date(proposal.created_at).toLocaleDateString('pt-BR')}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="analytics" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Resumo de Assinaturas</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span>Plano Essencial:</span>
+                    <span>{subscribers.filter(s => s.subscription_tier === 'basico').length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Plano Profissional:</span>
+                    <span>{subscribers.filter(s => s.subscription_tier === 'profissional').length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Usuários em Trial:</span>
+                    <span>{stats.trialUsers}</span>
+                  </div>
+                  <div className="flex justify-between font-bold">
+                    <span>Receita Mensal:</span>
+                    <span>R$ {stats.totalRevenue.toFixed(2)}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Status das Propostas</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span>Aceitas:</span>
+                    <span>{proposals.filter(p => p.status === 'aceita').length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Rejeitadas:</span>
+                    <span>{proposals.filter(p => p.status === 'rejeitada').length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Enviadas:</span>
+                    <span>{proposals.filter(p => p.status === 'enviada').length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Rascunhos:</span>
+                    <span>{proposals.filter(p => p.status === 'rascunho').length}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Dialog de Edição */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -487,6 +793,7 @@ const GerenciamentoUsuariosPage = () => {
                   <p><strong>Email:</strong> {selectedUser.email}</p>
                   <p><strong>ID:</strong> {selectedUser.id}</p>
                   <p><strong>Cadastro:</strong> {new Date(selectedUser.created_at).toLocaleString('pt-BR')}</p>
+                  <p><strong>Último Login:</strong> {selectedUser.last_sign_in_at ? new Date(selectedUser.last_sign_in_at).toLocaleString('pt-BR') : 'Nunca'}</p>
                 </div>
               </div>
 
@@ -515,77 +822,123 @@ const GerenciamentoUsuariosPage = () => {
               </div>
 
               {/* Assinatura */}
-              {selectedSubscriber && (
-                <div className="space-y-4">
-                  <h3 className="font-medium">Assinatura</h3>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      checked={selectedSubscriber.subscribed}
-                      onCheckedChange={(checked) => {
+              <div className="space-y-4">
+                <h3 className="font-medium">Assinatura</h3>
+                
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={selectedSubscriber?.subscribed || false}
+                    onCheckedChange={(checked) => {
+                      if (!selectedSubscriber) {
+                        setSelectedSubscriber({
+                          id: '',
+                          email: selectedUser.email,
+                          user_id: selectedUser.id,
+                          subscribed: checked,
+                          created_at: new Date().toISOString(),
+                          updated_at: new Date().toISOString()
+                        });
+                      } else {
                         setSelectedSubscriber({
                           ...selectedSubscriber,
                           subscribed: checked
                         });
-                      }}
-                    />
-                    <Label>Assinatura Ativa</Label>
-                  </div>
+                      }
+                    }}
+                  />
+                  <Label>Assinatura Ativa</Label>
+                </div>
 
-                  <div className="space-y-3">
-                    <Label>Plano</Label>
-                    <Select
-                      value={selectedSubscriber.subscription_tier || ''}
-                      onValueChange={(value) => {
+                <div className="space-y-3">
+                  <Label>Plano</Label>
+                  <Select
+                    value={selectedSubscriber?.subscription_tier || ''}
+                    onValueChange={(value) => {
+                      if (!selectedSubscriber) {
+                        setSelectedSubscriber({
+                          id: '',
+                          email: selectedUser.email,
+                          user_id: selectedUser.id,
+                          subscribed: false,
+                          subscription_tier: value,
+                          created_at: new Date().toISOString(),
+                          updated_at: new Date().toISOString()
+                        });
+                      } else {
                         setSelectedSubscriber({
                           ...selectedSubscriber,
                           subscription_tier: value
                         });
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o plano" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="basico">Básico</SelectItem>
-                        <SelectItem value="profissional">Profissional</SelectItem>
-                        <SelectItem value="equipes">Equipes</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label>Data Fim do Trial</Label>
-                    <Input
-                      type="datetime-local"
-                      value={selectedSubscriber.trial_end_date ? 
-                        new Date(selectedSubscriber.trial_end_date).toISOString().slice(0, 16) : 
-                        ''
                       }
-                      onChange={(e) => {
-                        setSelectedSubscriber({
-                          ...selectedSubscriber,
-                          trial_end_date: e.target.value ? new Date(e.target.value).toISOString() : undefined
-                        });
-                      }}
-                    />
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label>Propostas Usadas no Trial</Label>
-                    <Input
-                      type="number"
-                      value={selectedSubscriber.trial_proposals_used || 0}
-                      onChange={(e) => {
-                        setSelectedSubscriber({
-                          ...selectedSubscriber,
-                          trial_proposals_used: parseInt(e.target.value) || 0
-                        });
-                      }}
-                    />
-                  </div>
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o plano" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="basico">Essencial</SelectItem>
+                      <SelectItem value="profissional">Profissional</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
+
+                <div className="space-y-3">
+                  <Label>Data Fim do Trial</Label>
+                  <Input
+                    type="datetime-local"
+                    value={selectedSubscriber?.trial_end_date ? 
+                      new Date(selectedSubscriber.trial_end_date).toISOString().slice(0, 16) : 
+                      ''
+                    }
+                    onChange={(e) => {
+                      const newDate = e.target.value ? new Date(e.target.value).toISOString() : undefined;
+                      if (!selectedSubscriber) {
+                        setSelectedSubscriber({
+                          id: '',
+                          email: selectedUser.email,
+                          user_id: selectedUser.id,
+                          subscribed: false,
+                          trial_end_date: newDate,
+                          created_at: new Date().toISOString(),
+                          updated_at: new Date().toISOString()
+                        });
+                      } else {
+                        setSelectedSubscriber({
+                          ...selectedSubscriber,
+                          trial_end_date: newDate
+                        });
+                      }
+                    }}
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <Label>Propostas Usadas no Trial</Label>
+                  <Input
+                    type="number"
+                    value={selectedSubscriber?.trial_proposals_used || 0}
+                    onChange={(e) => {
+                      const newValue = parseInt(e.target.value) || 0;
+                      if (!selectedSubscriber) {
+                        setSelectedSubscriber({
+                          id: '',
+                          email: selectedUser.email,
+                          user_id: selectedUser.id,
+                          subscribed: false,
+                          trial_proposals_used: newValue,
+                          created_at: new Date().toISOString(),
+                          updated_at: new Date().toISOString()
+                        });
+                      } else {
+                        setSelectedSubscriber({
+                          ...selectedSubscriber,
+                          trial_proposals_used: newValue
+                        });
+                      }
+                    }}
+                  />
+                </div>
+              </div>
 
               <div className="flex justify-end gap-3">
                 <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>

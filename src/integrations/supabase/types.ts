@@ -24,6 +24,7 @@ export type Database = {
           description: string | null
           email: string | null
           id: string
+          logo_url: string | null
           name: string
           phone: string | null
           state: string | null
@@ -41,6 +42,7 @@ export type Database = {
           description?: string | null
           email?: string | null
           id?: string
+          logo_url?: string | null
           name: string
           phone?: string | null
           state?: string | null
@@ -58,6 +60,7 @@ export type Database = {
           description?: string | null
           email?: string | null
           id?: string
+          logo_url?: string | null
           name?: string
           phone?: string | null
           state?: string | null
@@ -100,6 +103,41 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      proposal_notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          notified: boolean | null
+          proposal_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          notified?: boolean | null
+          proposal_id?: string | null
+          status: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          notified?: boolean | null
+          proposal_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_notifications_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       proposals: {
         Row: {
