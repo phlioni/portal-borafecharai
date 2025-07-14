@@ -92,11 +92,12 @@ const ConfiguracoesPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
               {/* Plano Básico */}
               <SubscriptionPlanCard
-                planId="basico"
                 title="Básico"
-                price="R$ 27"
-                period="por mês"
                 description="Ideal para freelancers e pequenos negócios"
+                price="R$ 27"
+                priceId="price_basic"
+                productId="prod_basic"
+                planTier="basico"
                 features={[
                   { text: "10 propostas por mês", included: true },
                   { text: "3 templates profissionais", included: true },
@@ -104,17 +105,17 @@ const ConfiguracoesPage = () => {
                   { text: "Acompanhamento básico", included: true },
                   { text: "Suporte por email", included: true }
                 ]}
-                buttonText="Escolher Básico"
                 popular={false}
               />
 
               {/* Plano Profissional */}
               <SubscriptionPlanCard
-                planId="profissional"
                 title="Profissional"
-                price="R$ 47"
-                period="por mês"
                 description="Para empresas que querem crescer"
+                price="R$ 47"
+                priceId="price_professional"
+                productId="prod_professional"
+                planTier="profissional"
                 features={[
                   { text: "Propostas ilimitadas", included: true },
                   { text: "Templates personalizados", included: true },
@@ -124,14 +125,7 @@ const ConfiguracoesPage = () => {
                   { text: "Notificações Telegram", included: true },
                   { text: "Suporte prioritário", included: true }
                 ]}
-                buttonText="Escolher Profissional"
                 popular={true}
-                highlight={
-                  <div className="flex items-center gap-2 text-blue-600 mb-4">
-                    <Crown className="h-4 w-4" />
-                    <span className="text-sm font-medium">Mais Popular</span>
-                  </div>
-                }
               />
             </div>
 
