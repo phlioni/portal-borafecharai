@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Building, Save, User, MapPin, Globe, Phone, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Company {
   id: string;
@@ -32,6 +33,7 @@ export const ClientEditModal: React.FC<ClientEditModalProps> = ({
   onCompanyUpdated,
 }) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -67,20 +69,61 @@ export const ClientEditModal: React.FC<ClientEditModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!company) return;
+    if (!company || !user) return;
+
+    // Verificar se a empresa pertence ao usuário atual
+    if (company.user_id !== user.id) {
+      toast({
+        title: "Erro de Segurança",
+        description: "Você não tem permissão para modificar esta empresa.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsLoading(true);
     try {
+      // Verificar se o telefone já existe para outro usuário (se telefone foi fornecido e alterado)
+      if (formData.phone && formData.phone.trim() !== '' && formData.phone !== company.phone) {
+        const { data: existingCompany, error: checkError } = await supabase
+          .from('companies')
+          .select('id, user_id')
+          .eq('phone', formData.phone)
+          .neq('id', company.id)
+          .single();
+
+        if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found
+          console.error('Error checking phone uniqueness:', checkError);
+          throw new Error('Erro ao verificar telefone');
+        }
+
+        if (existingCompany) {
+          toast({
+            title: "Telefone já cadastrado",
+            description: "Este telefone já está sendo usado por outro usuário.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
       const { error } = await supabase
         .from('companies')
         .update({
           name: formData.name,
           email: formData.email || null,
           phone: formData.phone || null,
+          updated_at: new Date().toISOString()
         })
-        .eq('id', company.id);
+        .eq('id', company.id)
+        .eq('user_id', user.id); // Garantir que só atualiza empresa do próprio usuário
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes('unique_phone_per_user')) {
+          throw new Error('Este telefone já está cadastrado');
+        }
+        throw error;
+      }
 
       toast({
         title: "Sucesso",
@@ -89,11 +132,11 @@ export const ClientEditModal: React.FC<ClientEditModalProps> = ({
 
       onCompanyUpdated();
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao atualizar cliente:', error);
       toast({
         title: "Erro",
-        description: "Erro ao atualizar cliente. Tente novamente.",
+        description: error.message || "Erro ao atualizar cliente. Tente novamente.",
         variant: "destructive",
       });
     } finally {
