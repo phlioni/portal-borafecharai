@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.5'
@@ -33,7 +34,6 @@ serve(async (req) => {
   try {
     console.log('=== Iniciando processamento de envio de email ===');
     console.log('Method:', req.method);
-    console.log('Headers:', Object.fromEntries(req.headers.entries()));
     
     // Verificar se é uma requisição POST
     if (req.method !== 'POST') {
@@ -134,147 +134,241 @@ serve(async (req) => {
 
     console.log('Proposta encontrada:', proposal.title);
 
-    // URL pública da proposta - corrigir a construção da URL
+    // URL pública da proposta
     let finalPublicUrl = publicUrl;
     if (!finalPublicUrl) {
-      // Usar o domínio correto baseado no ambiente
       const baseUrl = supabaseUrl.includes('localhost') 
         ? 'http://localhost:8080' 
-        : supabaseUrl.replace('/rest/v1', '').replace('supabase.co', 'vercel.app');
+        : 'https://preview--proposta-inteligente-brasil.lovable.app';
       finalPublicUrl = `${baseUrl}/proposta/${proposal.public_hash}`;
     }
     console.log('URL pública final:', finalPublicUrl);
 
-    // Template de email personalizado ou padrão
-    const defaultSubject = `Proposta: ${proposal.title}`;
+    // Template de email otimizado
+    const defaultSubject = `Sua proposta para o projeto ${proposal.title} está pronta`;
     const defaultMessage = `
 Olá ${recipientName},
 
-Estou enviando a proposta "${proposal.title}" para sua análise.
+Espero que esteja bem!
 
-Esta proposta é válida por tempo limitado. Clique no link abaixo para visualizar:
+Sua proposta para o projeto "${proposal.title}" está finalizada e disponível para visualização.
+
+Preparamos esta proposta cuidadosamente para atender às suas necessidades específicas. Para acessar todos os detalhes, clique no link abaixo:
 
 ${finalPublicUrl}
 
-Detalhes da proposta:
-- Valor: ${proposal.value ? `R$ ${proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'A definir'}
-- Prazo: ${proposal.delivery_time || 'A definir'}
-${proposal.validity_date ? `- Válida até: ${new Date(proposal.validity_date).toLocaleDateString('pt-BR')}` : ''}
+Resumo do que incluímos:
+• Análise detalhada do seu projeto
+• Cronograma personalizado
+• Investimento transparente
+• Suporte durante toda a execução
 
-Fico à disposição para esclarecer qualquer dúvida.
+Informações da proposta:
+${proposal.value ? `• Investimento: R$ ${proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : ''}
+${proposal.delivery_time ? `• Prazo: ${proposal.delivery_time}` : ''}
+${proposal.validity_date ? `• Válida até: ${new Date(proposal.validity_date).toLocaleDateString('pt-BR')}` : ''}
+
+Fico à disposição para esclarecer qualquer dúvida e discutir os próximos passos.
+
+Aguardo seu retorno!
 
 Atenciosamente,
-Equipe de Propostas
+Equipe Bora Fechar AI
     `.trim();
 
-    // Construir HTML da proposta para o email
+    // Construir HTML otimizado da proposta para o email
     const proposalHtml = `
       <!DOCTYPE html>
-      <html>
+      <html lang="pt-BR">
         <head>
           <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Proposta Comercial - ${proposal.title}</title>
           <style>
             body { 
-              font-family: Arial, sans-serif; 
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
               line-height: 1.6; 
-              color: #333; 
+              color: #333333; 
               max-width: 600px; 
               margin: 0 auto; 
-              padding: 20px; 
+              padding: 20px;
+              background-color: #f8f9fa;
+            }
+            .container {
+              background-color: #ffffff;
+              border-radius: 8px;
+              overflow: hidden;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             }
             .header { 
               text-align: center; 
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+              background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); 
               color: white; 
-              padding: 30px; 
-              border-radius: 8px; 
-              margin-bottom: 30px; 
+              padding: 30px 20px;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 24px;
+              font-weight: 600;
+            }
+            .header p {
+              margin: 8px 0 0 0;
+              opacity: 0.9;
+              font-size: 16px;
             }
             .content { 
-              background: #f8f9fa; 
-              padding: 30px; 
-              border-radius: 8px; 
-              margin-bottom: 30px; 
+              padding: 30px 20px;
+            }
+            .content p {
+              margin: 0 0 16px 0;
             }
             .button { 
               display: inline-block; 
-              background: #667eea; 
+              background: #4f46e5; 
               color: white; 
-              padding: 15px 30px; 
+              padding: 14px 28px; 
               text-decoration: none; 
-              border-radius: 5px; 
-              font-weight: bold; 
-              margin: 20px 0; 
+              border-radius: 6px; 
+              font-weight: 600;
+              font-size: 16px;
+              margin: 24px 0; 
+              text-align: center;
             }
-            .footer { 
-              text-align: center; 
-              color: #666; 
-              font-size: 14px; 
-              margin-top: 40px; 
-              padding-top: 20px; 
-              border-top: 1px solid #eee; 
+            .button:hover {
+              background: #4338ca;
             }
             .proposal-details {
-              background: white;
+              background: #f8f9fa;
               padding: 20px;
-              border-radius: 5px;
-              margin: 20px 0;
+              border-radius: 6px;
+              margin: 24px 0;
+              border-left: 4px solid #4f46e5;
+            }
+            .proposal-details h3 {
+              margin: 0 0 16px 0;
+              color: #1f2937;
+              font-size: 18px;
+            }
+            .proposal-details p {
+              margin: 8px 0;
+              color: #4b5563;
+            }
+            .footer { 
+              background: #f8f9fa;
+              padding: 30px 20px;
+              text-align: center;
+              border-top: 1px solid #e5e7eb;
+            }
+            .footer p {
+              margin: 8px 0;
+              color: #6b7280;
+              font-size: 14px;
+            }
+            .footer .company-info {
+              margin-top: 20px;
+              padding-top: 20px;
+              border-top: 1px solid #e5e7eb;
+            }
+            .footer .company-info p {
+              margin: 4px 0;
+            }
+            .unsubscribe {
+              margin-top: 20px;
+              font-size: 12px;
+              color: #9ca3af;
+            }
+            .unsubscribe a {
+              color: #4f46e5;
+              text-decoration: none;
+            }
+            ul {
+              padding-left: 20px;
+              margin: 16px 0;
+            }
+            li {
+              margin: 8px 0;
+              color: #4b5563;
             }
           </style>
         </head>
         <body>
-          <div class="header">
-            <h1>${proposal.title}</h1>
-            <p>Proposta Comercial</p>
-          </div>
-
-          <div class="content">
-            <p>Olá <strong>${recipientName}</strong>,</p>
-            
-            <p>${emailMessage ? emailMessage.replace(/\n/g, '<br>').replace('[LINK_DA_PROPOSTA]', `<a href="${finalPublicUrl}" class="button">Ver Proposta</a>`) : defaultMessage.replace(/\n/g, '<br>')}</p>
-            
-            <div class="proposal-details">
-              <h3>Resumo da Proposta</h3>
-              ${proposal.service_description ? `<p><strong>Serviço:</strong> ${proposal.service_description}</p>` : ''}
-              ${proposal.value ? `<p><strong>Valor:</strong> R$ ${proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>` : ''}
-              ${proposal.delivery_time ? `<p><strong>Prazo:</strong> ${proposal.delivery_time}</p>` : ''}
-              ${proposal.validity_date ? `<p><strong>Válida até:</strong> ${new Date(proposal.validity_date).toLocaleDateString('pt-BR')}</p>` : ''}
+          <div class="container">
+            <div class="header">
+              <h1>${proposal.title}</h1>
+              <p>Proposta Comercial</p>
             </div>
 
-            <div style="text-align: center;">
-              <a href="${finalPublicUrl}" class="button">
-                📄 Visualizar Proposta Completa
-              </a>
+            <div class="content">
+              <p>Olá <strong>${recipientName}</strong>,</p>
+              
+              ${emailMessage ? 
+                emailMessage.replace(/\n/g, '</p><p>').replace('[LINK_DA_PROPOSTA]', `</p><div style="text-align: center;"><a href="${finalPublicUrl}" class="button">📄 Visualizar Proposta Completa</a></div><p>`)
+                : 
+                `<p>Espero que esteja bem!</p>
+                <p>Sua proposta para o projeto "<strong>${proposal.title}</strong>" está finalizada e disponível para visualização.</p>
+                <p>Preparamos esta proposta cuidadosamente para atender às suas necessidades específicas. Para acessar todos os detalhes, clique no botão abaixo:</p>
+                <div style="text-align: center;">
+                  <a href="${finalPublicUrl}" class="button">📄 Visualizar Proposta Completa</a>
+                </div>
+                <p>Resumo do que incluímos:</p>
+                <ul>
+                  <li>Análise detalhada do seu projeto</li>
+                  <li>Cronograma personalizado</li>
+                  <li>Investimento transparente</li>
+                  <li>Suporte durante toda a execução</li>
+                </ul>`
+              }
+              
+              <div class="proposal-details">
+                <h3>Resumo da Proposta</h3>
+                ${proposal.service_description ? `<p><strong>Serviço:</strong> ${proposal.service_description}</p>` : ''}
+                ${proposal.value ? `<p><strong>Investimento:</strong> R$ ${proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>` : ''}
+                ${proposal.delivery_time ? `<p><strong>Prazo:</strong> ${proposal.delivery_time}</p>` : ''}
+                ${proposal.validity_date ? `<p><strong>Válida até:</strong> ${new Date(proposal.validity_date).toLocaleDateString('pt-BR')}</p>` : ''}
+              </div>
+
+              <p>Fico à disposição para esclarecer qualquer dúvida e discutir os próximos passos.</p>
+              <p>Aguardo seu retorno!</p>
+              <p>Atenciosamente,<br><strong>Equipe Bora Fechar AI</strong></p>
             </div>
 
-            <p style="font-size: 14px; color: #666; margin-top: 20px;">
-              💡 <strong>Dica:</strong> Na página da proposta, você pode baixar o arquivo em PDF para guardar ou imprimir.
-            </p>
-          </div>
+            <div class="footer">
+              <p><strong>💡 Dica:</strong> Na página da proposta, você pode baixar o arquivo em PDF para guardar ou imprimir.</p>
+              
+              <div class="company-info">
+                <p><strong>Bora Fechar AI</strong></p>
+                <p>Rua das Tecnologias, 123 - Centro</p>
+                <p>São Paulo, SP - CEP: 01234-567</p>
+                <p>Telefone: (11) 9999-8888</p>
+                <p>Site: <a href="https://www.borafecharai.com" style="color: #4f46e5;">www.borafecharai.com</a></p>
+              </div>
 
-          <div class="footer">
-            <p>Esta proposta foi gerada automaticamente pelo sistema</p>
-            <p>Data: ${new Date().toLocaleDateString('pt-BR')}</p>
-            ${proposal.validity_date ? `<p><strong>⚠️ Atenção:</strong> Esta proposta expira em ${new Date(proposal.validity_date).toLocaleDateString('pt-BR')}</p>` : ''}
+              <div class="unsubscribe">
+                <p>Se não quiser mais receber e-mails sobre esta proposta, <a href="${finalPublicUrl}">clique aqui para gerenciar suas preferências</a>.</p>
+                <p>Esta proposta foi gerada em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}</p>
+                ${proposal.validity_date ? `<p><strong>⚠️ Atenção:</strong> Esta proposta expira em ${new Date(proposal.validity_date).toLocaleDateString('pt-BR')}</p>` : ''}
+              </div>
+            </div>
           </div>
         </body>
       </html>
     `;
 
     console.log('Enviando email via Resend...');
-    console.log('Resend API Key presente:', !!resendApiKey);
 
     // Enviar email via Resend
     const emailPayload = {
-      from: 'Propostas <contato@borafecharai.com>',
+      from: 'Bora Fechar AI <propostas@borafecharai.com>',
       to: [recipientEmail],
       subject: emailSubject || defaultSubject,
       html: proposalHtml,
+      text: emailMessage ? emailMessage.replace('[LINK_DA_PROPOSTA]', finalPublicUrl) : defaultMessage,
     };
 
     console.log('Payload do email:', {
       ...emailPayload,
-      html: '[HTML_CONTENT]' // Não logar o HTML completo
+      html: '[HTML_CONTENT]',
+      text: '[TEXT_CONTENT]'
     });
 
     const emailResponse = await fetch('https://api.resend.com/emails', {

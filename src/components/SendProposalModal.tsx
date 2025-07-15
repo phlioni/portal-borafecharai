@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -38,8 +39,8 @@ const SendProposalModal = ({
     setFormData({
       recipientEmail: clientEmail || '',
       recipientName: clientName || '',
-      emailSubject: `Nova Proposta Comercial - ${proposalTitle}`,
-      emailMessage: `Olá ${clientName || 'Cliente'},\n\nEspero que esteja bem!\n\nTenho o prazer de apresentar nossa proposta comercial para "${proposalTitle}".\n\nPrepareamos esta proposta especialmente para atender às suas necessidades. Clique no link abaixo para visualizar todos os detalhes:\n\n[LINK_DA_PROPOSTA]\n\nDestaco alguns pontos importantes:\n• Proposta elaborada especificamente para seu projeto\n• Valores competitivos e condições facilitadas\n• Prazo de entrega otimizado\n• Suporte completo durante todo o processo\n\nEstou à disposição para esclarecer qualquer dúvida e discutir os próximos passos.\n\nAguardo seu retorno!\n\nAtenciosamente,\nEquipe Comercial\nBora Fechar AI`
+      emailSubject: `Sua proposta para o projeto ${proposalTitle} está pronta`,
+      emailMessage: `Olá ${clientName || 'Cliente'},\n\nEspero que esteja bem!\n\nSua proposta para o projeto "${proposalTitle}" está finalizada e disponível para visualização.\n\nPreparamos esta proposta cuidadosamente para atender às suas necessidades específicas. Para acessar todos os detalhes, clique no link abaixo:\n\n[LINK_DA_PROPOSTA]\n\nResumo do que incluímos:\n• Análise detalhada do seu projeto\n• Cronograma personalizado\n• Investimento transparente\n• Suporte durante toda a execução\n\nFico à disposição para esclarecer qualquer dúvida e discutir os próximos passos.\n\nAguardo seu retorno!\n\nAtenciosamente,\n[SEU_NOME]\nBora Fechar AI`
     });
   }, [proposalTitle, clientName, clientEmail]);
 
