@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.5";
 
@@ -68,7 +67,7 @@ async function findUserByPhone(phone: string) {
   return null;
 }
 
-// Função para salvar sessão
+// Função para salvar sessão - CORRIGIDA para usar UPSERT
 async function saveSession(telegramUserId: number, chatId: number, session: Session) {
   console.log('💾 Salvando sessão:', { telegramUserId, chatId, session });
   
@@ -83,6 +82,8 @@ async function saveSession(telegramUserId: number, chatId: number, session: Sess
       user_profile: session.userProfile || {},
       updated_at: new Date().toISOString(),
       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    }, {
+      onConflict: 'telegram_user_id'
     });
 
   if (error) {
