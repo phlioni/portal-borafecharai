@@ -17,7 +17,6 @@ interface DashboardData {
       name: string;
     } | null;
   }>;
-  monthlyProposalCount: number;
 }
 
 export const useDashboardData = () => {
@@ -67,10 +66,6 @@ export const useDashboardData = () => {
         .order('created_at', { ascending: false })
         .limit(1);
 
-      // Get monthly proposal count using the database function
-      const { data: monthlyCount } = await supabase
-        .rpc('get_monthly_proposal_count', { _user_id: user.id });
-
       // Get proposals expiring soon (next 30 days)
       const thirtyDaysFromNow = new Date();
       thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
@@ -98,7 +93,6 @@ export const useDashboardData = () => {
         totalProposalsApproved: totalProposalsApproved || 0,
         lastProposalSentAt: lastProposal?.[0]?.created_at || null,
         proposalsExpiringSoon: proposalsExpiringSoon || [],
-        monthlyProposalCount: monthlyCount || 0,
       };
     },
     enabled: !!user?.id,

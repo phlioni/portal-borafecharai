@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,12 +25,12 @@ interface Proposal {
     name: string;
     email?: string;
     phone?: string;
-    logo_url?: string;
   };
 }
 
 export const useProposals = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   return useQuery({
     queryKey: ['proposals', user?.id],
@@ -45,8 +44,7 @@ export const useProposals = () => {
           companies (
             name,
             email,
-            phone,
-            logo_url
+            phone
           )
         `)
         .eq('user_id', user.id)
@@ -79,8 +77,7 @@ export const useCreateProposal = () => {
           companies (
             name,
             email,
-            phone,
-            logo_url
+            phone
           )
         `)
         .single();
@@ -94,7 +91,6 @@ export const useCreateProposal = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
     },
   });
 };
@@ -117,8 +113,7 @@ export const useUpdateProposal = () => {
           companies (
             name,
             email,
-            phone,
-            logo_url
+            phone
           )
         `)
         .single();
@@ -132,38 +127,11 @@ export const useUpdateProposal = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
     },
   });
 };
 
-export const useDeleteProposal = () => {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      if (!user) throw new Error('User not authenticated');
-
-      const { error } = await supabase
-        .from('proposals')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error('Error deleting proposal:', error);
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['proposals'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
-    },
-  });
-};
-
-// Legacy hook for backward compatibility - mantido para não quebrar outros componentes
+// Legacy hook for backward compatibility
 export const useProposal = () => {
   const { user } = useAuth();
   const [proposals, setProposals] = useState<Proposal[]>([]);
@@ -185,8 +153,7 @@ export const useProposal = () => {
           companies (
             name,
             email,
-            phone,
-            logo_url
+            phone
           )
         `)
         .eq('user_id', user.id)
@@ -203,6 +170,71 @@ export const useProposal = () => {
       console.error('Error fetching proposals:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const createProposal = async (proposalData: Omit<Proposal, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
+    if (!user) throw new Error('User not authenticated');
+
+    try {
+      const { data, error } = await supabase
+        .from('proposals')
+        .insert([{
+          ...proposalData,
+          user_id: user.id
+        }])
+        .select(`
+          *,
+          companies (
+            name,
+            email,
+            phone
+          )
+        `)
+        .single();
+
+      if (error) {
+        console.error('Error creating proposal:', error);
+        throw error;
+      }
+
+      await fetchProposals();
+      return data;
+    } catch (error) {
+      console.error('Error creating proposal:', error);
+      throw error;
+    }
+  };
+
+  const updateProposal = async (id: string, updates: Partial<Proposal>) => {
+    if (!user) throw new Error('User not authenticated');
+
+    try {
+      const { data, error } = await supabase
+        .from('proposals')
+        .update(updates)
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .select(`
+          *,
+          companies (
+            name,
+            email,
+            phone
+          )
+        `)
+        .single();
+
+      if (error) {
+        console.error('Error updating proposal:', error);
+        throw error;
+      }
+
+      await fetchProposals();
+      return data;
+    } catch (error) {
+      console.error('Error updating proposal:', error);
+      throw error;
     }
   };
 
@@ -236,6 +268,8 @@ export const useProposal = () => {
     proposals,
     loading,
     fetchProposals,
+    createProposal,
+    updateProposal,
     deleteProposal
   };
 };
