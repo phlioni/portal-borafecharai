@@ -1,8 +1,11 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const supabaseUrl = Deno.env.get('SUPABASE_URL');
+const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,7 +18,10 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, action } = await req.json();
+    const { messages, action, user_id } = await req.json();
+    
+    // Inicializar cliente Supabase se necessário
+    const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
     let systemPrompt = '';
     
@@ -35,6 +41,7 @@ serve(async (req) => {
          - Itens de materiais (descrição, quantidade, valor unitário)
          - Itens de mão de obra (descrição, quantidade, valor unitário)
       8. Observações especiais
+      9. Forma de pagamento (à vista, parcelado, etc.)
       
       Seja amigável, profissional e faça perguntas inteligentes para entender o contexto do negócio.
       
@@ -43,24 +50,70 @@ serve(async (req) => {
       
       Essa frase específica irá ativar automaticamente um botão especial para gerar a proposta.`;
     } else if (action === 'generate') {
+      // Buscar dados de clientes existentes se o usuário foi fornecido
+      let clientData = null;
+      if (supabase && user_id) {
+        try {
+          // Extrair informações de cliente das mensagens para buscar no banco
+          const conversationText = messages.map((msg: any) => msg.content).join(' ');
+          
+          // Buscar empresas/clientes cadastrados pelo usuário
+          const { data: companies } = await supabase
+            .from('companies')
+            .select('*')
+            .eq('user_id', user_id);
+          
+          if (companies && companies.length > 0) {
+            // Tentar encontrar correspondência com base no nome mencionado na conversa
+            for (const company of companies) {
+              if (company.name && conversationText.toLowerCase().includes(company.name.toLowerCase())) {
+                clientData = company;
+                break;
+              }
+              if (company.email && conversationText.toLowerCase().includes(company.email.toLowerCase())) {
+                clientData = company;
+                break;
+              }
+              if (company.phone && conversationText.includes(company.phone)) {
+                clientData = company;
+                break;
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Erro ao buscar dados do cliente:', error);
+        }
+      }
+
       systemPrompt = `Você é um especialista em gerar propostas comerciais estruturadas.
       
       Analise CUIDADOSAMENTE toda a conversa anterior e extraia as informações específicas mencionadas pelo usuário.
       
+      ${clientData ? `DADOS DO CLIENTE ENCONTRADOS NO BANCO:
+      - Nome: ${clientData.name}
+      - Email: ${clientData.email || ''}
+      - Telefone: ${clientData.phone || ''}
+      - Endereço: ${clientData.address || ''}
+      - Cidade: ${clientData.city || ''}
+      - Estado: ${clientData.state || ''}
+      
+      Use estes dados como base e complete com as informações da conversa.` : ''}
+      
       IMPORTANTE: A proposta seguirá um padrão único e padronizado. O valor total será calculado automaticamente com base nos itens de serviços e materiais.
       
-      Retorne APENAS um JSON válido no seguinte formato, usando as informações EXATAS da conversa:
+      Retorne APENAS um JSON válido no seguinte formato, usando as informações EXATAS da conversa e dados do cliente:
       
       {
         "titulo": "título específico mencionado pelo usuário ou nome do serviço",
-        "cliente": "nome exato do cliente/empresa mencionado",
+        "cliente": "${clientData?.name || 'nome exato do cliente/empresa mencionado'}",
         "responsavel": "nome do responsável mencionado",
-        "email": "email mencionado ou ''",
-        "telefone": "telefone mencionado ou ''", 
+        "email": "${clientData?.email || 'email mencionado ou \'\''}",
+        "telefone": "${clientData?.phone || 'telefone mencionado ou \'\''}",
         "servico": "nome específico do serviço mencionado",
         "descricao": "descrição detalhada do serviço/projeto",
         "prazo": "prazo específico mencionado pelo usuário",
         "observacoes": "observações específicas mencionadas ou ''",
+        "forma_pagamento": "forma de pagamento mencionada ou 'À vista'",
         "budget_items": [
           {
             "type": "material" ou "labor",
@@ -73,7 +126,7 @@ serve(async (req) => {
       
       IMPORTANTE: 
       - Use APENAS informações que foram explicitamente mencionadas na conversa
-      - Se uma informação não foi mencionada, use uma string vazia ''
+      - Se uma informação não foi mencionada, use os dados do cliente ou uma string vazia ''
       - SEMPRE inclua os itens de orçamento no array "budget_items"
       - Seja específico e preciso com as informações extraídas
       - O valor total será calculado automaticamente pelo sistema com base nos itens

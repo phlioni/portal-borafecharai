@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -113,7 +112,8 @@ const ChatPropostaPage = () => {
             role: msg.type === 'user' ? 'user' : 'assistant',
             content: msg.content
           })),
-          action: 'generate'
+          action: 'generate',
+          user_id: user.id
         }
       });
 
@@ -178,7 +178,11 @@ const ChatPropostaPage = () => {
         value: totalValue > 0 ? totalValue : null,
         delivery_time: proposalData.prazo || '',
         observations: proposalData.observacoes || '',
-        companies: proposalData.cliente ? { name: proposalData.cliente } : null,
+        companies: proposalData.cliente ? { 
+          name: proposalData.cliente,
+          email: proposalData.email || '',
+          phone: proposalData.telefone || ''
+        } : null,
         created_at: new Date().toISOString(),
         user_id: user.id,
         // Incluir os itens de orçamento no formato correto para o hook useBudgetItems
@@ -206,6 +210,7 @@ const ChatPropostaPage = () => {
     } catch (error) {
       console.error('Erro ao gerar proposta:', error);
       toast.error('Erro ao gerar proposta. Tente novamente.');
+      setShowGenerateButton(true); // Mostrar o botão novamente em caso de erro
     } finally {
       setIsLoading(false);
     }
