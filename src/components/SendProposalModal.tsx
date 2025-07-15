@@ -73,18 +73,17 @@ const SendProposalModal = ({
       const processedSubject = processTemplate(template.email_subject_template || '', variables);
       const processedMessage = processTemplate(template.email_message_template || '', variables);
       
-      // Processar assinatura com validação de campos vazios
+      // Processar assinatura
       let processedSignature = processTemplate(template.email_signature || '', variables);
       
-      // Remover linhas vazias da assinatura quando campos estão vazios
+      // Filtrar campos vazios da assinatura
       if (processedSignature) {
         const signatureLines = processedSignature.split('\n').filter(line => {
           const trimmedLine = line.trim();
-          // Remove linhas que contêm apenas emojis seguidos de espaços vazios
-          if (trimmedLine === '📧' || trimmedLine === '📱') return false;
-          if (trimmedLine.startsWith('📧 ') && trimmedLine.length <= 3) return false;
-          if (trimmedLine.startsWith('📱 ') && trimmedLine.length <= 3) return false;
-          return trimmedLine.length > 0;
+          // Remove linhas vazias ou que contêm apenas emojis sem texto
+          if (trimmedLine === '' || trimmedLine === '📧' || trimmedLine === '📱') return false;
+          if (trimmedLine === '📧 ' || trimmedLine === '📱 ') return false;
+          return true;
         });
         processedSignature = signatureLines.join('\n');
       }
@@ -135,15 +134,14 @@ const SendProposalModal = ({
 
   const isFormValid = formData.recipientEmail.trim() && formData.recipientName.trim();
 
-  // Função para gerar preview do email com botão estilizado em azul com texto branco
+  // Função para gerar preview do email com botão azul e texto branco
   const generatePreviewMessage = () => {
     return formData.emailMessage.replace(
       '[LINK_DA_PROPOSTA]',
-      `
-      <div style="text-align: center; margin: 20px 0;">
+      `<div style="text-align: center; margin: 20px 0;">
         <a href="#" style="
           display: inline-block;
-          background: #2563eb;
+          background-color: #2563eb;
           color: white;
           padding: 12px 24px;
           text-decoration: none;
@@ -154,8 +152,7 @@ const SendProposalModal = ({
         ">
           📄 Visualizar Proposta
         </a>
-      </div>
-      `
+      </div>`
     );
   };
 
