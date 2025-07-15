@@ -35,7 +35,7 @@ export const useUserPermissions = () => {
         const adminRole = userRoles?.some(role => role.role === 'admin') || false;
         setIsAdmin(adminRole);
 
-        // Get monthly proposal count
+        // Get monthly proposal count (incluindo propostas do chat)
         const { data: monthlyCount } = await supabase
           .rpc('get_monthly_proposal_count', { _user_id: user.id });
 
@@ -72,11 +72,13 @@ export const useUserPermissions = () => {
           setCanAccessPremiumTemplates(true);
         } else if (subscribed) {
           if (subscription_tier === 'basico') {
-            proposalLimit = 10;
+            // Plano Essencial: limite de 20 propostas/mês
+            proposalLimit = 20;
             setCanAccessAnalytics(false);
             setCanAccessPremiumTemplates(false);
           } else if (subscription_tier === 'profissional') {
-            proposalLimit = null; // Unlimited
+            // Plano Professional: propostas ilimitadas
+            proposalLimit = null;
             setCanAccessAnalytics(true);
             setCanAccessPremiumTemplates(true);
           }

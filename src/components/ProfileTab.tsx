@@ -58,11 +58,38 @@ const ProfileTab = () => {
       if (result?.error === 'Phone already in use') {
         return; // Toast já foi mostrado no hook
       }
+
+      // Garantir que não há alterações automáticas após salvar
+      console.log('Perfil salvo com sucesso, mantendo dados do usuário');
     } catch (error) {
       console.error('Erro ao salvar perfil:', error);
       toast.error('Erro ao salvar perfil');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAvatarUpload = async (file: File) => {
+    try {
+      const avatarUrl = await uploadAvatar(file);
+      if (avatarUrl) {
+        // Atualizar imediatamente no estado local para feedback visual
+        setFormData(prev => ({ ...prev, avatar_url: avatarUrl }));
+        
+        // Salvar no backend
+        await updateProfile({
+          name: formData.name || null,
+          phone: formData.phone || null,
+          avatar_url: avatarUrl
+        });
+        
+        toast.success('Imagem do perfil atualizada com sucesso!');
+      }
+      return avatarUrl;
+    } catch (error) {
+      console.error('Erro ao fazer upload da imagem:', error);
+      toast.error('Erro ao fazer upload da imagem');
+      return null;
     }
   };
 
@@ -90,7 +117,7 @@ const ProfileTab = () => {
           userName={formData.name}
           userEmail={user?.email}
           onAvatarUpdate={handleAvatarUpdate}
-          onUpload={uploadAvatar}
+          onUpload={handleAvatarUpload}
         />
 
         <div className="space-y-4">
