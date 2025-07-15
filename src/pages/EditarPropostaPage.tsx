@@ -1,25 +1,31 @@
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Save, Eye } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useUpdateProposal } from '@/hooks/useProposals';
+import { useProposals, useUpdateProposal } from '@/hooks/useProposals';
 import { useCompanies } from '@/hooks/useCompanies';
-import BudgetItemsManager from '@/components/BudgetItemsManager';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
+import ProposalPreviewModal from '@/components/ProposalPreviewModal';
+import BudgetItemsManager from '@/components/BudgetItemsManager';
+import { useCreateBudgetItem } from '@/hooks/useBudgetItems';
 
 const EditarPropostaPage = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { data: proposals } = useProposals();
   const updateProposal = useUpdateProposal();
   const { data: companies } = useCompanies();
+  const createBudgetItem = useCreateBudgetItem();
+
+  const proposal = proposals?.find(p => p.id === id);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -33,22 +39,9 @@ const EditarPropostaPage = () => {
     template_id: 'moderno'
   });
 
-  const { data: proposal, isLoading } = useQuery({
-    queryKey: ['proposal', id],
-    queryFn: async () => {
-      if (!id) throw new Error('ID da proposta não fornecido');
-      
-      const { data, error } = await supabase
-        .from('proposals')
-        .select(`*, companies(*)`)
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!id,
-  });
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewProposal, setPreviewProposal] = useState(null);
+  const [companyLogo, setCompanyLogo] = useState('');
 
   useEffect(() => {
     if (proposal) {
@@ -57,7 +50,7 @@ const EditarPropostaPage = () => {
         company_id: proposal.company_id || '',
         service_description: proposal.service_description || '',
         detailed_description: proposal.detailed_description || '',
-        value: proposal.value?.toString() || '',
+        value: proposal.value ? proposal.value.toString() : '',
         delivery_time: proposal.delivery_time || '',
         validity_date: proposal.validity_date || '',
         observations: proposal.observations || '',
@@ -66,6 +59,37 @@ const EditarPropostaPage = () => {
     }
   }, [proposal]);
 
+  // Verificar se há itens pendentes do sessionStorage
+  useEffect(() => {
+    const pendingItems = sessionStorage.getItem('pendingBudgetItems');
+    if (pendingItems && id) {
+      const items = JSON.parse(pendingItems);
+      
+      // Salvar cada item no banco de dados
+      Promise.all(
+        items.map((item: any) => 
+          createBudgetItem.mutateAsync({
+            proposal_id: id,
+            type: item.type,
+            description: item.description,
+            quantity: item.quantity,
+            unit_price: item.unit_price
+          })
+        )
+      ).then(() => {
+        sessionStorage.removeItem('pendingBudgetItems');
+        toast.success('Itens do orçamento salvos com sucesso!');
+      }).catch((error) => {
+        console.error('Erro ao salvar itens do orçamento:', error);
+        toast.error('Erro ao salvar itens do orçamento');
+      });
+    }
+  }, [id, createBudgetItem]);
+
+  if (!proposal) {
+    return <div>Proposta não encontrada</div>;
+  }
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -73,28 +97,57 @@ const EditarPropostaPage = () => {
     }));
   };
 
+  const handlePreview = async () => {
+    if (!formData.title) {
+      toast.error('Título é obrigatório para visualizar');
+      return;
+    }
+
+    try {
+      // Buscar logo da empresa se selecionada
+      let logoUrl = '';
+      if (formData.company_id && companies) {
+        const selectedCompany = companies.find(c => c.id === formData.company_id);
+        logoUrl = selectedCompany?.logo_url || '';
+      }
+
+      const proposalForPreview = {
+        ...proposal,
+        ...formData,
+        value: formData.value ? parseFloat(formData.value.replace(/[^\d,]/g, '').replace(',', '.')) : null,
+        companies: formData.company_id && companies ? 
+          companies.find(c => c.id === formData.company_id) : null
+      };
+
+      setPreviewProposal(proposalForPreview);
+      setCompanyLogo(logoUrl);
+      setShowPreview(true);
+    } catch (error) {
+      console.error('Erro ao preparar preview:', error);
+      toast.error('Erro ao preparar visualização');
+    }
+  };
+
   const handleSave = async () => {
-    if (!id || !formData.title) {
+    if (!formData.title) {
       toast.error('Título é obrigatório');
       return;
     }
 
     try {
-      await updateProposal.mutateAsync({
-        id,
-        updates: {
-          title: formData.title,
-          company_id: formData.company_id || null,
-          service_description: formData.service_description || null,
-          detailed_description: formData.detailed_description || null,
-          value: formData.value ? parseFloat(formData.value.replace(/[^\d,]/g, '').replace(',', '.')) : null,
-          delivery_time: formData.delivery_time || null,
-          validity_date: formData.validity_date || null,
-          observations: formData.observations || null,
-          template_id: formData.template_id
-        }
-      });
+      const updates = {
+        title: formData.title,
+        company_id: formData.company_id || null,
+        service_description: formData.service_description || null,
+        detailed_description: formData.detailed_description || null,
+        value: formData.value ? parseFloat(formData.value.replace(/[^\d,]/g, '').replace(',', '.')) : null,
+        delivery_time: formData.delivery_time || null,
+        validity_date: formData.validity_date || null,
+        observations: formData.observations || null,
+        template_id: formData.template_id
+      };
 
+      await updateProposal.mutateAsync({ id: proposal.id, updates });
       toast.success('Proposta atualizada com sucesso!');
       navigate('/propostas');
     } catch (error) {
@@ -103,47 +156,24 @@ const EditarPropostaPage = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="p-6">
-        <LoadingSpinner message="Carregando proposta..." />
-      </div>
-    );
-  }
-
-  if (!proposal) {
-    return (
-      <div className="p-6 text-center">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">Proposta não encontrada</h1>
-        <Button asChild>
-          <Link to="/propostas">Voltar para Propostas</Link>
-        </Button>
-      </div>
-    );
-  }
-
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" asChild>
-            <Link to="/propostas">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar
-            </Link>
+          <Button variant="ghost" onClick={() => navigate('/propostas')}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Voltar
           </Button>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Editar Proposta</h1>
-            <p className="text-gray-600 mt-1">Modifique os dados da proposta</p>
+            <p className="text-gray-600 mt-1">Edite sua proposta comercial</p>
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" asChild>
-            <Link to={`/propostas/${id}`}>
-              <Eye className="h-4 w-4 mr-2" />
-              Visualizar
-            </Link>
+          <Button variant="outline" onClick={handlePreview}>
+            <Eye className="h-4 w-4 mr-2" />
+            Visualizar
           </Button>
           <Button onClick={handleSave} disabled={updateProposal.isPending}>
             <Save className="h-4 w-4 mr-2" />
@@ -165,23 +195,24 @@ const EditarPropostaPage = () => {
                 id="title"
                 value={formData.title}
                 onChange={(e) => handleInputChange('title', e.target.value)}
+                placeholder="Digite o título da proposta"
               />
             </div>
             <div>
               <Label htmlFor="company">Cliente</Label>
-              <select
-                id="company"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={formData.company_id}
-                onChange={(e) => handleInputChange('company_id', e.target.value)}
-              >
-                <option value="">Selecione um cliente</option>
-                {companies?.map((company) => (
-                  <option key={company.id} value={company.id}>
-                    {company.name}
-                  </option>
-                ))}
-              </select>
+              <Select value={formData.company_id} onValueChange={(value) => handleInputChange('company_id', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Nenhum cliente selecionado</SelectItem>
+                  {companies?.map((company) => (
+                    <SelectItem key={company.id} value={company.id}>
+                      {company.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label htmlFor="service_description">Resumo do Serviço</Label>
@@ -189,6 +220,7 @@ const EditarPropostaPage = () => {
                 id="service_description"
                 value={formData.service_description}
                 onChange={(e) => handleInputChange('service_description', e.target.value)}
+                placeholder="Breve descrição do serviço"
               />
             </div>
             <div>
@@ -198,6 +230,7 @@ const EditarPropostaPage = () => {
                 rows={4}
                 value={formData.detailed_description}
                 onChange={(e) => handleInputChange('detailed_description', e.target.value)}
+                placeholder="Descrição completa do projeto/serviço"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -207,6 +240,7 @@ const EditarPropostaPage = () => {
                   id="value"
                   value={formData.value}
                   onChange={(e) => handleInputChange('value', e.target.value)}
+                  placeholder="R$ 0,00"
                 />
               </div>
               <div>
@@ -215,6 +249,7 @@ const EditarPropostaPage = () => {
                   id="delivery_time"
                   value={formData.delivery_time}
                   onChange={(e) => handleInputChange('delivery_time', e.target.value)}
+                  placeholder="Ex: 30 dias"
                 />
               </div>
             </div>
@@ -228,20 +263,45 @@ const EditarPropostaPage = () => {
               />
             </div>
             <div>
+              <Label htmlFor="template_id">Modelo de Template</Label>
+              <Select value={formData.template_id} onValueChange={(value) => handleInputChange('template_id', value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="moderno">Moderno</SelectItem>
+                  <SelectItem value="executivo">Executivo</SelectItem>
+                  <SelectItem value="criativo">Criativo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
               <Label htmlFor="observations">Observações</Label>
               <Textarea
                 id="observations"
                 rows={3}
                 value={formData.observations}
                 onChange={(e) => handleInputChange('observations', e.target.value)}
+                placeholder="Observações adicionais"
               />
             </div>
           </CardContent>
         </Card>
 
         {/* Budget Items Manager */}
-        <BudgetItemsManager proposalId={id!} />
+        <BudgetItemsManager proposalId={proposal.id} />
       </div>
+
+      {/* Preview Modal */}
+      {showPreview && previewProposal && (
+        <ProposalPreviewModal
+          isOpen={showPreview}
+          onClose={() => setShowPreview(false)}
+          onContinue={handleSave}
+          proposal={previewProposal}
+          companyLogo={companyLogo}
+        />
+      )}
     </div>
   );
 };
