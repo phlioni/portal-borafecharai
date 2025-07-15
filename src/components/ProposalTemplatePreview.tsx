@@ -12,9 +12,10 @@ interface ProposalData {
 
 interface ProposalTemplatePreviewProps {
   data: ProposalData;
+  className?: string;
 }
 
-const ProposalTemplatePreview: React.FC<ProposalTemplatePreviewProps> = ({ data }) => {
+const ProposalTemplatePreview: React.FC<ProposalTemplatePreviewProps> = ({ data, className }) => {
   const formatCurrency = (value?: number) => {
     if (!value) return 'A combinar';
     return new Intl.NumberFormat('pt-BR', {
@@ -31,14 +32,14 @@ const ProposalTemplatePreview: React.FC<ProposalTemplatePreviewProps> = ({ data 
       return (
         <div 
           dangerouslySetInnerHTML={{ __html: description }}
-          className="prose prose-sm max-w-none"
+          className="prose prose-sm max-w-none [&>*]:mb-3 [&>ul]:list-disc [&>ul]:pl-5 [&>ol]:list-decimal [&>ol]:pl-5 [&>h1]:text-xl [&>h1]:font-bold [&>h2]:text-lg [&>h2]:font-semibold [&>h3]:text-base [&>h3]:font-medium [&>p]:text-sm [&>p]:leading-relaxed"
         />
       );
     }
     
     // Se não contém HTML, renderizar como texto simples com quebras de linha
     return (
-      <div className="whitespace-pre-wrap">
+      <div className="whitespace-pre-wrap text-sm leading-relaxed">
         {description}
       </div>
     );
@@ -73,7 +74,7 @@ const ProposalTemplatePreview: React.FC<ProposalTemplatePreviewProps> = ({ data 
   const styles = getTemplateStyles();
 
   return (
-    <div className={`max-w-4xl mx-auto border-2 rounded-lg overflow-hidden ${styles.container}`}>
+    <div className={`border-2 rounded-lg overflow-hidden ${styles.container} ${className || ''}`}>
       {/* Header */}
       <div className={`p-6 ${styles.header}`}>
         <h1 className="text-2xl font-bold mb-2">
