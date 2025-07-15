@@ -55,6 +55,7 @@ interface UserSession {
     observations?: string;
     aiGeneratedContent?: string;
     missingFields?: string[];
+    proposalId?: string;
   };
   phone?: string;
   userId?: string;
@@ -214,7 +215,7 @@ Para missingFields, inclua apenas os campos essenciais que não foram identifica
 
     const result = await response.json();
     const aiResponse = result.choices[0].message.content;
-    
+
     try {
       const parsed = JSON.parse(aiResponse);
       return {
@@ -310,7 +311,7 @@ async function findUserByPhone(phone: string) {
   console.log('Buscando usuário pelo telefone:', phone);
 
   const cleanPhone = phone.replace(/\D/g, '');
-  
+
   // Buscar primeiro na tabela profiles
   const { data: profiles, error } = await supabase
     .from('profiles')
@@ -369,7 +370,7 @@ async function getUserProfile(userId: string) {
 async function getUserEmail(userId: string) {
   try {
     const { data: userData, error } = await supabase.auth.admin.getUserById(userId);
-    
+
     if (error) {
       console.error('Erro ao buscar email do usuário:', error);
       return null;
@@ -380,6 +381,54 @@ async function getUserEmail(userId: string) {
     console.error('Erro ao buscar email do usuário:', error);
     return null;
   }
+}
+
+// NOVA FUNÇÃO: Recuperar sessão do usuário baseada no telefone
+async function recoverUserSession(session: UserSession): Promise<UserSession> {
+  console.log('Tentando recuperar sessão do usuário com telefone:', session.phone);
+
+  if (!session.phone) {
+    return session;
+  }
+
+  try {
+    const user = await findUserByPhone(session.phone);
+
+    if (user) {
+      console.log('Usuário recuperado:', user);
+      session.userId = user.user_id;
+      session.userProfile = await getUserProfile(user.user_id);
+
+      const userEmail = await getUserEmail(user.user_id);
+      if (userEmail) {
+        session.userProfile = session.userProfile || {};
+        session.userProfile.email = userEmail;
+      }
+
+      console.log('Sessão recuperada com sucesso:', session);
+    }
+  } catch (error) {
+    console.error('Erro ao recuperar sessão:', error);
+  }
+
+  return session;
+}
+
+// NOVA FUNÇÃO: Verificar se o usuário está autenticado
+async function ensureUserAuthenticated(session: UserSession): Promise<UserSession> {
+  // Se já tem userId, está autenticado
+  if (session.userId) {
+    return session;
+  }
+
+  // Se tem telefone mas não tem userId, tentar recuperar
+  if (session.phone) {
+    console.log('Usuário sem userId mas com telefone, tentando recuperar...');
+    return await recoverUserSession(session);
+  }
+
+  // Não está autenticado
+  return session;
 }
 
 async function sendProposalEmail(proposalId: string, recipientEmail: string, recipientName: string) {
@@ -460,7 +509,7 @@ async function createProposalForUser(session: UserSession) {
 async function handleMessage(update: TelegramUpdate) {
   console.log('=== PROCESSANDO MENSAGEM ===');
   console.log('Update recebido:', JSON.stringify(update, null, 2));
-  
+
   const message = update.message;
   if (!message) return;
 
@@ -490,12 +539,12 @@ async function handleMessage(update: TelegramUpdate) {
     console.log('Contato compartilhado:', message.contact);
     session.phone = message.contact.phone_number;
     const user = await findUserByPhone(session.phone);
-    
+
     if (user) {
       console.log('Usuário encontrado:', user);
       session.userId = user.user_id;
       session.userProfile = await getUserProfile(user.user_id);
-      
+
       const userEmail = await getUserEmail(user.user_id);
       if (userEmail) {
         session.userProfile = session.userProfile || {};
@@ -505,15 +554,15 @@ async function handleMessage(update: TelegramUpdate) {
       // Salvar configuração do bot para notificações
       await supabase
         .from('telegram_bot_settings')
-        .upsert({ 
-          user_id: user.user_id, 
-          chat_id: chatId 
-        }, { 
-          onConflict: 'user_id' 
+        .upsert({
+          user_id: user.user_id,
+          chat_id: chatId
+        }, {
+          onConflict: 'user_id'
         });
 
       const userName = session.userProfile?.name || user.name || 'Usuário';
-      
+
       const keyboard = {
         keyboard: [
           [{ text: "🆕 Criar Nova Proposta" }],
@@ -575,15 +624,49 @@ async function handleMessage(update: TelegramUpdate) {
       break;
 
     case 'main_menu':
-      // Verificar se o usuário está autenticado
+      // CORREÇÃO PRINCIPAL: Verificar autenticação de forma mais robusta
+      session = await ensureUserAuthenticated(session);
+
       if (!session.userId) {
-        console.log('Usuário não autenticado, redirecionando para início');
-        session.step = 'start';
-        await saveSession(telegramUserId, chatId, session);
-        await handleMessage(update); // Reprocessar como start
-        return;
+        console.log('Usuário não autenticado após tentativa de recuperação');
+
+        // Só resetar se realmente não tiver dados de autenticação
+        if (!session.phone) {
+          console.log('Sem telefone na sessão, redirecionando para início');
+          session.step = 'start';
+          await saveSession(telegramUserId, chatId, session);
+
+          const keyboard = {
+            keyboard: [[{
+              text: "📱 Compartilhar Telefone",
+              request_contact: true
+            }]],
+            one_time_keyboard: true,
+            resize_keyboard: true
+          };
+
+          await sendTelegramMessage(chatId,
+            `🔐 *Sessão expirada ou inválida*\n\n` +
+            `Para continuar, preciso que você compartilhe seu telefone novamente.\n\n` +
+            `👇 *Clique no botão abaixo:*`,
+            keyboard
+          );
+          return;
+        } else {
+          // Tem telefone mas não conseguiu recuperar o usuário
+          await sendTelegramMessage(chatId,
+            `❌ *Erro ao recuperar seus dados*\n\n` +
+            `Telefone: ${session.phone}\n\n` +
+            `Possíveis causas:\n` +
+            `• Telefone não cadastrado no sistema\n` +
+            `• Problemas temporários no banco de dados\n\n` +
+            `Digite /start para tentar novamente.`
+          );
+          return;
+        }
       }
 
+      // Usuário autenticado, processar comandos do menu
       if (text === '🆕 Criar Nova Proposta') {
         session.step = 'ai_input';
         session.data = {};
@@ -622,7 +705,7 @@ async function handleMessage(update: TelegramUpdate) {
           );
         } else {
           let statusMessage = `📊 *Suas últimas ${proposals.length} propostas:*\n\n`;
-          
+
           proposals.forEach((proposal, index) => {
             const statusEmoji = {
               'rascunho': '📝',
@@ -657,7 +740,7 @@ async function handleMessage(update: TelegramUpdate) {
 
       if (voice) {
         await sendTelegramMessage(chatId, `🎙️ *Processando áudio...*\n\n⏳ Aguarde um momento...`);
-        
+
         const audioBuffer = await downloadTelegramFile(voice.file_id);
         if (audioBuffer) {
           const transcription = await transcribeAudio(audioBuffer);
@@ -679,14 +762,14 @@ async function handleMessage(update: TelegramUpdate) {
 
       if (contentToProcess) {
         const { processedData, missingFields } = await processWithAI(contentToProcess);
-        
+
         session.data = { ...session.data, ...processedData };
         session.data.aiGeneratedContent = contentToProcess;
         session.data.missingFields = missingFields;
 
         if (missingFields.length > 0) {
           session.step = 'collect_missing';
-          
+
           const fieldNames = {
             'clientName': 'Nome do cliente/empresa',
             'projectTitle': 'Título do projeto',
@@ -697,7 +780,7 @@ async function handleMessage(update: TelegramUpdate) {
           };
 
           const missingFieldsText = missingFields.map(field => `• ${fieldNames[field] || field}`).join('\n');
-          
+
           await sendTelegramMessage(chatId,
             `🤖 *Informações processadas com sucesso!*\n\n` +
             `✅ *Dados identificados:*\n` +
@@ -738,7 +821,7 @@ async function handleMessage(update: TelegramUpdate) {
       const missingFields = session.data.missingFields || [];
       if (missingFields.length > 0) {
         const currentField = missingFields[0];
-        
+
         // Atualizar o campo correspondente
         if (currentField === 'clientName') {
           session.data.clientName = text;
@@ -799,9 +882,9 @@ async function handleMessage(update: TelegramUpdate) {
       if (text === '✅ Criar Proposta') {
         try {
           await sendTelegramMessage(chatId, `🎯 *Criando proposta...*\n\n⏳ Aguarde um momento...`);
-          
+
           const proposal = await createProposalForUser(session);
-          
+
           session.data.proposalId = proposal.id;
           session.step = 'email_options';
 
@@ -830,7 +913,7 @@ async function handleMessage(update: TelegramUpdate) {
       } else if (text === '❌ Cancelar') {
         session.step = 'main_menu';
         session.data = {};
-        
+
         const keyboard = {
           keyboard: [
             [{ text: "🆕 Criar Nova Proposta" }],
@@ -886,7 +969,7 @@ async function handleMessage(update: TelegramUpdate) {
       } else if (text === '📋 Finalizar (Apenas Salvar)') {
         session.step = 'main_menu';
         session.data = {};
-        
+
         const keyboard = {
           keyboard: [
             [{ text: "🆕 Criar Nova Proposta" }],
@@ -910,7 +993,7 @@ async function handleMessage(update: TelegramUpdate) {
       if (text && text.includes('@')) {
         session.data.clientEmail = text;
         session.step = 'sending_email';
-        
+
         await sendTelegramMessage(chatId,
           `📧 *Enviando proposta por e-mail...*\n\n` +
           `📬 *Destinatário:* ${session.data.clientEmail}\n` +
@@ -930,7 +1013,7 @@ async function handleMessage(update: TelegramUpdate) {
             `📋 *Proposta:* ${session.data.projectTitle}\n\n` +
             `🎯 *A proposta foi enviada e você será notificado sobre atualizações!*`
           );
-          
+
           session.step = 'main_menu';
           session.data = {};
         } else {
@@ -960,7 +1043,7 @@ async function handleMessage(update: TelegramUpdate) {
 
 serve(async (req) => {
   console.log('=== WEBHOOK TELEGRAM CHAMADO ===');
-  
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -969,9 +1052,9 @@ serve(async (req) => {
     if (req.method === 'POST') {
       const body = await req.text();
       const update: TelegramUpdate = JSON.parse(body);
-      
+
       await handleMessage(update);
-      
+
       return new Response(JSON.stringify({ ok: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -983,7 +1066,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('=== ERRO NO WEBHOOK ===', error);
-    
+
     return new Response(JSON.stringify({
       error: error.message,
       stack: error.stack
@@ -993,3 +1076,4 @@ serve(async (req) => {
     });
   }
 });
+
