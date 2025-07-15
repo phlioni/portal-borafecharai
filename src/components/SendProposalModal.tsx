@@ -54,21 +54,17 @@ const SendProposalModal = ({
       const company = companies?.[0];
       console.log('Empresa selecionada:', company);
       
-      // Preparar variáveis para substituição no template usando dados da empresa
+      // Preparar variáveis para substituição no template
       const variables = {
-        CLIENTE_NOME: clientName || '',
-        NOME_CLIENTE: clientName || '',
-        PROJETO_NOME: proposalTitle || '',
-        NOME_PROJETO: proposalTitle || '',
-        SEU_NOME: user?.user_metadata?.name || user?.email?.split('@')[0] || '',
-        EMPRESA_NOME: company?.name || '',
-        NOME_EMPRESA: company?.name || '',
+        CLIENTE_NOME: clientName || 'Cliente',
+        NOME_CLIENTE: clientName || 'Cliente', // Variação do nome
+        PROJETO_NOME: proposalTitle || 'Projeto',
+        NOME_PROJETO: proposalTitle || 'Projeto', // Variação do nome
+        SEU_NOME: user?.user_metadata?.name || company?.name || 'Equipe',
+        EMPRESA_NOME: company?.name || 'Sua Empresa',
         EMPRESA_TELEFONE: company?.phone || '',
-        TELEFONE_EMPRESA: company?.phone || '',
         EMPRESA_EMAIL: company?.email || user?.email || '',
-        EMAIL_EMPRESA: company?.email || user?.email || '',
         EMPRESA_WEBSITE: company?.website || '',
-        WEBSITE_EMPRESA: company?.website || '',
         BOTAO_PROPOSTA: '[LINK_DA_PROPOSTA]'
       };
 
@@ -149,32 +145,6 @@ const SendProposalModal = ({
     );
   };
 
-  // Separar mensagem e assinatura para exibição
-  const getMessageAndSignature = () => {
-    const parts = formData.emailMessage.split('\n\n');
-    let messageContent = '';
-    let signatureContent = '';
-    
-    // Procurar pela assinatura (geralmente começa com "Atenciosamente" ou contém informações da empresa)
-    const signatureStartIndex = parts.findIndex(part => 
-      part.includes('Atenciosamente') || 
-      part.includes(companies?.[0]?.name || '') ||
-      part.includes(companies?.[0]?.email || '') ||
-      part.includes(companies?.[0]?.phone || '')
-    );
-    
-    if (signatureStartIndex !== -1) {
-      messageContent = parts.slice(0, signatureStartIndex).join('\n\n');
-      signatureContent = parts.slice(signatureStartIndex).join('\n\n');
-    } else {
-      messageContent = formData.emailMessage;
-    }
-    
-    return { messageContent, signatureContent };
-  };
-
-  const { messageContent, signatureContent } = getMessageAndSignature();
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -224,18 +194,13 @@ const SendProposalModal = ({
             </div>
             
             <div>
-              <Label htmlFor="messageContent">Mensagem do Email</Label>
+              <Label htmlFor="emailMessage">Mensagem do Email</Label>
               <Textarea
-                id="messageContent"
-                value={messageContent}
-                onChange={(e) => {
-                  const newFullMessage = signatureContent ? 
-                    `${e.target.value}\n\n${signatureContent}` : 
-                    e.target.value;
-                  handleInputChange('emailMessage', newFullMessage);
-                }}
+                id="emailMessage"
+                value={formData.emailMessage}
+                onChange={(e) => handleInputChange('emailMessage', e.target.value)}
                 placeholder="Mensagem personalizada"
-                rows={8}
+                rows={12}
                 className="resize-none"
                 disabled={isLoading}
               />
@@ -243,18 +208,6 @@ const SendProposalModal = ({
                 O link da proposta será inserido automaticamente onde estiver escrito [LINK_DA_PROPOSTA]
               </p>
             </div>
-
-            {signatureContent && (
-              <div>
-                <Label>Assinatura do Email (Somente Leitura)</Label>
-                <div className="bg-gray-50 border rounded-md p-3 text-sm text-gray-700 whitespace-pre-line">
-                  {signatureContent}
-                </div>
-                <p className="text-sm text-blue-600 mt-1">
-                  ℹ️ A assinatura é baseada nas informações da sua empresa em "Meu Negócio" e não pode ser editada aqui.
-                </p>
-              </div>
-            )}
           </div>
 
           {/* Pré-visualização */}
