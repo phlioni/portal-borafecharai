@@ -60,6 +60,7 @@ const SendProposalModal = ({
         EMPRESA_NOME: company?.name || 'Sua Empresa',
         EMPRESA_TELEFONE: company?.phone || '',
         EMPRESA_EMAIL: company?.email || user?.email || '',
+        EMPRESA_WEBSITE: company?.website || '',
         BOTAO_PROPOSTA: '[LINK_DA_PROPOSTA]'
       };
 

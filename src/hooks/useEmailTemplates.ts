@@ -38,8 +38,10 @@ Aguardo seu retorno!`,
   email_signature: `Atenciosamente,
 {SEU_NOME}
 {EMPRESA_NOME}
-{EMPRESA_TELEFONE}
-{EMPRESA_EMAIL}
+
+📧 {EMPRESA_EMAIL}
+📱 {EMPRESA_TELEFONE}
+🌐 {EMPRESA_WEBSITE}
 
 ---
 Esta proposta foi criada com BoraFechar AI - A inteligência que acelera seus negócios`
@@ -170,9 +172,22 @@ export const useEmailTemplates = () => {
     console.log('Processando template:', template);
     console.log('Com variáveis:', variables);
     
+    if (!template) {
+      console.warn('Template vazio ou indefinido');
+      return '';
+    }
+    
     let processed = template;
+    
+    // Processar variáveis no formato {VARIAVEL}
     Object.entries(variables).forEach(([key, value]) => {
-      const regex = new RegExp(`{${key}}`, 'g');
+      const regex = new RegExp(`\\{${key}\\}`, 'g');
+      processed = processed.replace(regex, value || '');
+    });
+    
+    // Processar variáveis no formato [VARIAVEL] (compatibilidade)
+    Object.entries(variables).forEach(([key, value]) => {
+      const regex = new RegExp(`\\[${key}\\]`, 'g');
       processed = processed.replace(regex, value || '');
     });
     
