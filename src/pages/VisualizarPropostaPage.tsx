@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
@@ -10,6 +10,7 @@ import ProposalHeader from '@/components/ProposalHeader';
 import ProposalTemplateRenderer from '@/components/ProposalTemplateRenderer';
 import BudgetItemsManager from '@/components/BudgetItemsManager';
 import { useProposalSending } from '@/hooks/useProposalSending';
+import { useCreateBudgetItem } from '@/hooks/useBudgetItems';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 
@@ -20,8 +21,9 @@ const VisualizarPropostaPage = () => {
   const [showSendModal, setShowSendModal] = useState(false);
   const [companyLogo, setCompanyLogo] = useState<string>('');
   const { sendProposal, isSending } = useProposalSending();
+  const createBudgetItem = useCreateBudgetItem();
 
-  const { data: proposal, isLoading } = useQuery({
+  const { data: proposal, isLoading, refetch } = useQuery({
     queryKey: ['proposal', id],
     queryFn: async () => {
       if (!id) throw new Error('ID da proposta não fornecido');
@@ -35,6 +37,14 @@ const VisualizarPropostaPage = () => {
             name,
             email,
             phone
+          ),
+          proposal_budget_items (
+            id,
+            type,
+            description,
+            quantity,
+            unit_price,
+            total_price
           )
         `)
         .eq('id', id)
@@ -45,6 +55,45 @@ const VisualizarPropostaPage = () => {
     },
     enabled: !!id,
   });
+
+  // Verificar se há itens pendentes do sessionStorage
+  useEffect(() => {
+    const processPendingItems = async () => {
+      const pendingItems = sessionStorage.getItem('pendingBudgetItems');
+      if (pendingItems && id) {
+        try {
+          const items = JSON.parse(pendingItems);
+          console.log('Processando itens pendentes:', items);
+          
+          // Salvar cada item no banco de dados
+          await Promise.all(
+            items.map((item: any) => 
+              createBudgetItem.mutateAsync({
+                proposal_id: id,
+                type: item.type,
+                description: item.description,
+                quantity: item.quantity,
+                unit_price: item.unit_price
+              })
+            )
+          );
+          
+          sessionStorage.removeItem('pendingBudgetItems');
+          toast.success('Itens do orçamento salvos com sucesso!');
+          
+          // Recarregar os dados da proposta para incluir os novos itens
+          refetch();
+        } catch (error) {
+          console.error('Erro ao salvar itens do orçamento:', error);
+          toast.error('Erro ao salvar itens do orçamento');
+        }
+      }
+    };
+
+    if (!isLoading && proposal) {
+      processPendingItems();
+    }
+  }, [id, createBudgetItem, isLoading, proposal, refetch]);
 
   React.useEffect(() => {
     // Carregar logo da empresa

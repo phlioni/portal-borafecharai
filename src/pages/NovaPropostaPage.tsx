@@ -159,13 +159,16 @@ const NovaPropostaPage = () => {
         user_id: user?.id || ''
       };
 
+      console.log('Criando proposta com dados:', proposalData);
       const createdProposal = await createProposal.mutateAsync(proposalData);
+      console.log('Proposta criada:', createdProposal);
       
-      // Se há itens de orçamento, redirecionar para edição para salvá-los
+      // Se há itens de orçamento, salvá-los usando o hook de budget items
       if (budgetItems.length > 0) {
-        // Armazenar itens no sessionStorage para usar na página de edição
+        console.log('Salvando itens de orçamento:', budgetItems);
+        // Armazenar itens no sessionStorage para usar na página de visualização
         sessionStorage.setItem('pendingBudgetItems', JSON.stringify(budgetItems));
-        navigate(`/propostas/${createdProposal.id}/editar`);
+        navigate(`/propostas/${createdProposal.id}`);
       } else {
         toast.success('Proposta criada com sucesso!');
         navigate('/propostas');
