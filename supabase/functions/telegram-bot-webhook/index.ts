@@ -1,6 +1,7 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { Telegram } from 'https://deno.land/x/telegram@v0.0.3/mod.ts';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const telegramBotToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
 const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -254,7 +255,57 @@ serve(async (req) => {
       if (callbackData.startsWith('send_email_')) {
         const proposalId = callbackData.split('_')[2];
         console.log('Sending email for proposal ID:', proposalId);
-        await sendMessage(chatId, 'Desculpe, o envio por email ainda não está implementado. Em breve!');
+        
+        try {
+          // Buscar dados da proposta
+          const { data: proposal, error: proposalError } = await supabase
+            .from('proposals')
+            .select('*')
+            .eq('id', proposalId)
+            .single();
+
+          if (proposalError || !proposal) {
+            console.error('Error fetching proposal:', proposalError);
+            await sendMessage(chatId, 'Erro ao buscar proposta. Tente novamente mais tarde.');
+            return new Response('OK');
+          }
+
+          // Buscar dados da empresa do usuário
+          const { data: company, error: companyError } = await supabase
+            .from('companies')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+
+          if (companyError || !company) {
+            console.error('Error fetching company:', companyError);
+            await sendMessage(chatId, 'Erro: É necessário ter uma empresa cadastrada para enviar propostas por e-mail.');
+            return new Response('OK');
+          }
+
+          // Chamar função de envio de e-mail
+          const { data: emailResponse, error: emailError } = await supabase.functions.invoke('send-proposal-email', {
+            body: {
+              proposal_id: proposalId,
+              recipient_email: session.session_data.email || company.email || 'cliente@exemplo.com',
+              recipient_name: session.session_data.client || 'Cliente',
+              sender_name: userName || company.name || 'Equipe Comercial',
+              sender_email: company.email || 'comercial@borafecharai.com'
+            }
+          });
+
+          if (emailError) {
+            console.error('Error sending email:', emailError);
+            await sendMessage(chatId, 'Erro ao enviar e-mail. Verifique se o endereço está correto e tente novamente.');
+          } else {
+            console.log('Email sent successfully:', emailResponse);
+            await sendMessage(chatId, '✅ E-mail enviado com sucesso! O cliente receberá a proposta em breve.');
+          }
+        } catch (error) {
+          console.error('Error in email sending process:', error);
+          await sendMessage(chatId, 'Erro interno ao enviar e-mail. Tente novamente mais tarde.');
+        }
+        
         return new Response('OK');
       }
     }
