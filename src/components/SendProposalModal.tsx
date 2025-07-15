@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { useEmailTemplates } from '@/hooks/useEmailTemplates';
 import { useCompanies } from '@/hooks/useCompanies';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProfiles } from '@/hooks/useProfiles';
 
 interface SendProposalModalProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ const SendProposalModal = ({
   const { user } = useAuth();
   const { data: companies, isLoading: companiesLoading } = useCompanies();
   const { getTemplate, processTemplate, templates, isLoading: templatesLoading } = useEmailTemplates();
+  const { profile } = useProfiles();
 
   const [formData, setFormData] = useState({
     recipientEmail: '',
@@ -60,7 +62,7 @@ const SendProposalModal = ({
         NOME_CLIENTE: clientName || 'Cliente',
         PROJETO_NOME: proposalTitle || 'Projeto',
         NOME_PROJETO: proposalTitle || 'Projeto',
-        SEU_NOME: user?.user_metadata?.name || 'Equipe',
+        SEU_NOME: user?.user_metadata?.name || profile?.name || 'Equipe',
         EMPRESA_NOME: company?.name || 'Sua Empresa',
         EMPRESA_TELEFONE: company?.phone ? `📱 ${company.phone}` : '',
         EMPRESA_EMAIL: company?.email ? `📧 ${company.email}` : '',
