@@ -39,107 +39,138 @@ const ProposalTemplateRenderer = ({ proposal, companyLogo: providedLogo }: Propo
     fetchCompanyLogo();
   }, [user, providedLogo]);
 
-  // Função para extrair dados do HTML do modelo oficial
-  const extractDataFromOfficialModel = (htmlContent: string) => {
-    if (!htmlContent || !htmlContent.includes('<h1>Proposta Comercial para')) {
-      return null;
-    }
+  // Função para extrair dados limpos do HTML
+  const extractCleanDataFromHTML = (htmlContent: string) => {
+    if (!htmlContent) return null;
 
-    // Extrair título do serviço
-    const titleMatch = htmlContent.match(/<h1>Proposta Comercial para ([^<]+)<\/h1>/);
-    const serviceTitle = titleMatch ? titleMatch[1].trim() : '';
+    // Criar um elemento temporário para processar o HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
 
-    // Extrair valor
-    const valueMatch = htmlContent.match(/<strong>Valor total:<\/strong>\s*R\$\s*([^<]+)/);
-    const valueText = valueMatch ? valueMatch[1].trim() : '';
-    
-    // Converter valor para número
-    let numericValue = 0;
-    if (valueText) {
-      const cleanValue = valueText.replace(/[^\d,]/g, '');
-      if (cleanValue && cleanValue !== '0,00') {
-        numericValue = parseFloat(cleanValue.replace(',', '.'));
+    // Extrair dados específicos
+    const titleElement = tempDiv.querySelector('h1');
+    const serviceTitle = titleElement ? titleElement.textContent?.replace('Proposta Comercial para ', '') || '' : '';
+
+    // Extrair cliente
+    const clientElements = tempDiv.querySelectorAll('p');
+    let client = '';
+    let responsible = '';
+    let email = '';
+    let phone = '';
+    let value = 0;
+    let deadline = '';
+    let paymentMethod = '';
+
+    clientElements.forEach(p => {
+      const text = p.textContent || '';
+      if (text.includes('Cliente:')) {
+        client = text.replace(/.*Cliente:\s*/, '').trim();
+      }
+      if (text.includes('Responsável:')) {
+        responsible = text.replace(/.*Responsável:\s*/, '').trim();
+      }
+      if (text.includes('Contato:')) {
+        const contactText = text.replace(/.*Contato:\s*/, '');
+        const parts = contactText.split('/');
+        email = parts[0]?.trim() || '';
+        phone = parts[1]?.trim() || '';
+      }
+      if (text.includes('Valor total:')) {
+        const valueText = text.replace(/.*Valor total:\s*R\$\s*/, '').trim();
+        const numericValue = valueText.replace(/[^\d,]/g, '');
+        if (numericValue) {
+          value = parseFloat(numericValue.replace(',', '.'));
+        }
+      }
+      if (text.includes('Forma de pagamento:')) {
+        paymentMethod = text.replace(/.*Forma de pagamento:\s*/, '').trim();
+      }
+    });
+
+    // Extrair prazo
+    const deadlineElements = tempDiv.querySelectorAll('strong');
+    deadlineElements.forEach(strong => {
+      const text = strong.textContent || '';
+      if (text.includes('dias')) {
+        deadline = text;
+      }
+    });
+
+    // Extrair descrição (texto das seções)
+    let description = '';
+    const introSection = tempDiv.querySelector('h2:nth-of-type(2)');
+    if (introSection && introSection.nextElementSibling) {
+      const introP = introSection.nextElementSibling.nextElementSibling;
+      if (introP && introP.textContent) {
+        description = introP.textContent.replace(/Prezada?\(o\)\s+\w+,\s*/, '').trim();
       }
     }
 
-    // Extrair prazo
-    const deadlineMatch = htmlContent.match(/<strong>([^<]*prazo[^<]*)<\/strong>[^<]*<strong>([^<]+)<\/strong>/i);
-    const deadline = deadlineMatch ? deadlineMatch[2].trim() : '';
-
-    // Extrair cliente
-    const clientMatch = htmlContent.match(/<strong>Cliente:<\/strong>\s*([^<]+)/);
-    const client = clientMatch ? clientMatch[1].trim() : '';
-
-    // Extrair responsável
-    const responsibleMatch = htmlContent.match(/<strong>Responsável:<\/strong>\s*([^<]+)/);
-    const responsible = responsibleMatch ? responsibleMatch[1].trim() : '';
-
-    // Extrair descrição detalhada (texto entre tags p)
-    const descriptionMatches = htmlContent.match(/<p>([^<]+)<\/p>/g);
-    let description = '';
-    if (descriptionMatches) {
-      // Pegar as primeiras descrições relevantes, ignorando dados estruturados
-      const relevantDescriptions = descriptionMatches
-        .map(match => match.replace(/<\/?p>/g, ''))
-        .filter(text => 
-          !text.includes('Número da proposta:') && 
-          !text.includes('Data:') &&
-          !text.includes('Cliente:') &&
-          !text.includes('Responsável:') &&
-          !text.includes('Contato:') &&
-          !text.includes('Valor total:') &&
-          !text.includes('Forma de pagamento:') &&
-          text.length > 20
-        );
-      
-      if (relevantDescriptions.length > 0) {
-        description = relevantDescriptions[0];
+    // Se não encontrou descrição na intro, pegar do escopo
+    if (!description) {
+      const scopeSection = Array.from(tempDiv.querySelectorAll('h2')).find(h2 => 
+        h2.textContent?.includes('Escopo')
+      );
+      if (scopeSection && scopeSection.nextElementSibling) {
+        const ul = scopeSection.nextElementSibling;
+        if (ul.tagName === 'UL') {
+          const items = Array.from(ul.querySelectorAll('li')).map(li => li.textContent).join(', ');
+          description = `Escopo dos serviços: ${items}`;
+        }
       }
     }
 
     return {
-      serviceTitle,
-      numericValue,
-      deadline,
-      client,
+      serviceTitle: serviceTitle || proposal.title || 'Proposta Comercial',
+      client: client || proposal.companies?.name || 'Cliente',
       responsible,
-      description,
-      fullHtmlContent: htmlContent
+      email,
+      phone,
+      value: value || proposal.value,
+      deadline: deadline || proposal.delivery_time,
+      paymentMethod,
+      description: description || proposal.service_description || 'Descrição do serviço'
     };
   };
 
   const templateId = proposal.template_id || 'moderno';
 
-  // Processar dados do modelo oficial se disponível
-  const officialModelData = proposal.detailed_description ? 
-    extractDataFromOfficialModel(proposal.detailed_description) : null;
+  // Processar dados do HTML se disponível
+  let processedData = null;
+  if (proposal.detailed_description && proposal.detailed_description.includes('<h1>')) {
+    processedData = extractCleanDataFromHTML(proposal.detailed_description);
+  }
 
-  // Preparar dados para o componente de preview (mesmo formato usado no chat)
+  // Preparar dados para o componente de preview
   const previewData = {
-    title: officialModelData?.serviceTitle || proposal.title || proposal.service_description || 'Proposta Comercial',
-    client: officialModelData?.client || proposal.companies?.name || 'Cliente',
-    value: officialModelData?.numericValue || proposal.value,
-    deliveryTime: officialModelData?.deadline || proposal.delivery_time,
-    description: officialModelData?.description || proposal.detailed_description || proposal.service_description,
-    template: templateId
+    title: processedData?.serviceTitle || proposal.title || 'Proposta Comercial',
+    client: processedData?.client || proposal.companies?.name || 'Cliente',
+    value: processedData?.value || proposal.value,
+    deliveryTime: processedData?.deadline || proposal.delivery_time,
+    description: processedData?.description || proposal.service_description,
+    template: templateId,
+    // Dados adicionais extraídos
+    responsible: processedData?.responsible,
+    email: processedData?.email,
+    phone: processedData?.phone,
+    paymentMethod: processedData?.paymentMethod
   };
 
   // Renderizar template personalizado se disponível e usuário tem acesso
   if ((canAccessPremiumTemplates || isAdmin) && customTemplates.length > 0) {
     const customTemplate = customTemplates.find(t => t.template_id === templateId);
     if (customTemplate) {
-      const processedContent = customTemplate.html_content.replace(/\{\{companyLogo\}\}/g, companyLogo || '');
+      // Para templates personalizados, usar o preview component para manter consistência
       return (
-        <div 
-          dangerouslySetInnerHTML={{ 
-            __html: processedContent
-          }} 
+        <ProposalTemplatePreview 
+          data={previewData}
+          className="max-w-4xl mx-auto"
         />
       );
     }
   }
   
-  // Usar o mesmo componente de preview usado no chat para manter consistência visual
+  // Usar sempre o componente de preview para manter consistência visual
   return (
     <ProposalTemplatePreview 
       data={previewData}

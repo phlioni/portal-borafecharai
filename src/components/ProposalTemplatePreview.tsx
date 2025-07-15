@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Building, DollarSign, Calendar, FileText, CheckCircle, Clock, User } from 'lucide-react';
+import { Building, DollarSign, Calendar, FileText, CheckCircle, Clock, User, Mail, Phone, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -13,6 +13,10 @@ interface ProposalData {
   deliveryTime?: string;
   description?: string;
   template: string;
+  responsible?: string;
+  email?: string;
+  phone?: string;
+  paymentMethod?: string;
 }
 
 interface ProposalTemplatePreviewProps {
@@ -89,6 +93,33 @@ const ProposalTemplatePreview: React.FC<ProposalTemplatePreviewProps> = ({ data,
           </span>
         </div>
 
+        {/* Informações de contato se disponíveis */}
+        {(data.responsible || data.email || data.phone) && (
+          <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 shadow-sm mb-4">
+            <h3 className={`font-semibold mb-2 ${getAccentColor(data.template)}`}>Informações de Contato</h3>
+            <div className="space-y-1 text-sm text-gray-600">
+              {data.responsible && (
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  <span>Responsável: {data.responsible}</span>
+                </div>
+              )}
+              {data.email && (
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  <span>Email: {data.email}</span>
+                </div>
+              )}
+              {data.phone && (
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  <span>Telefone: {data.phone}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {data.description && (
           <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 shadow-sm">
             <p className="text-gray-700 leading-relaxed">
@@ -128,6 +159,19 @@ const ProposalTemplatePreview: React.FC<ProposalTemplatePreviewProps> = ({ data,
           )}
         </div>
 
+        {/* Forma de pagamento se disponível */}
+        {data.paymentMethod && (
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-200">
+            <div className="flex items-center gap-3 mb-3">
+              <div className={`${getIconColor(data.template)} bg-current/10 rounded-full p-2`}>
+                <CreditCard className="h-5 w-5" />
+              </div>
+              <h3 className={`font-semibold text-lg ${getAccentColor(data.template)}`}>Forma de Pagamento</h3>
+            </div>
+            <p className="text-gray-700">{data.paymentMethod}</p>
+          </div>
+        )}
+
         {/* Service Highlights */}
         <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-200">
           <div className="flex items-center gap-3 mb-4">
@@ -150,21 +194,6 @@ const ProposalTemplatePreview: React.FC<ProposalTemplatePreviewProps> = ({ data,
             ))}
           </div>
         </div>
-
-        {/* Service Description */}
-        {data.description && (
-          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-200">
-            <div className="flex items-center gap-3 mb-4">
-              <div className={`${getIconColor(data.template)} bg-current/10 rounded-full p-2`}>
-                <FileText className="h-5 w-5" />
-              </div>
-              <h3 className={`font-semibold text-lg ${getAccentColor(data.template)}`}>Descrição do Projeto</h3>
-            </div>
-            <p className="text-gray-700 leading-relaxed">
-              {data.description}
-            </p>
-          </div>
-        )}
 
         {/* Call to Action */}
         <div className={`bg-gradient-to-r ${getGradientColors(data.template)} rounded-xl p-6 text-white text-center shadow-lg`}>
