@@ -71,15 +71,44 @@ export const useProfiles = () => {
         }
       }
 
-      const { data, error } = await supabase
+      // Primeiro, verificar se o perfil existe
+      const { data: currentProfile } = await supabase
         .from('profiles')
-        .upsert({
-          user_id: user.id,
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
-        .select()
-        .single();
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      let data, error;
+
+      if (currentProfile) {
+        // Se o perfil existe, fazer UPDATE
+        const result = await supabase
+          .from('profiles')
+          .update({
+            ...updates,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', user.id)
+          .select()
+          .single();
+        
+        data = result.data;
+        error = result.error;
+      } else {
+        // Se o perfil não existe, fazer INSERT
+        const result = await supabase
+          .from('profiles')
+          .insert({
+            user_id: user.id,
+            ...updates,
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+        
+        data = result.data;
+        error = result.error;
+      }
 
       if (error) {
         console.error('Error updating profile:', error);
