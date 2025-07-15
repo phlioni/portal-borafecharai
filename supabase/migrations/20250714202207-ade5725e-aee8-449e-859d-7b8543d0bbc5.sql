@@ -8,6 +8,7 @@ CREATE TABLE public.telegram_sessions (
   session_data JSONB DEFAULT '{}',
   phone TEXT,
   user_id UUID REFERENCES auth.users,
+  user_profile JSONB DEFAULT '{}',
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   expires_at TIMESTAMP WITH TIME ZONE DEFAULT (now() + INTERVAL '24 hours'),
@@ -65,4 +66,5 @@ COMMENT ON COLUMN public.telegram_sessions.step IS 'Etapa atual da conversa';
 COMMENT ON COLUMN public.telegram_sessions.session_data IS 'Dados da sessão em formato JSON';
 COMMENT ON COLUMN public.telegram_sessions.phone IS 'Telefone compartilhado pelo usuário';
 COMMENT ON COLUMN public.telegram_sessions.user_id IS 'ID do usuário autenticado no sistema';
+COMMENT ON COLUMN public.telegram_sessions.user_profile IS 'Perfil do usuário em formato JSON';
 COMMENT ON COLUMN public.telegram_sessions.expires_at IS 'Data de expiração da sessão';
