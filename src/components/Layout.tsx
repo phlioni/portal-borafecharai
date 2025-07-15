@@ -17,17 +17,25 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
+import MobileLayout from './MobileLayout';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 const Layout = ({ children }: LayoutProps) => {
+  const isMobile = useIsMobile();
   const { signOut, user } = useAuth();
   const { profile } = useProfiles();
   const { isAdmin, canCreateProposal } = useUserPermissions();
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Se for mobile, usa o MobileLayout
+  if (isMobile) {
+    return <MobileLayout>{children}</MobileLayout>;
+  }
 
   const handleSignOut = async () => {
     try {

@@ -1,3 +1,4 @@
+
 import * as React from "react"
 
 const MOBILE_BREAKPOINT = 768
@@ -16,4 +17,21 @@ export function useIsMobile() {
   }, [])
 
   return !!isMobile
+}
+
+// Hook adicional para detectar se é realmente um dispositivo móvel (não apenas tela pequena)
+export function useIsMobileDevice() {
+  const [isMobileDevice, setIsMobileDevice] = React.useState<boolean>(false)
+
+  React.useEffect(() => {
+    const checkMobileDevice = () => {
+      const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera
+      const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i
+      return mobileRegex.test(userAgent.toLowerCase())
+    }
+
+    setIsMobileDevice(checkMobileDevice())
+  }, [])
+
+  return isMobileDevice
 }
