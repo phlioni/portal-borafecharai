@@ -19,7 +19,7 @@ import {
   AlertCircle,
   MessageSquare
 } from 'lucide-react';
-import { useProposals } from '@/hooks/useProposals';
+import { useProposals, useDeleteProposal } from '@/hooks/useProposals';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -28,13 +28,13 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import ProposalPreviewModal from '@/components/ProposalPreviewModal';
 import SendProposalModal from '@/components/SendProposalModal';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
-import ProposalLimitStatus from '@/components/ProposalLimitStatus';
 import PlanLimitGuard from '@/components/PlanLimitGuard';
 
 const Propostas = () => {
   const { user } = useAuth();
   const { data: proposals = [], isLoading, error } = useProposals();
-  const { canCreateProposal, monthlyProposalLimit, monthlyProposalCount, loading: permissionsLoading } = useUserPermissions();
+  const { canCreateProposal, loading: permissionsLoading } = useUserPermissions();
+  const deleteProposalMutation = useDeleteProposal();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedProposal, setSelectedProposal] = useState<any>(null);
@@ -53,7 +53,7 @@ const Propostas = () => {
   const handleDelete = async (id: string) => {
     if (window.confirm('Tem certeza que deseja excluir esta proposta?')) {
       try {
-        // Implement delete logic here
+        await deleteProposalMutation.mutateAsync(id);
         toast.success('Proposta excluída com sucesso!');
       } catch (error) {
         console.error('Erro ao excluir proposta:', error);
@@ -128,9 +128,6 @@ const Propostas = () => {
           </PlanLimitGuard>
         </div>
       </div>
-
-      {/* Proposal Limit Status */}
-      <ProposalLimitStatus className="max-w-md" />
 
       {/* Search and Filters */}
       <Card>
