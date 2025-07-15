@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import ProposalTemplatePreview from '@/components/ProposalTemplatePreview';
+import { useUserPermissions } from '@/hooks/useUserPermissions';
 
 type Message = {
   role: 'user' | 'assistant';
@@ -34,6 +36,7 @@ const ChatPropostaPage = () => {
   const { user } = useAuth();
   const createProposal = useCreateProposal();
   const createCompany = useCreateCompany();
+  const { canCreateProposal, loading: permissionsLoading } = useUserPermissions();
   
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -200,6 +203,12 @@ const ChatPropostaPage = () => {
       return;
     }
     
+    // Verificar se pode criar propostas APENAS aqui, quando vai efetivamente criar
+    if (!canCreateProposal) {
+      toast.error('Você atingiu o limite de propostas do seu plano. Faça upgrade para o plano Professional.');
+      return;
+    }
+    
     setIsGenerating(true);
     
     try {
@@ -251,6 +260,18 @@ const ChatPropostaPage = () => {
     setShowPreview(false);
     setProposalData(null);
   };
+
+  // Se ainda está carregando as permissões, mostrar loading
+  if (permissionsLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-pulse text-center">
+          <div className="h-8 bg-gray-200 rounded w-48 mx-auto mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded w-32 mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -485,7 +506,7 @@ const ChatPropostaPage = () => {
                   </Button>
                   <Button
                     onClick={confirmAndCreateProposal}
-                    disabled={isGenerating}
+                    disabled={isGenerating || !canCreateProposal}
                     className="bg-green-600 hover:bg-green-700"
                   >
                     {isGenerating ? (
