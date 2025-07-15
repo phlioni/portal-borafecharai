@@ -67,7 +67,7 @@ const Layout = ({ children }: LayoutProps) => {
       <div className="w-64 bg-card border-r border-border flex flex-col">
         {/* Logo */}
         <div className="p-6 border-b border-border">
-          <h1 className="text-xl font-bold text-primary">PropositAI</h1>
+          <h1 className="text-xl font-bold text-primary">BoraFecharAI</h1>
         </div>
 
         {/* Navigation */}
@@ -75,16 +75,15 @@ const Layout = ({ children }: LayoutProps) => {
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
-            
+
             return (
               <NavLink
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
                     ? 'bg-primary text-primary-foreground'
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                }`}
+                  }`}
               >
                 <Icon className="w-4 h-4" />
                 {item.label}
@@ -114,7 +113,7 @@ const Layout = ({ children }: LayoutProps) => {
               </p>
             </div>
           </div>
-          
+
           <Button
             variant="ghost"
             size="sm"
