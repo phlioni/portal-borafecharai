@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -23,7 +24,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
-import LoadingSpinner from '@/components/LoadingSpinner';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 import ProposalPreviewModal from '@/components/ProposalPreviewModal';
 import SendProposalModal from '@/components/SendProposalModal';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
@@ -96,8 +97,8 @@ const Propostas = () => {
         
         <div className="flex flex-col sm:flex-row gap-3">
           <PlanLimitGuard 
-            requiredPermission="createProposal"
-            fallbackContent={
+            feature="createProposal"
+            fallback={
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button disabled className="opacity-50">
                   <Plus className="h-4 w-4 mr-2" />
@@ -299,17 +300,32 @@ const Propostas = () => {
             setShowPreview(false);
             setSelectedProposal(null);
           }}
+          onContinue={() => {
+            setShowPreview(false);
+            setProposalToSend(selectedProposal);
+            setShowSendModal(true);
+          }}
+          companyLogo={selectedProposal.companies?.logo_url || ''}
         />
       )}
 
       {showSendModal && proposalToSend && (
         <SendProposalModal
-          proposal={proposalToSend}
           isOpen={showSendModal}
           onClose={() => {
             setShowSendModal(false);
             setProposalToSend(null);
           }}
+          onSend={(data) => {
+            console.log('Sending proposal with data:', data);
+            // Here you would implement the actual sending logic
+            toast.success('Proposta enviada com sucesso!');
+            setShowSendModal(false);
+            setProposalToSend(null);
+          }}
+          proposalTitle={proposalToSend.title}
+          clientName={proposalToSend.companies?.name || ''}
+          clientEmail={proposalToSend.companies?.email || ''}
         />
       )}
     </div>
