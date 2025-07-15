@@ -26,6 +26,14 @@ interface Proposal {
     email?: string;
     phone?: string;
   };
+  proposal_budget_items?: {
+    id: string;
+    type: string;
+    description: string;
+    quantity: number;
+    unit_price: number;
+    total_price: number;
+  }[];
 }
 
 export const useProposals = () => {
@@ -45,6 +53,14 @@ export const useProposals = () => {
             name,
             email,
             phone
+          ),
+          proposal_budget_items (
+            id,
+            type,
+            description,
+            quantity,
+            unit_price,
+            total_price
           )
         `)
         .eq('user_id', user.id)
@@ -78,6 +94,14 @@ export const useCreateProposal = () => {
             name,
             email,
             phone
+          ),
+          proposal_budget_items (
+            id,
+            type,
+            description,
+            quantity,
+            unit_price,
+            total_price
           )
         `)
         .single();
@@ -114,6 +138,14 @@ export const useUpdateProposal = () => {
             name,
             email,
             phone
+          ),
+          proposal_budget_items (
+            id,
+            type,
+            description,
+            quantity,
+            unit_price,
+            total_price
           )
         `)
         .single();

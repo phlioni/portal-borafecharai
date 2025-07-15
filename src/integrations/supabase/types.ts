@@ -170,6 +170,50 @@ export type Database = {
         }
         Relationships: []
       }
+      proposal_budget_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          proposal_id: string
+          quantity: number
+          total_price: number | null
+          type: string
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          proposal_id: string
+          quantity?: number
+          total_price?: number | null
+          type: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          proposal_id?: string
+          quantity?: number
+          total_price?: number | null
+          type?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_budget_items_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposal_notifications: {
         Row: {
           created_at: string | null

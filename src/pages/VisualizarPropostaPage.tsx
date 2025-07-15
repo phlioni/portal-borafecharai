@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,7 @@ import SendProposalModal from '@/components/SendProposalModal';
 import ProposalPreviewModal from '@/components/ProposalPreviewModal';
 import ProposalHeader from '@/components/ProposalHeader';
 import ProposalTemplateRenderer from '@/components/ProposalTemplateRenderer';
+import BudgetItemsManager from '@/components/BudgetItemsManager';
 import { useProposalSending } from '@/hooks/useProposalSending';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -108,6 +110,9 @@ const VisualizarPropostaPage = () => {
           onEdit={() => navigate(`/propostas/editar/${proposal.id}`)}
           onSend={() => setShowPreviewModal(true)}
         />
+
+        {/* Budget Items in Read-Only Mode */}
+        <BudgetItemsManager proposalId={proposal.id} isReadOnly={true} />
 
         {/* Proposal Preview */}
         <div className="bg-white rounded-lg shadow-sm p-1">

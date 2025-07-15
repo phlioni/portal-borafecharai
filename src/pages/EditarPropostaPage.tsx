@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +11,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUpdateProposal } from '@/hooks/useProposals';
 import { useCompanies } from '@/hooks/useCompanies';
+import BudgetItemsManager from '@/components/BudgetItemsManager';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 
@@ -236,6 +238,9 @@ const EditarPropostaPage = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Budget Items Manager */}
+        <BudgetItemsManager proposalId={id!} />
       </div>
     </div>
   );

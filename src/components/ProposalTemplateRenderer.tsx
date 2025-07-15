@@ -45,20 +45,22 @@ const ProposalTemplateRenderer = ({ proposal, companyLogo: providedLogo }: Propo
   const previewData = {
     title: proposal.title || 'Proposta Comercial',
     client: proposal.companies?.name || 'Cliente',
-    value: proposal.value, // Usar valor original sem conversão
+    value: proposal.value,
     deliveryTime: proposal.delivery_time,
     description: proposal.service_description,
     detailedDescription: proposal.detailed_description,
     observations: proposal.observations,
     template: templateId,
-    companyLogo: companyLogo
+    companyLogo: companyLogo,
+    proposalId: proposal.id // Adicionar o ID da proposta
   };
 
   console.log('ProposalTemplateRenderer - Dados da proposta:', {
     originalValue: proposal.value,
     processedValue: previewData.value,
     title: previewData.title,
-    client: previewData.client
+    client: previewData.client,
+    proposalId: previewData.proposalId
   });
 
   // Renderizar template personalizado se disponível e usuário tem acesso
