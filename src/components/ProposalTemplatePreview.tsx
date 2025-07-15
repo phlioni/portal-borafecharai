@@ -21,7 +21,9 @@ const ProposalTemplatePreview = ({ data, className = "" }: ProposalTemplatePrevi
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
-      currency: 'BRL'
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     }).format(value);
   };
 
@@ -42,59 +44,91 @@ const ProposalTemplatePreview = ({ data, className = "" }: ProposalTemplatePrevi
   // Template Moderno
   if (data.template === 'moderno') {
     return (
-      <div className={`bg-white p-8 ${className}`} style={{ fontFamily: 'Inter, sans-serif' }}>
+      <div className={`bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 sm:p-8 ${className}`} style={{ fontFamily: 'Inter, sans-serif' }}>
         <div className="max-w-4xl mx-auto">
-          {/* Header */}
-          <div className="border-b-2 border-blue-600 pb-6 mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {data.title}
-            </h1>
-            <p className="text-blue-600 font-medium">Proposta Comercial</p>
+          {/* Header Moderno */}
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-6 border border-gray-100">
+            <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="text-left sm:text-right flex-1">
+                  <h1 className="text-xl sm:text-3xl font-bold mb-2 leading-tight">{data.title}</h1>
+                  <div className="flex flex-col sm:items-end gap-2">
+                    <p className="text-blue-100 text-sm font-medium">Proposta Comercial</p>
+                    <div className="bg-white/20 backdrop-blur-sm rounded-lg px-3 py-1">
+                      <p className="text-white text-sm font-medium">Para: {data.client}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-3 sm:p-4 bg-gradient-to-r from-gray-50 to-blue-50">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div className="text-xs text-gray-600">
+                  <span className="font-medium">Data:</span> {new Date().toLocaleDateString('pt-BR')}
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="text-xs text-gray-600 font-medium">Proposta Ativa</span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Cliente Info */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Destinatário</h2>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p><span className="font-medium">Cliente:</span> {data.client}</p>
-              {data.responsible && (
-                <p><span className="font-medium">Responsável:</span> {data.responsible}</p>
+          {/* Conteúdo */}
+          <div className="space-y-4 sm:space-y-6">
+            {/* Descrição */}
+            <section className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
+              <div className="flex items-start gap-3">
+                <div className="w-2 h-8 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full flex-shrink-0 mt-1"></div>
+                <div className="flex-1">
+                  <h2 className="text-lg font-bold text-blue-900 mb-3">Serviços Propostos</h2>
+                  {renderHTMLContent(data.description || 'Descrição do serviço')}
+                </div>
+              </div>
+            </section>
+
+            {/* Valores */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {data.value && (
+                <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-xl p-4 shadow-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-3 h-3 bg-white/30 rounded-full"></div>
+                    <h3 className="font-semibold text-sm opacity-90">Investimento Total</h3>
+                  </div>
+                  <p className="text-2xl font-bold">
+                    {formatCurrency(data.value)}
+                  </p>
+                  <p className="text-emerald-100 text-xs mt-1">Proposta válida por 30 dias</p>
+                </div>
               )}
-              {(data.email || data.phone) && (
-                <p><span className="font-medium">Contato:</span> {data.email} {data.phone && `/ ${data.phone}`}</p>
+              
+              {data.deliveryTime && (
+                <div className="bg-gradient-to-br from-violet-500 to-purple-600 text-white rounded-xl p-4 shadow-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-3 h-3 bg-white/30 rounded-full"></div>
+                    <h3 className="font-semibold text-sm opacity-90">Prazo de Entrega</h3>
+                  </div>
+                  <p className="text-xl font-bold">{data.deliveryTime}</p>
+                  <p className="text-violet-100 text-xs mt-1">A partir da aprovação</p>
+                </div>
               )}
             </div>
           </div>
 
-          {/* Descrição */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Proposta</h2>
-            {renderHTMLContent(data.description || 'Descrição do serviço')}
-          </div>
-
-          {/* Valores e Condições */}
-          <div className="grid md:grid-cols-2 gap-6 mb-8">
-            {data.value && (
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-blue-900 mb-2">Investimento</h3>
-                <p className="text-2xl font-bold text-blue-600">{formatCurrency(data.value)}</p>
-                {data.paymentMethod && (
-                  <p className="text-sm text-blue-700 mt-1">{data.paymentMethod}</p>
-                )}
-              </div>
-            )}
-            
-            {data.deliveryTime && (
-              <div className="bg-green-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-green-900 mb-2">Prazo de Entrega</h3>
-                <p className="text-lg font-medium text-green-600">{data.deliveryTime}</p>
-              </div>
-            )}
-          </div>
-
           {/* Footer */}
-          <div className="border-t pt-6 text-center text-gray-600">
-            <p>Proposta válida por 30 dias</p>
+          <div className="mt-6 bg-white rounded-xl shadow-lg p-4 border border-gray-200 text-center">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-xs text-gray-600">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span>Proposta gerada em {new Date().toLocaleDateString('pt-BR')}</span>
+              </div>
+              <div className="hidden sm:block w-1 h-1 bg-gray-300 rounded-full"></div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span>Válida por 30 dias</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -104,69 +138,68 @@ const ProposalTemplatePreview = ({ data, className = "" }: ProposalTemplatePrevi
   // Template Executivo
   if (data.template === 'executivo') {
     return (
-      <div className={`bg-white p-8 ${className}`} style={{ fontFamily: 'serif' }}>
+      <div className={`bg-white p-4 sm:p-8 ${className}`} style={{ fontFamily: 'serif' }}>
         <div className="max-w-4xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-8 pb-6 border-b border-gray-300">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              PROPOSTA COMERCIAL
-            </h1>
-            <h2 className="text-xl text-gray-700">{data.title}</h2>
-          </div>
-
-          {/* Cliente */}
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3 uppercase tracking-wide">
-              Destinatário
-            </h3>
-            <div className="border-l-4 border-gray-800 pl-4">
-              <p className="font-medium">{data.client}</p>
-              {data.responsible && <p>Att: {data.responsible}</p>}
-              {(data.email || data.phone) && (
-                <p className="text-gray-600">{data.email} {data.phone && `| ${data.phone}`}</p>
-              )}
+          <div className="border-b-4 border-gray-900 pb-6 mb-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="text-left sm:text-right flex-1">
+                <h1 className="text-2xl sm:text-3xl font-black text-gray-900 mb-2 uppercase tracking-tight">
+                  {data.title}
+                </h1>
+                <p className="text-gray-600 text-sm font-bold uppercase tracking-widest">Proposta Comercial</p>
+                <div className="mt-4 pt-4 border-t border-gray-300">
+                  <p className="text-gray-700 text-sm"><span className="font-black">Cliente:</span> {data.client}</p>
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Conteúdo */}
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3 uppercase tracking-wide">
-              Escopo dos Serviços
-            </h3>
-            <div className="text-justify leading-relaxed">
-              {renderHTMLContent(data.description || 'Descrição detalhada do serviço')}
-            </div>
-          </div>
+          <div className="space-y-8">
+            <section>
+              <div className="border-b-2 border-gray-900 pb-3 mb-6">
+                <h2 className="text-sm font-black text-gray-900 uppercase tracking-widest">Escopo dos Serviços</h2>
+              </div>
+              <div className="bg-gray-50 border-l-4 border-gray-900 p-4">
+                {renderHTMLContent(data.description || 'Descrição detalhada do serviço')}
+              </div>
+            </section>
 
-          {/* Condições */}
-          <div className="bg-gray-50 p-6 mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 uppercase tracking-wide">
-              Condições Comerciais
-            </h3>
-            <div className="grid md:grid-cols-2 gap-6">
-              {data.value && (
-                <div>
-                  <p className="font-medium text-gray-700">Valor Total:</p>
-                  <p className="text-xl font-bold text-gray-900">{formatCurrency(data.value)}</p>
-                  {data.paymentMethod && (
-                    <p className="text-sm text-gray-600">{data.paymentMethod}</p>
+            {/* Condições */}
+            <section className="bg-gray-900 text-white p-6 -mx-4 sm:-mx-8">
+              <div className="max-w-4xl mx-auto">
+                <div className="text-center mb-6">
+                  <h2 className="text-sm font-black uppercase tracking-widest text-gray-300 mb-4">Condições Comerciais</h2>
+                  <div className="w-20 h-0.5 bg-white mx-auto"></div>
+                </div>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+                  {data.value && (
+                    <div className="text-center lg:text-left">
+                      <p className="text-gray-300 text-sm font-semibold uppercase tracking-wide mb-3">Investimento Total</p>
+                      <p className="text-3xl font-black mb-2">
+                        {formatCurrency(data.value)}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {data.deliveryTime && (
+                    <div className="text-center lg:text-right">
+                      <p className="text-gray-300 text-sm font-semibold uppercase tracking-wide mb-3">Prazo de Execução</p>
+                      <p className="text-2xl font-bold text-white">{data.deliveryTime}</p>
+                    </div>
                   )}
                 </div>
-              )}
-              {data.deliveryTime && (
-                <div>
-                  <p className="font-medium text-gray-700">Prazo de Execução:</p>
-                  <p className="text-lg text-gray-900">{data.deliveryTime}</p>
-                </div>
-              )}
-            </div>
+              </div>
+            </section>
           </div>
 
-          {/* Assinatura */}
-          <div className="text-center pt-8 border-t border-gray-300">
-            <p className="text-gray-600">Atenciosamente,</p>
-            <div className="mt-8 border-b border-gray-400 w-48 mx-auto"></div>
-            <p className="mt-2 text-gray-700">Equipe Comercial</p>
+          {/* Footer */}
+          <div className="mt-8 pt-6 border-t border-gray-300 text-center">
+            <p className="text-gray-600 text-xs font-bold uppercase tracking-widest">
+              Proposta válida por 30 dias
+            </p>
           </div>
         </div>
       </div>
@@ -176,61 +209,102 @@ const ProposalTemplatePreview = ({ data, className = "" }: ProposalTemplatePrevi
   // Template Criativo
   if (data.template === 'criativo') {
     return (
-      <div className={`bg-gradient-to-br from-purple-50 to-pink-50 p-8 ${className}`}>
-        <div className="max-w-4xl mx-auto">
+      <div className={`bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 p-4 sm:p-8 relative overflow-hidden ${className}`}>
+        {/* Background decorativo */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-purple-300 to-pink-300 opacity-20 rounded-full blur-2xl"></div>
+          <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-gradient-to-br from-blue-300 to-indigo-300 opacity-20 rounded-full blur-2xl"></div>
+        </div>
+        
+        <div className="relative max-w-4xl mx-auto">
           {/* Header Criativo */}
-          <div className="text-center mb-8">
-            <div className="inline-block bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-full mb-4">
-              <h1 className="text-2xl font-bold">{data.title}</h1>
-            </div>
-            <p className="text-purple-600 font-medium">Uma proposta especial para você!</p>
-          </div>
-
-          {/* Card do Cliente */}
-          <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border-l-4 border-purple-500">
-            <h2 className="text-lg font-bold text-purple-700 mb-3">👋 Olá, {data.client}!</h2>
-            {data.responsible && (
-              <p className="text-gray-700">Responsável: {data.responsible}</p>
-            )}
-            {(data.email || data.phone) && (
-              <p className="text-gray-600">{data.email} {data.phone && `• ${data.phone}`}</p>
-            )}
-          </div>
-
-          {/* Conteúdo Principal */}
-          <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-            <h2 className="text-xl font-bold text-purple-700 mb-4 flex items-center">
-              ✨ Nossa Proposta
-            </h2>
-            <div className="text-gray-700 leading-relaxed">
-              {renderHTMLContent(data.description || 'Descrição criativa do serviço')}
+          <div className="text-center mb-8 relative">
+            <div className="relative bg-white/95 backdrop-blur-xl rounded-3xl p-6 shadow-2xl border border-purple-100/50">
+              <h1 className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent mb-4 leading-tight">
+                {data.title}
+              </h1>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-pulse"></div>
+                  <p className="text-gray-600 text-sm font-semibold">Uma proposta especial para</p>
+                </div>
+                <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-full">
+                  <p className="font-bold text-sm">{data.client}</p>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Cards de Valor e Prazo */}
-          <div className="grid md:grid-cols-2 gap-6 mb-8">
-            {data.value && (
-              <div className="bg-gradient-to-r from-green-400 to-green-600 rounded-xl p-6 text-white">
-                <h3 className="text-lg font-bold mb-2">💰 Investimento</h3>
-                <p className="text-3xl font-bold">{formatCurrency(data.value)}</p>
-                {data.paymentMethod && (
-                  <p className="text-green-100 text-sm mt-2">{data.paymentMethod}</p>
-                )}
+          {/* Conteúdo */}
+          <div className="space-y-6">
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-pink-400 opacity-10 rounded-3xl blur-xl"></div>
+              <div className="relative bg-white/90 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-purple-100/50">
+                <div className="flex items-start gap-4">
+                  <div className="w-1 h-16 bg-gradient-to-b from-purple-500 via-pink-500 to-purple-600 rounded-full flex-shrink-0"></div>
+                  <div className="flex-1">
+                    <h2 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
+                      ✨ O que vamos criar juntos
+                    </h2>
+                    <div className="text-gray-700 leading-relaxed">
+                      {renderHTMLContent(data.description || 'Descrição criativa do serviço')}
+                    </div>
+                  </div>
+                </div>
               </div>
-            )}
-            
-            {data.deliveryTime && (
-              <div className="bg-gradient-to-r from-blue-400 to-blue-600 rounded-xl p-6 text-white">
-                <h3 className="text-lg font-bold mb-2">⏰ Prazo</h3>
-                <p className="text-2xl font-bold">{data.deliveryTime}</p>
-              </div>
-            )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {data.value && (
+                <div className="group relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-green-500 opacity-20 rounded-2xl blur-lg"></div>
+                  <div className="relative bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 rounded-2xl p-6 text-white shadow-2xl">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-3 h-3 bg-white/40 rounded-full animate-pulse"></div>
+                      <h3 className="font-bold text-lg text-white/90">💰 Investimento</h3>
+                    </div>
+                    <p className="text-3xl font-black mb-2">
+                      {formatCurrency(data.value)}
+                    </p>
+                    <div className="absolute top-4 right-4 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                      <span className="text-lg">💎</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {data.deliveryTime && (
+                <div className="group relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-violet-400 to-purple-500 opacity-20 rounded-2xl blur-lg"></div>
+                  <div className="relative bg-gradient-to-br from-violet-500 via-purple-500 to-indigo-600 rounded-2xl p-6 text-white shadow-2xl">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-3 h-3 bg-white/40 rounded-full animate-pulse"></div>
+                      <h3 className="font-bold text-lg text-white/90">⏰ Prazo</h3>
+                    </div>
+                    <p className="text-2xl font-black mb-2">{data.deliveryTime}</p>
+                    <div className="absolute top-4 right-4 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                      <span className="text-lg">⚡</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Footer Criativo */}
-          <div className="text-center bg-white rounded-xl shadow-lg p-6">
-            <p className="text-purple-600 font-medium">🎯 Pronto para começarmos essa jornada juntos?</p>
-            <p className="text-gray-600 text-sm mt-2">Esta proposta é válida por 30 dias</p>
+          {/* Footer */}
+          <div className="mt-8 text-center relative">
+            <div className="relative bg-white/95 backdrop-blur-xl rounded-2xl p-4 shadow-xl border border-purple-100/50">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🎯</span>
+                  <p className="text-purple-600 font-bold text-sm">Pronto para começarmos essa jornada?</p>
+                </div>
+                <div className="flex items-center gap-2 text-gray-600 text-xs">
+                  <span>✨</span>
+                  <span>Proposta válida por 30 dias</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -239,7 +313,7 @@ const ProposalTemplatePreview = ({ data, className = "" }: ProposalTemplatePrevi
 
   // Fallback para template padrão
   return (
-    <div className={`bg-white p-8 ${className}`}>
+    <div className={`bg-white p-4 sm:p-8 ${className}`}>
       <div className="max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-4">{data.title}</h1>
         <p className="mb-4"><strong>Cliente:</strong> {data.client}</p>
