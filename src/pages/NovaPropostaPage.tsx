@@ -107,6 +107,7 @@ const NovaPropostaPage = () => {
         delivery_time: formData.delivery_time || null,
         validity_date: formData.validity_date || null,
         observations: formData.observations || null,
+        status: 'enviada' as const,
         user_id: user!.id
       };
 
@@ -244,8 +245,7 @@ const NovaPropostaPage = () => {
           </CardHeader>
           <CardContent>
             <BudgetItemsManager 
-              proposalId={tempProposalId} 
-              onItemsChange={handleBudgetItemsChange}
+              proposalId={tempProposalId || 'temp-proposal'} 
               isNewProposal={true}
             />
           </CardContent>

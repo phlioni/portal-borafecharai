@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,9 +13,10 @@ import { toast } from 'sonner';
 interface BudgetItemsManagerProps {
   proposalId: string;
   isReadOnly?: boolean;
+  isNewProposal?: boolean;
 }
 
-const BudgetItemsManager = ({ proposalId, isReadOnly = false }: BudgetItemsManagerProps) => {
+const BudgetItemsManager = ({ proposalId, isReadOnly = false, isNewProposal = false }: BudgetItemsManagerProps) => {
   const [newItem, setNewItem] = useState({
     type: 'material' as 'material' | 'labor',
     description: '',
@@ -23,10 +24,21 @@ const BudgetItemsManager = ({ proposalId, isReadOnly = false }: BudgetItemsManag
     unit_price: 0
   });
 
+  const [localItems, setLocalItems] = useState<any[]>([]);
+
   const { data: budgetItems = [], isLoading } = useBudgetItems(proposalId);
   const createBudgetItem = useCreateBudgetItem();
   const updateBudgetItem = useUpdateBudgetItem();
   const deleteBudgetItem = useDeleteBudgetItem();
+
+  // Para novas propostas, use estado local em vez de dados do banco
+  const effectiveItems = isNewProposal ? localItems : budgetItems;
+
+  useEffect(() => {
+    if (!isNewProposal && budgetItems.length > 0) {
+      setLocalItems(budgetItems);
+    }
+  }, [budgetItems, isNewProposal]);
 
   const handleAddItem = async () => {
     if (!newItem.description) {
@@ -34,44 +46,70 @@ const BudgetItemsManager = ({ proposalId, isReadOnly = false }: BudgetItemsManag
       return;
     }
 
-    try {
-      await createBudgetItem.mutateAsync({
-        proposal_id: proposalId,
-        type: newItem.type,
-        description: newItem.description,
-        quantity: newItem.quantity,
-        unit_price: newItem.unit_price
-      });
+    const itemToAdd = {
+      id: `temp-${Date.now()}`,
+      proposal_id: proposalId,
+      type: newItem.type,
+      description: newItem.description,
+      quantity: newItem.quantity,
+      unit_price: newItem.unit_price,
+      total_price: newItem.quantity * newItem.unit_price,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
 
-      setNewItem({
-        type: 'material',
-        description: '',
-        quantity: 1,
-        unit_price: 0
-      });
-
+    if (isNewProposal) {
+      // Para novas propostas, adicione ao estado local
+      setLocalItems(prev => [...prev, itemToAdd]);
       toast.success('Item adicionado com sucesso!');
-    } catch (error) {
-      console.error('Error adding budget item:', error);
-      toast.error('Erro ao adicionar item');
+    } else {
+      // Para propostas existentes, salve no banco
+      try {
+        await createBudgetItem.mutateAsync({
+          proposal_id: proposalId,
+          type: newItem.type,
+          description: newItem.description,
+          quantity: newItem.quantity,
+          unit_price: newItem.unit_price
+        });
+        toast.success('Item adicionado com sucesso!');
+      } catch (error) {
+        console.error('Error adding budget item:', error);
+        toast.error('Erro ao adicionar item');
+        return;
+      }
     }
+
+    setNewItem({
+      type: 'material',
+      description: '',
+      quantity: 1,
+      unit_price: 0
+    });
   };
 
   const handleDeleteItem = async (id: string) => {
-    try {
-      await deleteBudgetItem.mutateAsync({ id, proposalId });
+    if (isNewProposal) {
+      // Para novas propostas, remova do estado local
+      setLocalItems(prev => prev.filter(item => item.id !== id));
       toast.success('Item removido com sucesso!');
-    } catch (error) {
-      console.error('Error deleting budget item:', error);
-      toast.error('Erro ao remover item');
+    } else {
+      // Para propostas existentes, delete do banco
+      try {
+        await deleteBudgetItem.mutateAsync({ id, proposalId });
+        toast.success('Item removido com sucesso!');
+      } catch (error) {
+        console.error('Error deleting budget item:', error);
+        toast.error('Erro ao remover item');
+      }
     }
   };
 
   const calculateTotal = () => {
-    return budgetItems.reduce((total, item) => total + (item.total_price || 0), 0);
+    return effectiveItems.reduce((total, item) => total + (item.total_price || 0), 0);
   };
 
-  if (isLoading) {
+  if (!isNewProposal && isLoading) {
     return <div>Carregando itens do orçamento...</div>;
   }
 
@@ -142,7 +180,7 @@ const BudgetItemsManager = ({ proposalId, isReadOnly = false }: BudgetItemsManag
           </div>
         )}
 
-        {budgetItems.length > 0 && (
+        {effectiveItems.length > 0 && (
           <div className="space-y-4">
             <Table>
               <TableHeader>
@@ -156,7 +194,7 @@ const BudgetItemsManager = ({ proposalId, isReadOnly = false }: BudgetItemsManag
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {budgetItems.map((item) => (
+                {effectiveItems.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell>
                       {item.type === 'material' ? 'Material' : 'Mão de Obra'}
@@ -194,7 +232,7 @@ const BudgetItemsManager = ({ proposalId, isReadOnly = false }: BudgetItemsManag
           </div>
         )}
 
-        {budgetItems.length === 0 && (
+        {effectiveItems.length === 0 && (
           <div className="text-center py-8 text-gray-500">
             Nenhum item de orçamento adicionado
           </div>
