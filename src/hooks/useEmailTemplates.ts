@@ -26,12 +26,6 @@ Preparamos esta proposta cuidadosamente para atender às suas necessidades espec
 
 {BOTAO_PROPOSTA}
 
-Resumo do que incluímos:
-• Análise detalhada do seu projeto
-• Cronograma personalizado
-• Investimento transparente
-• Suporte durante toda a execução
-
 Fico à disposição para esclarecer qualquer dúvida e discutir os próximos passos.
 
 Aguardo seu retorno!`,
@@ -40,11 +34,7 @@ Aguardo seu retorno!`,
 {EMPRESA_NOME}
 
 📧 {EMPRESA_EMAIL}
-📱 {EMPRESA_TELEFONE}
-🌐 {EMPRESA_WEBSITE}
-
----
-Esta proposta foi criada com BoraFechar AI - A inteligência que acelera seus negócios`
+📱 {EMPRESA_TELEFONE}`
 };
 
 export const useEmailTemplates = () => {

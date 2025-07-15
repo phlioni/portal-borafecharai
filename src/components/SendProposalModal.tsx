@@ -54,17 +54,16 @@ const SendProposalModal = ({
       const company = companies?.[0];
       console.log('Empresa selecionada:', company);
       
-      // Preparar variáveis para substituição no template
+      // Preparar variáveis para substituição no template usando dados da empresa
       const variables = {
         CLIENTE_NOME: clientName || 'Cliente',
-        NOME_CLIENTE: clientName || 'Cliente', // Variação do nome
+        NOME_CLIENTE: clientName || 'Cliente',
         PROJETO_NOME: proposalTitle || 'Projeto',
-        NOME_PROJETO: proposalTitle || 'Projeto', // Variação do nome
+        NOME_PROJETO: proposalTitle || 'Projeto',
         SEU_NOME: user?.user_metadata?.name || company?.name || 'Equipe',
         EMPRESA_NOME: company?.name || 'Sua Empresa',
         EMPRESA_TELEFONE: company?.phone || '',
         EMPRESA_EMAIL: company?.email || user?.email || '',
-        EMPRESA_WEBSITE: company?.website || '',
         BOTAO_PROPOSTA: '[LINK_DA_PROPOSTA]'
       };
 
@@ -121,7 +120,7 @@ const SendProposalModal = ({
 
   const isFormValid = formData.recipientEmail.trim() && formData.recipientName.trim();
 
-  // Função para gerar preview do email com botão estilizado
+  // Função para gerar preview do email com botão estilizado em azul com texto branco
   const generatePreviewMessage = () => {
     return formData.emailMessage.replace(
       '[LINK_DA_PROPOSTA]',
@@ -129,7 +128,7 @@ const SendProposalModal = ({
       <div style="text-align: center; margin: 20px 0;">
         <a href="#" style="
           display: inline-block;
-          background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+          background: #2563eb;
           color: white;
           padding: 12px 24px;
           text-decoration: none;
@@ -238,7 +237,7 @@ const SendProposalModal = ({
           <Button 
             onClick={handleSend} 
             disabled={!isFormValid || isLoading}
-            className="bg-blue-600 hover:bg-blue-700 order-1 sm:order-2"
+            className="bg-blue-600 hover:bg-blue-700 text-white order-1 sm:order-2"
           >
             <Send className="h-4 w-4 mr-2" />
             {isLoading ? 'Enviando...' : 'Enviar Proposta'}
