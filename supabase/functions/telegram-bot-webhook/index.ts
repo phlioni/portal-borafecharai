@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
@@ -60,10 +59,10 @@ const supabase = createClient(
 const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
 
 async function sendTelegramMessage(chatId: number, text: string, replyMarkup?: any) {
-  console.log(`📤 Enviando mensagem para chat ${chatId}:`, text);
+  console.log(`Enviando mensagem para chat ${chatId}:`, text);
 
   if (!botToken) {
-    console.error('❌ TELEGRAM_BOT_TOKEN não configurado');
+    console.error('TELEGRAM_BOT_TOKEN não configurado');
     return;
   }
 
@@ -84,13 +83,13 @@ async function sendTelegramMessage(chatId: number, text: string, replyMarkup?: a
     });
 
     const responseData = await response.json();
-    console.log('✅ Resposta do Telegram:', responseData);
+    console.log('Resposta do Telegram:', responseData);
 
     if (!response.ok) {
-      console.error('❌ Erro ao enviar mensagem Telegram:', responseData);
+      console.error('Erro ao enviar mensagem Telegram:', responseData);
     }
   } catch (error) {
-    console.error('❌ Erro na requisição para Telegram:', error);
+    console.error('Erro na requisição para Telegram:', error);
   }
 }
 
@@ -110,20 +109,18 @@ async function loadSession(telegramUserId: number, chatId: number): Promise<User
     }
 
     if (sessionData) {
-      console.log('✅ Sessão encontrada:', sessionData);
+      console.log('Sessão encontrada:', sessionData);
 
       // Verificar se a sessão não expirou
       if (new Date(sessionData.expires_at) > new Date()) {
-        const loadedSession = {
+        return {
           step: sessionData.step,
           data: sessionData.session_data || {},
           phone: sessionData.phone,
           userId: sessionData.user_id
         };
-        console.log('💾 Sessão carregada com sucesso:', loadedSession);
-        return loadedSession;
       } else {
-        console.log('⏰ Sessão expirada, removendo...');
+        console.log('Sessão expirada, removendo...');
         await supabase
           .from('telegram_sessions')
           .delete()
@@ -131,7 +128,7 @@ async function loadSession(telegramUserId: number, chatId: number): Promise<User
       }
     }
   } catch (error) {
-    console.error('❌ Erro ao carregar sessão:', error);
+    console.error('Erro ao carregar sessão:', error);
   }
 
   // Retornar sessão padrão se não encontrou ou expirou
@@ -167,24 +164,7 @@ async function saveSession(telegramUserId: number, chatId: number, session: User
       console.log('Sessão salva com sucesso');
     }
   } catch (error) {
-    console.error('❌ Erro ao salvar sessão:', error);
-  }
-}
-
-// Função para limpar sessão
-async function clearSession(telegramUserId: number, chatId: number) {
-  console.log(`🧹 Limpando sessão para usuário ${telegramUserId}, chat ${chatId}`);
-
-  try {
-    await supabase
-      .from('telegram_sessions')
-      .delete()
-      .eq('telegram_user_id', telegramUserId)
-      .eq('chat_id', chatId);
-
-    console.log('✅ Sessão limpa com sucesso');
-  } catch (error) {
-    console.error('❌ Erro ao limpar sessão:', error);
+    console.error('Erro ao salvar sessão:', error);
   }
 }
 
@@ -379,7 +359,7 @@ async function storeUserChatId(userId: string, chatId: number) {
 }
 
 async function handleMessage(update: TelegramUpdate) {
-  console.log('🎯 === PROCESSANDO MENSAGEM ===');
+  console.log('=== PROCESSANDO MENSAGEM ===');
   console.log('Update recebido:', JSON.stringify(update, null, 2));
 
   const message = update.message;
@@ -413,7 +393,7 @@ async function handleMessage(update: TelegramUpdate) {
   console.log('Estado atual da sessão:', session);
 
   if (message.contact) {
-    console.log('📞 Contato compartilhado:', message.contact);
+    console.log('Contato compartilhado:', message.contact);
     session.phone = message.contact.phone_number;
 
     const user = await findUserByPhone(session.phone);
@@ -452,12 +432,7 @@ async function handleMessage(update: TelegramUpdate) {
         `🚀 O que você gostaria de fazer?`,
         keyboard
       );
-      
       session.step = 'main_menu';
-      // CRÍTICO: Salvar sessão IMEDIATAMENTE após autenticação
-      await saveSession(telegramUserId, chatId, session);
-      console.log('✅ Sessão salva após autenticação bem-sucedida');
-      return;
     } else {
       console.log('Usuário não encontrado pelo telefone:', session.phone);
       await sendTelegramMessage(chatId,
