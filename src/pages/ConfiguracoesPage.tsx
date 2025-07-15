@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +16,7 @@ import GerenciamentoUsuariosPage from './GerenciamentoUsuariosPage';
 import TelegramBotUserGuide from '@/components/TelegramBotUserGuide';
 import TelegramBotPage from './TelegramBotPage';
 import ProfileTab from '@/components/ProfileTab';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const ConfiguracoesPage = () => {
   const { user } = useAuth();
@@ -25,6 +25,7 @@ const ConfiguracoesPage = () => {
   const { data: companies, isLoading: companiesLoading } = useCompanies();
   const updateCompanyMutation = useUpdateCompany();
   const createCompanyMutation = useCreateCompany();
+  const isMobile = useIsMobile();
 
   const [activeTab, setActiveTab] = useState('perfil');
   const [companyData, setCompanyData] = useState({
@@ -65,7 +66,6 @@ const ConfiguracoesPage = () => {
         country_code: company.country_code || '+55'
       });
     } else if (user && !companiesLoading) {
-      // Se não há empresa e não está carregando, definir dados padrão com email do usuário
       setCompanyData(prev => ({
         ...prev,
         email: user.email || '',
@@ -83,13 +83,11 @@ const ConfiguracoesPage = () => {
 
     try {
       if (company) {
-        // Atualizar empresa existente
         await updateCompanyMutation.mutateAsync({
           id: company.id,
           updates: companyData
         });
       } else {
-        // Criar nova empresa
         await createCompanyMutation.mutateAsync(companyData);
       }
     } catch (error) {
@@ -154,37 +152,78 @@ const ConfiguracoesPage = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className={`${isMobile ? 'p-4' : 'p-6'} space-y-6`}>
       <div>
-        <h1 className="text-3xl font-bold">Configurações</h1>
+        <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold`}>Configurações</h1>
         <p className="text-muted-foreground">Gerencie suas configurações e preferências</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-5' : 'grid-cols-4'}`}>
-          <TabsTrigger value="perfil" className="flex items-center gap-2">
-            <User className="h-4 w-4" />
-            Perfil
+        <TabsList className={`${isMobile ? 'grid w-full grid-cols-2 gap-1 h-auto p-1' : `grid w-full ${isAdmin ? 'grid-cols-5' : 'grid-cols-4'}`}`}>
+          <TabsTrigger 
+            value="perfil" 
+            className={`${isMobile ? 'flex flex-col items-center gap-1 p-3 text-xs' : 'flex items-center gap-2'}`}
+          >
+            <User className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'}`} />
+            {isMobile ? 'Perfil' : 'Perfil'}
           </TabsTrigger>
-          <TabsTrigger value="negocio" className="flex items-center gap-2">
-            <Building className="h-4 w-4" />
-            Meu Negócio
+          <TabsTrigger 
+            value="negocio" 
+            className={`${isMobile ? 'flex flex-col items-center gap-1 p-3 text-xs' : 'flex items-center gap-2'}`}
+          >
+            <Building className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'}`} />
+            {isMobile ? 'Negócio' : 'Meu Negócio'}
           </TabsTrigger>
-          <TabsTrigger value="planos" className="flex items-center gap-2">
-            <CreditCard className="h-4 w-4" />
-            Planos
-          </TabsTrigger>
-          <TabsTrigger value="telegram" className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" />
-            Bot Telegram
-          </TabsTrigger>
-          {isAdmin && (
-            <TabsTrigger value="admin" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Admin
-            </TabsTrigger>
+          {!isMobile && (
+            <>
+              <TabsTrigger value="planos" className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                Planos
+              </TabsTrigger>
+              <TabsTrigger value="telegram" className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                Bot Telegram
+              </TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger value="admin" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Admin
+                </TabsTrigger>
+              )}
+            </>
           )}
         </TabsList>
+
+        {isMobile && (
+          <div className="grid grid-cols-1 gap-2">
+            <TabsTrigger 
+              value="planos" 
+              className="flex items-center justify-center gap-2 p-3"
+              onClick={() => setActiveTab('planos')}
+            >
+              <CreditCard className="h-4 w-4" />
+              Planos
+            </TabsTrigger>
+            <TabsTrigger 
+              value="telegram" 
+              className="flex items-center justify-center gap-2 p-3"
+              onClick={() => setActiveTab('telegram')}
+            >
+              <MessageSquare className="h-4 w-4" />
+              Bot Telegram
+            </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger 
+                value="admin" 
+                className="flex items-center justify-center gap-2 p-3"
+                onClick={() => setActiveTab('admin')}
+              >
+                <Users className="h-4 w-4" />
+                Admin
+              </TabsTrigger>
+            )}
+          </div>
+        )}
 
         <TabsContent value="perfil">
           <ProfileTab />
@@ -203,7 +242,7 @@ const ConfiguracoesPage = () => {
                   onLogoUpdate={handleLogoUpdate}
                 />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'} gap-4`}>
                   <div>
                     <Label htmlFor="name">Nome da Empresa</Label>
                     <Input
@@ -285,6 +324,7 @@ const ConfiguracoesPage = () => {
                 <Button
                   onClick={handleSave}
                   disabled={updateCompanyMutation.isPending || createCompanyMutation.isPending}
+                  className="w-full"
                 >
                   {(updateCompanyMutation.isPending || createCompanyMutation.isPending) ? 'Salvando...' : 'Salvar Alterações'}
                 </Button>
@@ -296,11 +336,11 @@ const ConfiguracoesPage = () => {
         <TabsContent value="planos">
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold">Escolha seu Plano</h2>
+              <h2 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold`}>Escolha seu Plano</h2>
               <p className="text-muted-foreground">Selecione o plano que melhor atende às suas necessidades</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'} gap-6`}>
               {plans.map((plan) => (
                 <Card key={plan.name} className={`relative ${plan.popular ? 'border-blue-500 shadow-lg' : ''} ${plan.current ? 'ring-2 ring-green-500' : ''}`}>
                   {plan.popular && (
@@ -319,8 +359,8 @@ const ConfiguracoesPage = () => {
                     </div>
                   )}
                   <CardHeader className="text-center">
-                    <CardTitle className="text-2xl">{plan.name}</CardTitle>
-                    <div className="text-3xl font-bold text-blue-600">{plan.price}</div>
+                    <CardTitle className={`${isMobile ? 'text-xl' : 'text-2xl'}`}>{plan.name}</CardTitle>
+                    <div className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-blue-600`}>{plan.price}</div>
                     <CardDescription>por mês</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -328,7 +368,7 @@ const ConfiguracoesPage = () => {
                       {plan.features.map((feature, index) => (
                         <li key={index} className="flex items-center gap-2">
                           <Check className="w-4 h-4 text-green-500" />
-                          <span className="text-sm">{feature}</span>
+                          <span className={`${isMobile ? 'text-sm' : 'text-sm'}`}>{feature}</span>
                         </li>
                       ))}
                     </ul>
@@ -356,7 +396,7 @@ const ConfiguracoesPage = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'} gap-4`}>
                       <div className="p-4 border rounded-lg">
                         <h3 className="font-semibold mb-2">Analytics Avançadas</h3>
                         <p className="text-sm text-muted-foreground">Relatórios detalhados sobre suas propostas</p>
