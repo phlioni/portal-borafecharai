@@ -67,87 +67,34 @@ async function findUserByPhone(phone: string) {
   return null;
 }
 
-// Função para salvar sessão - CORRIGIDA para evitar constraint violation
+// Função otimizada para salvar sessão usando upsert
 async function saveSession(telegramUserId: number, chatId: number, session: Session) {
   console.log('💾 Salvando sessão:', { telegramUserId, chatId, session });
 
   try {
-    // Primeiro, tentar atualizar se já existe
-    const { data: existingSession, error: selectError } = await supabase
+    const { error } = await supabase
       .from('telegram_sessions')
-      .select('id')
-      .eq('telegram_user_id', telegramUserId)
-      .single();
+      .upsert({
+        telegram_user_id: telegramUserId,
+        chat_id: chatId,
+        step: session.step,
+        session_data: session.data || {},
+        user_id: session.userId || null,
+        user_profile: session.userProfile || {},
+        updated_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+      }, {
+        onConflict: 'telegram_user_id'
+      });
 
-    if (existingSession) {
-      // Sessão existe, fazer UPDATE
-      console.log('🔄 Atualizando sessão existente');
-      const { error: updateError } = await supabase
-        .from('telegram_sessions')
-        .update({
-          chat_id: chatId,
-          step: session.step,
-          session_data: session.data || {},
-          user_id: session.userId || null,
-          user_profile: session.userProfile || {},
-          updated_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-        })
-        .eq('telegram_user_id', telegramUserId);
-
-      if (updateError) {
-        console.error('❌ Erro ao atualizar sessão:', updateError);
-        throw updateError;
-      }
-    } else {
-      // Sessão não existe, fazer INSERT
-      console.log('🆕 Criando nova sessão');
-      const { error: insertError } = await supabase
-        .from('telegram_sessions')
-        .insert({
-          telegram_user_id: telegramUserId,
-          chat_id: chatId,
-          step: session.step,
-          session_data: session.data || {},
-          user_id: session.userId || null,
-          user_profile: session.userProfile || {},
-          updated_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-        });
-
-      if (insertError) {
-        console.error('❌ Erro ao inserir sessão:', insertError);
-
-        // Se der erro de constraint, tentar UPDATE como fallback
-        if (insertError.code === '23505') { // unique_violation
-          console.log('🔄 Constraint violation, tentando UPDATE como fallback');
-          const { error: fallbackError } = await supabase
-            .from('telegram_sessions')
-            .update({
-              chat_id: chatId,
-              step: session.step,
-              session_data: session.data || {},
-              user_id: session.userId || null,
-              user_profile: session.userProfile || {},
-              updated_at: new Date().toISOString(),
-              expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-            })
-            .eq('telegram_user_id', telegramUserId);
-
-          if (fallbackError) {
-            console.error('❌ Erro no fallback UPDATE:', fallbackError);
-            throw fallbackError;
-          }
-        } else {
-          throw insertError;
-        }
-      }
+    if (error) {
+      console.error('❌ Erro ao salvar sessão:', error);
+      throw error;
     }
 
     console.log('✅ Sessão salva com sucesso');
   } catch (error) {
     console.error('❌ Erro crítico ao salvar sessão:', error);
-    // Não lançar erro para não quebrar o fluxo
   }
 }
 
@@ -426,16 +373,14 @@ async function sendProposalByEmail(proposalId: string, clientEmail: string) {
 
 const handler = async (req: Request): Promise<Response> => {
   console.log('=== 🚀 WEBHOOK TELEGRAM CHAMADO ===');
-  console.log('🔧 Método:', req.method);
 
   if (req.method === 'OPTIONS') {
-    console.log('✅ Requisição OPTIONS (CORS preflight)');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const update: TelegramUpdate = await req.json();
-    console.log('📨 Update recebido:', JSON.stringify(update, null, 2));
+    console.log('📨 Update recebido');
 
     // Processar mensagem
     if (update.message) {
@@ -445,18 +390,12 @@ const handler = async (req: Request): Promise<Response> => {
 
       console.log(`👤 Usuário: ${from.first_name} (ID: ${telegramUserId})`);
 
-      // Carregar sessão
       let session = await loadSession(telegramUserId);
-      console.log('📋 Sessão carregada:', session);
 
-      // Comando /start - sempre reinicia
+      // Comando /start
       if (text === '/start') {
-        console.log('🔄 Comando /start recebido, reiniciando conversa');
-
-        // Limpar sessão anterior
+        console.log('🔄 Comando /start recebido');
         await clearSession(telegramUserId);
-
-        // Criar nova sessão
         session = { step: 'start', data: {} };
         await saveSession(telegramUserId, chatId, session);
 
@@ -476,16 +415,13 @@ const handler = async (req: Request): Promise<Response> => {
       // Verificar se é compartilhamento de contato
       if (contact) {
         console.log('📱 Contato recebido:', contact.phone_number);
-
         const user = await findUserByPhone(contact.phone_number);
 
         if (user) {
           session.userId = user.user_id;
           session.userProfile = user;
           session.step = 'main_menu';
-
           await saveSession(telegramUserId, chatId, session);
-          console.log('✅ Usuário autenticado:', user);
 
           await sendMessage(chatId,
             `✅ <b>Autenticado com sucesso!</b>\n\n` +
@@ -735,22 +671,22 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Processar callback queries (botões)
+    // Processar callback queries (botões) - CORRIGIDO
     if (update.callback_query) {
       const { id, from, message, data } = update.callback_query;
       const chatId = message!.chat.id;
       const telegramUserId = from.id;
 
+      console.log('🔘 Callback recebido:', data);
+
       let session = await loadSession(telegramUserId);
 
-      // Responder ao callback
+      // Responder ao callback primeiro
       await fetch(`https://api.telegram.org/bot${Deno.env.get('TELEGRAM_BOT_TOKEN')}/answerCallbackQuery`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ callback_query_id: id })
       });
-
-      console.log('🔘 Callback recebido:', data);
 
       switch (data) {
         case 'create_proposal':
@@ -771,41 +707,61 @@ const handler = async (req: Request): Promise<Response> => {
           break;
 
         case 'my_proposals':
-          // Buscar propostas do usuário
-          const { data: proposals, error } = await supabase
-            .from('proposals')
-            .select('*')
-            .eq('user_id', session.userId)
-            .order('created_at', { ascending: false })
-            .limit(10);
-
-          if (error) {
-            await sendMessage(chatId, '❌ Erro ao buscar propostas.');
+          console.log('📋 Buscando propostas do usuário:', session.userId);
+          
+          if (!session.userId) {
+            await sendMessage(chatId, '❌ Erro: usuário não autenticado');
             break;
           }
 
-          if (proposals.length === 0) {
-            await sendMessage(chatId,
-              '📋 <b>Você ainda não tem propostas criadas.</b>\n\n' +
-              '📝 Que tal criar sua primeira proposta?',
-              {
-                inline_keyboard: [
-                  [{ text: '📝 Criar Nova Proposta', callback_data: 'create_proposal' }]
-                ]
-              }
-            );
-          } else {
-            const proposalsList = proposals.map((p, index) =>
-              `${index + 1}. <b>${p.title}</b>\n` +
-              `   💰 ${p.value ? `R$ ${p.value}` : 'Valor não definido'}\n` +
-              `   📅 ${new Date(p.created_at).toLocaleDateString('pt-BR')}\n` +
-              `   📊 Status: ${p.status}\n`
-            ).join('\n');
+          try {
+            const { data: proposals, error } = await supabase
+              .from('proposals')
+              .select('*')
+              .eq('user_id', session.userId)
+              .order('created_at', { ascending: false })
+              .limit(10);
 
-            await sendMessage(chatId,
-              `📋 <b>Suas últimas propostas:</b>\n\n${proposalsList}\n\n` +
-              `💡 Para gerenciar suas propostas, acesse o sistema web.`
-            );
+            console.log('📊 Propostas encontradas:', proposals?.length || 0);
+
+            if (error) {
+              console.error('❌ Erro ao buscar propostas:', error);
+              await sendMessage(chatId, '❌ Erro ao buscar propostas. Tente novamente.');
+              break;
+            }
+
+            if (!proposals || proposals.length === 0) {
+              await sendMessage(chatId,
+                '📋 <b>Você ainda não tem propostas criadas.</b>\n\n' +
+                '📝 Que tal criar sua primeira proposta?',
+                {
+                  inline_keyboard: [
+                    [{ text: '📝 Criar Nova Proposta', callback_data: 'create_proposal' }]
+                  ]
+                }
+              );
+            } else {
+              const proposalsList = proposals.map((p, index) =>
+                `${index + 1}. <b>${p.title}</b>\n` +
+                `   💰 ${p.value ? `R$ ${p.value}` : 'Valor não definido'}\n` +
+                `   📅 ${new Date(p.created_at).toLocaleDateString('pt-BR')}\n` +
+                `   📊 Status: ${p.status}\n`
+              ).join('\n');
+
+              await sendMessage(chatId,
+                `📋 <b>Suas últimas propostas:</b>\n\n${proposalsList}\n\n` +
+                `💡 Para gerenciar suas propostas, acesse o sistema web.`,
+                {
+                  inline_keyboard: [
+                    [{ text: '📝 Criar Nova Proposta', callback_data: 'create_proposal' }],
+                    [{ text: '🏠 Menu Principal', callback_data: 'main_menu' }]
+                  ]
+                }
+              );
+            }
+          } catch (error) {
+            console.error('❌ Erro crítico ao buscar propostas:', error);
+            await sendMessage(chatId, '❌ Erro interno. Tente novamente mais tarde.');
           }
           break;
 
@@ -848,7 +804,12 @@ const handler = async (req: Request): Promise<Response> => {
           break;
 
         case 'confirm_create_proposal':
-          const proposal = await createProposal(session.userId!, session.proposalData);
+          if (!session.proposalData || !session.userId) {
+            await sendMessage(chatId, '❌ Erro: dados da proposta não encontrados');
+            break;
+          }
+
+          const proposal = await createProposal(session.userId, session.proposalData);
 
           if (proposal) {
             session.data.lastProposalId = proposal.id;
@@ -957,4 +918,3 @@ const handler = async (req: Request): Promise<Response> => {
 };
 
 serve(handler);
-
