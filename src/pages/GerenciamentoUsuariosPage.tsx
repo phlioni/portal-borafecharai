@@ -18,6 +18,8 @@ import { Trash2, Users, UserPlus, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import MobileUserCard from '@/components/MobileUserCard';
+import UserActionsDropdown from '@/components/UserActionsDropdown';
+import UserStatusBadges from '@/components/UserStatusBadges';
 
 const GerenciamentoUsuariosPage = () => {
   const { users, loading, deleteUser, createAdminUser } = useAdminOperations();
@@ -64,6 +66,12 @@ const GerenciamentoUsuariosPage = () => {
     user.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const activeSubscribers = users.filter(user => user.subscriber?.subscribed).length;
+  const activeTrials = users.filter(user => {
+    const trialEndDate = user.subscriber?.trial_end_date;
+    return trialEndDate && new Date(trialEndDate) > new Date() && !user.subscriber?.subscribed;
+  }).length;
+
   if (loading) {
     return (
       <div className="p-6 space-y-6">
@@ -86,7 +94,7 @@ const GerenciamentoUsuariosPage = () => {
       </div>
 
       {/* Estatísticas */}
-      <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'} gap-4`}>
+      <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-3'} gap-4`}>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Usuários</CardTitle>
@@ -103,7 +111,17 @@ const GerenciamentoUsuariosPage = () => {
             <Badge className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
+            <div className="text-2xl font-bold">{activeSubscribers}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Trials Ativos</CardTitle>
+            <Badge className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{activeTrials}</div>
           </CardContent>
         </Card>
       </div>
@@ -188,7 +206,7 @@ const GerenciamentoUsuariosPage = () => {
                   <TableHead>ID</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Data de Criação</TableHead>
-                  <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -210,22 +228,21 @@ const GerenciamentoUsuariosPage = () => {
                         {new Date(user.created_at).toLocaleDateString('pt-BR')}
                       </TableCell>
                       <TableCell>
-                        {user.role && (
-                          <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                            {user.role}
-                          </Badge>
-                        )}
+                        <UserStatusBadges user={user} />
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDeleteUser(user.id)}
-                          disabled={deletingUserId === user.id}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          {deletingUserId === user.id ? 'Deletando...' : 'Deletar'}
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          <UserActionsDropdown user={user} />
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteUser(user.id)}
+                            disabled={deletingUserId === user.id}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            {deletingUserId === user.id ? 'Deletando...' : 'Deletar'}
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))

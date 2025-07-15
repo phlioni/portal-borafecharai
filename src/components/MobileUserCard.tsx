@@ -2,8 +2,9 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { User, Mail, Calendar, Shield, UserX } from 'lucide-react';
+import { User, Mail, Calendar, UserX } from 'lucide-react';
+import UserActionsDropdown from '@/components/UserActionsDropdown';
+import UserStatusBadges from '@/components/UserStatusBadges';
 
 interface MobileUserCardProps {
   user: {
@@ -11,6 +12,12 @@ interface MobileUserCardProps {
     email: string;
     created_at: string;
     role?: string;
+    subscriber?: {
+      subscribed: boolean;
+      subscription_tier?: string;
+      trial_end_date?: string;
+      trial_proposals_used?: number;
+    };
   };
   onDeleteUser: (userId: string) => void;
   isDeleting: boolean;
@@ -29,12 +36,9 @@ const MobileUserCard = ({ user, onDeleteUser, isDeleting }: MobileUserCardProps)
             <User className="h-4 w-4 text-muted-foreground" />
             <span className="font-medium text-sm">ID: {user.id.slice(0, 8)}...</span>
           </div>
-          {user.role && (
-            <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="text-xs">
-              <Shield className="h-3 w-3 mr-1" />
-              {user.role}
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            <UserActionsDropdown user={user} />
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -47,6 +51,10 @@ const MobileUserCard = ({ user, onDeleteUser, isDeleting }: MobileUserCardProps)
           <span className="text-sm text-muted-foreground">
             Criado em: {formatDate(user.created_at)}
           </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <UserStatusBadges user={user} />
         </div>
 
         <div className="flex justify-end pt-2">
