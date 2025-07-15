@@ -172,12 +172,15 @@ const NovaPropostaPage = () => {
             </div>
             <div>
               <Label htmlFor="company">Cliente</Label>
-              <Select value={formData.company_id} onValueChange={(value) => handleInputChange('company_id', value)}>
+              <Select 
+                value={formData.company_id} 
+                onValueChange={(value) => handleInputChange('company_id', value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione um cliente" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhum cliente selecionado</SelectItem>
+                  <SelectItem value="none">Nenhum cliente selecionado</SelectItem>
                   {companies?.map((company) => (
                     <SelectItem key={company.id} value={company.id}>
                       {company.name}
@@ -247,6 +250,7 @@ const NovaPropostaPage = () => {
             <BudgetItemsManager 
               proposalId={tempProposalId || 'temp-proposal'} 
               isNewProposal={true}
+              onItemsChange={handleBudgetItemsChange}
             />
           </CardContent>
         </Card>
