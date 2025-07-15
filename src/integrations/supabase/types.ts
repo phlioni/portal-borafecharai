@@ -357,7 +357,6 @@ export type Database = {
           telegram_user_id: number
           updated_at: string
           user_id: string | null
-          user_profile: Json | null
         }
         Insert: {
           chat_id: number
@@ -370,7 +369,6 @@ export type Database = {
           telegram_user_id: number
           updated_at?: string
           user_id?: string | null
-          user_profile?: Json | null
         }
         Update: {
           chat_id?: number
@@ -383,7 +381,6 @@ export type Database = {
           telegram_user_id?: number
           updated_at?: string
           user_id?: string | null
-          user_profile?: Json | null
         }
         Relationships: []
       }
