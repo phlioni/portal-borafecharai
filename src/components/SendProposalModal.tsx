@@ -21,19 +21,19 @@ interface SendProposalModalProps {
   isLoading?: boolean;
 }
 
-const SendProposalModal = ({ 
-  isOpen, 
-  onClose, 
-  onSend, 
-  proposalTitle, 
-  clientName = '', 
+const SendProposalModal = ({
+  isOpen,
+  onClose,
+  onSend,
+  proposalTitle,
+  clientName = '',
   clientEmail = '',
-  isLoading = false 
+  isLoading = false
 }: SendProposalModalProps) => {
   const { user } = useAuth();
   const { data: companies, isLoading: companiesLoading } = useCompanies();
   const { getTemplate, processTemplate, templates, isLoading: templatesLoading } = useEmailTemplates();
-  
+
   const [formData, setFormData] = useState({
     recipientEmail: '',
     recipientName: '',
@@ -47,20 +47,20 @@ const SendProposalModal = ({
       console.log('Modal aberto, processando template...');
       console.log('Templates disponíveis:', templates);
       console.log('Empresas disponíveis:', companies);
-      
+
       const template = getTemplate();
       console.log('Template obtido:', template);
-      
+
       const company = companies?.[0];
       console.log('Empresa selecionada:', company);
-      
+
       // Preparar variáveis para substituição no template usando dados da empresa
       const variables = {
         CLIENTE_NOME: clientName || 'Cliente',
         NOME_CLIENTE: clientName || 'Cliente',
         PROJETO_NOME: proposalTitle || 'Projeto',
         NOME_PROJETO: proposalTitle || 'Projeto',
-        SEU_NOME: user?.user_metadata?.name || company?.name || 'Equipe',
+        SEU_NOME: user?.user_metadata?.name || 'Equipe',
         EMPRESA_NOME: company?.name || 'Sua Empresa',
         EMPRESA_TELEFONE: company?.phone ? `📱 ${company.phone}` : '',
         EMPRESA_EMAIL: company?.email ? `📧 ${company.email}` : '',
@@ -72,17 +72,17 @@ const SendProposalModal = ({
       // Processar templates com as variáveis
       const processedSubject = processTemplate(template.email_subject_template || '', variables);
       const processedMessage = processTemplate(template.email_message_template || '', variables);
-      
+
       // Processar assinatura
       let processedSignature = processTemplate(template.email_signature || '', variables);
-      
+
       console.log('Subject processado:', processedSubject);
       console.log('Message processada:', processedMessage);
       console.log('Signature processada:', processedSignature);
-      
+
       // Combinar mensagem e assinatura
-      const fullMessage = processedSignature ? 
-        `${processedMessage}\n\n${processedSignature}` : 
+      const fullMessage = processedSignature ?
+        `${processedMessage}\n\n${processedSignature}` :
         processedMessage;
 
       const newFormData = {
@@ -106,12 +106,12 @@ const SendProposalModal = ({
 
   const handleSend = () => {
     console.log('Tentando enviar proposta com dados:', formData);
-    
+
     if (!formData.recipientEmail.trim()) {
       toast.error('Email do destinatário é obrigatório');
       return;
     }
-    
+
     if (!formData.recipientName.trim()) {
       toast.error('Nome do destinatário é obrigatório');
       return;
@@ -153,7 +153,7 @@ const SendProposalModal = ({
             Enviar Proposta por Email
           </DialogTitle>
         </DialogHeader>
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Formulário */}
           <div className="space-y-4">
@@ -180,7 +180,7 @@ const SendProposalModal = ({
                 />
               </div>
             </div>
-            
+
             <div>
               <Label htmlFor="emailSubject">Assunto do Email</Label>
               <Input
@@ -191,7 +191,7 @@ const SendProposalModal = ({
                 disabled={isLoading}
               />
             </div>
-            
+
             <div>
               <Label htmlFor="emailMessage">Mensagem do Email</Label>
               <Textarea
@@ -218,24 +218,24 @@ const SendProposalModal = ({
                 <p><strong>Assunto:</strong> {formData.emailSubject || 'Assunto do email'}</p>
               </div>
               <div className="max-h-48 overflow-y-auto">
-                <div 
+                <div
                   className="text-sm leading-relaxed"
-                  dangerouslySetInnerHTML={{ 
-                    __html: generatePreviewMessage().replace(/\n/g, '<br>') || 'Mensagem do email aparecerá aqui...' 
+                  dangerouslySetInnerHTML={{
+                    __html: generatePreviewMessage().replace(/\n/g, '<br>') || 'Mensagem do email aparecerá aqui...'
                   }}
                 />
               </div>
             </div>
           </div>
         </div>
-        
+
         <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
           <Button variant="outline" onClick={onClose} disabled={isLoading} className="order-2 sm:order-1">
             <X className="h-4 w-4 mr-2" />
             Cancelar
           </Button>
-          <Button 
-            onClick={handleSend} 
+          <Button
+            onClick={handleSend}
             disabled={!isFormValid || isLoading}
             className="bg-blue-600 hover:bg-blue-700 text-white order-1 sm:order-2"
           >
