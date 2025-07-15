@@ -7,29 +7,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Save, Eye, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Eye } from 'lucide-react';
 import { useCreateProposal } from '@/hooks/useProposals';
 import { useCompanies } from '@/hooks/useCompanies';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import ProposalPreviewModal from '@/components/ProposalPreviewModal';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-
-interface BudgetItem {
-  id: string;
-  type: 'material' | 'labor';
-  description: string;
-  quantity: number;
-  unit_price: number;
-  total_price: number;
-}
+import BudgetItemsManager from '@/components/BudgetItemsManager';
 
 const NovaPropostaPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const createProposal = useCreateProposal();
   const { data: companies } = useCompanies();
-  
+
   const [formData, setFormData] = useState({
     title: '',
     company_id: '',
@@ -40,17 +31,11 @@ const NovaPropostaPage = () => {
     observations: ''
   });
 
-  const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
-  const [newItem, setNewItem] = useState({
-    type: 'material' as 'material' | 'labor',
-    description: '',
-    quantity: 1,
-    unit_price: 0
-  });
-
   const [showPreview, setShowPreview] = useState(false);
   const [previewProposal, setPreviewProposal] = useState(null);
   const [companyLogo, setCompanyLogo] = useState('');
+  const [tempProposalId, setTempProposalId] = useState<string | null>(null);
+  const [budgetItems, setBudgetItems] = useState<any[]>([]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -59,38 +44,8 @@ const NovaPropostaPage = () => {
     }));
   };
 
-  const handleAddBudgetItem = () => {
-    if (!newItem.description) {
-      toast.error('Descrição é obrigatória');
-      return;
-    }
-
-    const item: BudgetItem = {
-      id: Date.now().toString(),
-      type: newItem.type,
-      description: newItem.description,
-      quantity: newItem.quantity,
-      unit_price: newItem.unit_price,
-      total_price: newItem.quantity * newItem.unit_price
-    };
-
-    setBudgetItems(prev => [...prev, item]);
-    setNewItem({
-      type: 'material',
-      description: '',
-      quantity: 1,
-      unit_price: 0
-    });
-    toast.success('Item adicionado com sucesso!');
-  };
-
-  const handleRemoveBudgetItem = (id: string) => {
-    setBudgetItems(prev => prev.filter(item => item.id !== id));
-    toast.success('Item removido com sucesso!');
-  };
-
-  const calculateBudgetTotal = () => {
-    return budgetItems.reduce((total, item) => total + item.total_price, 0);
+  const handleBudgetItemsChange = (items: any[]) => {
+    setBudgetItems(items);
   };
 
   const handlePreview = async () => {
@@ -107,24 +62,19 @@ const NovaPropostaPage = () => {
         logoUrl = selectedCompany?.logo_url || '';
       }
 
+      // Calcular valor total baseado nos itens do orçamento
+      const totalValue = budgetItems.reduce((total, item) => {
+        return total + (item.quantity * item.unit_price);
+      }, 0);
+
       const proposalForPreview = {
+        id: 'temp-id',
         ...formData,
-        id: 'preview',
-        user_id: user?.id || '',
-        status: 'rascunho',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        value: calculateBudgetTotal(), // Usar o total calculado dos itens
+        value: totalValue,
         companies: formData.company_id && companies ? 
           companies.find(c => c.id === formData.company_id) : null,
-        proposal_budget_items: budgetItems.map(item => ({
-          id: item.id,
-          type: item.type,
-          description: item.description,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          total_price: item.total_price
-        }))
+        created_at: new Date().toISOString(),
+        user_id: user?.id
       };
 
       setPreviewProposal(proposalForPreview);
@@ -143,34 +93,34 @@ const NovaPropostaPage = () => {
     }
 
     try {
+      // Calcular valor total baseado nos itens do orçamento
+      const totalValue = budgetItems.reduce((total, item) => {
+        return total + (item.quantity * item.unit_price);
+      }, 0);
+
       const proposalData = {
         title: formData.title,
         company_id: formData.company_id || null,
         service_description: formData.service_description || null,
         detailed_description: formData.detailed_description || null,
-        value: calculateBudgetTotal() || null, // Usar o total calculado
+        value: totalValue > 0 ? totalValue : null,
         delivery_time: formData.delivery_time || null,
         validity_date: formData.validity_date || null,
         observations: formData.observations || null,
-        template_id: 'standard', // Usar template padrão
-        status: 'rascunho',
-        user_id: user?.id || ''
+        user_id: user!.id
       };
 
-      console.log('Criando proposta com dados:', proposalData);
-      const createdProposal = await createProposal.mutateAsync(proposalData);
-      console.log('Proposta criada:', createdProposal);
+      const newProposal = await createProposal.mutateAsync(proposalData);
       
-      // Se há itens de orçamento, salvá-los usando o hook de budget items
+      // Se há itens no orçamento, salvá-los no sessionStorage para processamento posterior
       if (budgetItems.length > 0) {
-        console.log('Salvando itens de orçamento:', budgetItems);
-        // Armazenar itens no sessionStorage para usar na página de visualização
         sessionStorage.setItem('pendingBudgetItems', JSON.stringify(budgetItems));
-        navigate(`/propostas/${createdProposal.id}`);
-      } else {
-        toast.success('Proposta criada com sucesso!');
-        navigate('/propostas');
       }
+      
+      toast.success('Proposta criada com sucesso!');
+      
+      // Navegar para a página de visualização da proposta criada
+      navigate(`/propostas/visualizar/${newProposal.id}`);
     } catch (error) {
       console.error('Erro ao criar proposta:', error);
       toast.error('Erro ao criar proposta');
@@ -226,6 +176,7 @@ const NovaPropostaPage = () => {
                   <SelectValue placeholder="Selecione um cliente" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">Nenhum cliente selecionado</SelectItem>
                   {companies?.map((company) => (
                     <SelectItem key={company.id} value={company.id}>
                       {company.name}
@@ -286,127 +237,17 @@ const NovaPropostaPage = () => {
           </CardContent>
         </Card>
 
-        {/* Budget Items Manager */}
+        {/* Budget Items */}
         <Card>
           <CardHeader>
-            <CardTitle>Orçamento Detalhado</CardTitle>
+            <CardTitle>Itens do Orçamento</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Add new item form */}
-            <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
-              <h4 className="font-medium">Adicionar Item</h4>
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <div>
-                  <Label htmlFor="type">Tipo</Label>
-                  <Select
-                    value={newItem.type}
-                    onValueChange={(value) => setNewItem({ ...newItem, type: value as 'material' | 'labor' })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="material">Material</SelectItem>
-                      <SelectItem value="labor">Mão de Obra</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="description">Descrição</Label>
-                  <Input
-                    id="description"
-                    value={newItem.description}
-                    onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
-                    placeholder="Descrição do item"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="quantity">Quantidade</Label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={newItem.quantity}
-                    onChange={(e) => setNewItem({ ...newItem, quantity: parseFloat(e.target.value) || 0 })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="unit_price">Valor Unitário</Label>
-                  <Input
-                    id="unit_price"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={newItem.unit_price}
-                    onChange={(e) => setNewItem({ ...newItem, unit_price: parseFloat(e.target.value) || 0 })}
-                    placeholder="R$ 0,00"
-                  />
-                </div>
-                <div className="flex items-end">
-                  <Button onClick={handleAddBudgetItem}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Adicionar
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Budget items table */}
-            {budgetItems.length > 0 && (
-              <div className="space-y-4">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Descrição</TableHead>
-                      <TableHead>Quantidade</TableHead>
-                      <TableHead>Valor Unitário</TableHead>
-                      <TableHead>Total</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {budgetItems.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell>
-                          {item.type === 'material' ? 'Material' : 'Mão de Obra'}
-                        </TableCell>
-                        <TableCell>{item.description}</TableCell>
-                        <TableCell>{item.quantity}</TableCell>
-                        <TableCell>
-                          R$ {item.unit_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </TableCell>
-                        <TableCell>
-                          R$ {item.total_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveBudgetItem(item.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                
-                <div className="flex justify-end">
-                  <div className="text-lg font-semibold">
-                    Total Geral: R$ {calculateBudgetTotal().toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {budgetItems.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                Nenhum item de orçamento adicionado
-              </div>
-            )}
+          <CardContent>
+            <BudgetItemsManager 
+              proposalId={tempProposalId} 
+              onItemsChange={handleBudgetItemsChange}
+              isNewProposal={true}
+            />
           </CardContent>
         </Card>
       </div>

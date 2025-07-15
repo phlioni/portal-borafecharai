@@ -19,6 +19,7 @@ const VisualizarPropostaPage = () => {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
   const [companyLogo, setCompanyLogo] = useState<string>('');
+  const [itemsProcessed, setItemsProcessed] = useState(false);
   const { sendProposal, isSending } = useProposalSending();
   const createBudgetItem = useCreateBudgetItem();
 
@@ -55,14 +56,20 @@ const VisualizarPropostaPage = () => {
     enabled: !!id,
   });
 
-  // Verificar se há itens pendentes do sessionStorage
+  // Verificar se há itens pendentes do sessionStorage apenas uma vez
   useEffect(() => {
     const processPendingItems = async () => {
+      if (itemsProcessed) return; // Evita processamento duplo
+      
       const pendingItems = sessionStorage.getItem('pendingBudgetItems');
       if (pendingItems && id) {
         try {
           const items = JSON.parse(pendingItems);
           console.log('Processando itens pendentes:', items);
+          
+          // Marcar como processado antes de salvar para evitar loops
+          setItemsProcessed(true);
+          sessionStorage.removeItem('pendingBudgetItems');
           
           // Salvar cada item no banco de dados
           await Promise.all(
@@ -77,7 +84,6 @@ const VisualizarPropostaPage = () => {
             )
           );
           
-          sessionStorage.removeItem('pendingBudgetItems');
           toast.success('Itens do orçamento salvos com sucesso!');
           
           // Recarregar os dados da proposta para incluir os novos itens
@@ -85,14 +91,15 @@ const VisualizarPropostaPage = () => {
         } catch (error) {
           console.error('Erro ao salvar itens do orçamento:', error);
           toast.error('Erro ao salvar itens do orçamento');
+          setItemsProcessed(false); // Permitir nova tentativa em caso de erro
         }
       }
     };
 
-    if (!isLoading && proposal) {
+    if (!isLoading && proposal && !itemsProcessed) {
       processPendingItems();
     }
-  }, [id, createBudgetItem, isLoading, proposal, refetch]);
+  }, [id, createBudgetItem, isLoading, proposal, refetch, itemsProcessed]);
 
   const handleSendProposal = async (emailData: any) => {
     if (!proposal) return;

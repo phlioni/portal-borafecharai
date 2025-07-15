@@ -35,13 +35,13 @@ const EditarPropostaPage = () => {
     value: '',
     delivery_time: '',
     validity_date: '',
-    observations: '',
-    template_id: 'moderno'
+    observations: ''
   });
 
   const [showPreview, setShowPreview] = useState(false);
   const [previewProposal, setPreviewProposal] = useState(null);
   const [companyLogo, setCompanyLogo] = useState('');
+  const [itemsProcessed, setItemsProcessed] = useState(false);
 
   useEffect(() => {
     if (proposal) {
@@ -53,38 +53,52 @@ const EditarPropostaPage = () => {
         value: proposal.value ? proposal.value.toString() : '',
         delivery_time: proposal.delivery_time || '',
         validity_date: proposal.validity_date || '',
-        observations: proposal.observations || '',
-        template_id: proposal.template_id || 'moderno'
+        observations: proposal.observations || ''
       });
     }
   }, [proposal]);
 
-  // Verificar se há itens pendentes do sessionStorage
+  // Verificar se há itens pendentes do sessionStorage apenas uma vez
   useEffect(() => {
-    const pendingItems = sessionStorage.getItem('pendingBudgetItems');
-    if (pendingItems && id) {
-      const items = JSON.parse(pendingItems);
+    const processPendingItems = async () => {
+      if (itemsProcessed) return; // Evita processamento duplo
       
-      // Salvar cada item no banco de dados
-      Promise.all(
-        items.map((item: any) => 
-          createBudgetItem.mutateAsync({
-            proposal_id: id,
-            type: item.type,
-            description: item.description,
-            quantity: item.quantity,
-            unit_price: item.unit_price
-          })
-        )
-      ).then(() => {
-        sessionStorage.removeItem('pendingBudgetItems');
-        toast.success('Itens do orçamento salvos com sucesso!');
-      }).catch((error) => {
-        console.error('Erro ao salvar itens do orçamento:', error);
-        toast.error('Erro ao salvar itens do orçamento');
-      });
+      const pendingItems = sessionStorage.getItem('pendingBudgetItems');
+      if (pendingItems && id) {
+        try {
+          const items = JSON.parse(pendingItems);
+          console.log('Processando itens pendentes na edição:', items);
+          
+          // Marcar como processado antes de salvar para evitar loops
+          setItemsProcessed(true);
+          sessionStorage.removeItem('pendingBudgetItems');
+          
+          // Salvar cada item no banco de dados
+          await Promise.all(
+            items.map((item: any) => 
+              createBudgetItem.mutateAsync({
+                proposal_id: id,
+                type: item.type,
+                description: item.description,
+                quantity: item.quantity,
+                unit_price: item.unit_price
+              })
+            )
+          );
+          
+          toast.success('Itens do orçamento salvos com sucesso!');
+        } catch (error) {
+          console.error('Erro ao salvar itens do orçamento:', error);
+          toast.error('Erro ao salvar itens do orçamento');
+          setItemsProcessed(false); // Permitir nova tentativa em caso de erro
+        }
+      }
+    };
+
+    if (proposal && !itemsProcessed) {
+      processPendingItems();
     }
-  }, [id, createBudgetItem]);
+  }, [id, createBudgetItem, proposal, itemsProcessed]);
 
   if (!proposal) {
     return <div>Proposta não encontrada</div>;
@@ -143,8 +157,7 @@ const EditarPropostaPage = () => {
         value: formData.value ? parseFloat(formData.value.replace(/[^\d,]/g, '').replace(',', '.')) : null,
         delivery_time: formData.delivery_time || null,
         validity_date: formData.validity_date || null,
-        observations: formData.observations || null,
-        template_id: formData.template_id
+        observations: formData.observations || null
       };
 
       await updateProposal.mutateAsync({ id: proposal.id, updates });
@@ -235,15 +248,6 @@ const EditarPropostaPage = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="value">Valor</Label>
-                <Input
-                  id="value"
-                  value={formData.value}
-                  onChange={(e) => handleInputChange('value', e.target.value)}
-                  placeholder="R$ 0,00"
-                />
-              </div>
-              <div>
                 <Label htmlFor="delivery_time">Prazo de Entrega</Label>
                 <Input
                   id="delivery_time"
@@ -252,28 +256,15 @@ const EditarPropostaPage = () => {
                   placeholder="Ex: 30 dias"
                 />
               </div>
-            </div>
-            <div>
-              <Label htmlFor="validity_date">Validade</Label>
-              <Input
-                id="validity_date"
-                type="date"
-                value={formData.validity_date}
-                onChange={(e) => handleInputChange('validity_date', e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="template_id">Modelo de Template</Label>
-              <Select value={formData.template_id} onValueChange={(value) => handleInputChange('template_id', value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="moderno">Moderno</SelectItem>
-                  <SelectItem value="executivo">Executivo</SelectItem>
-                  <SelectItem value="criativo">Criativo</SelectItem>
-                </SelectContent>
-              </Select>
+              <div>
+                <Label htmlFor="validity_date">Validade</Label>
+                <Input
+                  id="validity_date"
+                  type="date"
+                  value={formData.validity_date}
+                  onChange={(e) => handleInputChange('validity_date', e.target.value)}
+                />
+              </div>
             </div>
             <div>
               <Label htmlFor="observations">Observações</Label>
