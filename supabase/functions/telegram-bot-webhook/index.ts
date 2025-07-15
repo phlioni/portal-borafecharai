@@ -46,8 +46,8 @@ interface UserSession {
     value?: string;
     deliveryTime?: string;
     observations?: string;
-    proposalId?: string; // Adicionado para armazenar o ID da proposta criada
-    proposalPublicUrl?: string; // Adicionado para armazenar a URL pública da proposta
+    proposalId?: string;
+    proposalPublicUrl?: string;
   };
   phone?: string;
   userId?: string;
@@ -59,7 +59,7 @@ const supabase = createClient(
 );
 
 const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
-const sendEmailFunctionUrl = Deno.env.get('SEND_EMAIL_FUNCTION_URL'); // URL da função send-proposal-email
+const sendEmailFunctionUrl = Deno.env.get('SEND_EMAIL_FUNCTION_URL');
 
 async function sendTelegramMessage(chatId: number, text: string, replyMarkup?: any) {
   console.log(`Enviando mensagem para chat ${chatId}:`, text);
@@ -192,46 +192,78 @@ async function clearSession(telegramUserId: number) {
 }
 
 async function findUserByPhone(phone: string) {
-  console.log('Buscando usuário pelo telefone:', phone);
+  console.log('🔍 Buscando usuário pelo telefone:', phone);
 
   const cleanPhone = phone.replace(/\D/g, '');
-  console.log('Telefone limpo:', cleanPhone);
+  console.log('📱 Telefone limpo:', cleanPhone);
 
-  const { data: companies, error } = await supabase
+  // CORREÇÃO: Buscar primeiro na tabela de usuários do sistema (companies onde o usuário é o dono)
+  // Em vez de buscar clientes, vamos buscar usuários que são donos de empresas
+  
+  // Primeiro, buscar diretamente pelo telefone exato
+  const { data: userCompanies, error } = await supabase
     .from('companies')
-    .select('user_id, name, email, phone, country_code')
+    .select(`
+      user_id, 
+      name, 
+      email, 
+      phone, 
+      country_code,
+      profiles:auth.users!inner(email, raw_user_meta_data)
+    `)
     .or(`phone.eq.${phone},phone.eq.${cleanPhone}`)
     .limit(1);
 
-  console.log('Resultado da busca na tabela companies:', { companies, error });
+  console.log('🏢 Resultado da busca na tabela companies (usuários):', { userCompanies, error });
 
-  if (companies && companies.length > 0) {
-    return companies[0];
+  if (userCompanies && userCompanies.length > 0) {
+    const company = userCompanies[0];
+    return {
+      user_id: company.user_id,
+      name: company.name,
+      email: company.email,
+      phone: company.phone,
+      country_code: company.country_code
+    };
   }
 
-  const { data: allCompanies, error: allError } = await supabase
+  // Se não encontrou com busca direta, fazer busca mais ampla
+  const { data: allUserCompanies, error: allError } = await supabase
     .from('companies')
-    .select('user_id, name, email, phone, country_code');
+    .select(`
+      user_id, 
+      name, 
+      email, 
+      phone, 
+      country_code,
+      profiles:auth.users!inner(email, raw_user_meta_data)
+    `);
 
-  console.log('Buscando em todas as empresas:', { count: allCompanies?.length, error: allError });
+  console.log('🔄 Buscando em todas as empresas de usuários:', { count: allUserCompanies?.length, error: allError });
 
-  if (allCompanies) {
-    for (const company of allCompanies) {
+  if (allUserCompanies) {
+    for (const company of allUserCompanies) {
       if (company.phone) {
         const companyCleanPhone = company.phone.replace(/\D/g, '');
-        console.log(`Comparando: ${cleanPhone} com ${companyCleanPhone} (${company.phone})`);
+        console.log(`🔍 Comparando: ${cleanPhone} com ${companyCleanPhone} (${company.phone})`);
 
         const fullPhoneWithCountry = `${company.country_code || '+55'}${companyCleanPhone}`;
         const userPhoneWithCountry = cleanPhone.startsWith('55') ? `+${cleanPhone}` : `+55${cleanPhone}`;
 
-        console.log(`Comparando com código do país: ${userPhoneWithCountry} com ${fullPhoneWithCountry}`);
+        console.log(`🌍 Comparando com código do país: ${userPhoneWithCountry} com ${fullPhoneWithCountry}`);
 
         if (cleanPhone === companyCleanPhone ||
           userPhoneWithCountry === fullPhoneWithCountry ||
           phone === fullPhoneWithCountry ||
           cleanPhone === fullPhoneWithCountry.replace(/\D/g, '')) {
-          console.log('✅ Encontrada empresa com telefone compatível:', company);
-          return company;
+          console.log('✅ Encontrado usuário com telefone compatível:', company);
+          return {
+            user_id: company.user_id,
+            name: company.name,
+            email: company.email,
+            phone: company.phone,
+            country_code: company.country_code
+          };
         }
       }
     }
@@ -407,17 +439,7 @@ async function handleMessage(update: TelegramUpdate) {
       // Armazenar chat_id para notificações futuras
       await storeUserChatId(user.user_id, chatId);
 
-      const { data: companyData } = await supabase
-        .from('companies')
-        .select('*')
-        .eq('user_id', user.user_id)
-        .single();
-
-      console.log('Dados da empresa:', companyData);
-
-      const businessInfo = companyData ?
-        `Empresa: ${companyData.name}\nSetor: ${companyData.description || 'Não informado'}` :
-        `Usuário: ${user.name}`;
+      const businessInfo = `Usuário: ${user.name}\nE-mail: ${user.email}`;
 
       const keyboard = {
         keyboard: [
@@ -550,10 +572,7 @@ async function handleMessage(update: TelegramUpdate) {
       console.log('Coletando email do cliente:', text);
       if (text.toLowerCase().trim() !== 'pular') {
         // Validar email básico
-        const emailRegex = /^[^
-        @]+@[^
-          @] +\.[^
-            @] + $ /;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(text.trim())) {
           await sendTelegramMessage(chatId,
             `❌ *E-mail inválido.* Por favor, digite um e-mail válido ou "pular" para pular:`
@@ -664,9 +683,6 @@ async function handleMessage(update: TelegramUpdate) {
 
         // Armazenar proposalId e publicUrl na sessão
         session.data.proposalId = proposal.id;
-        // Assumindo que a URL pública da proposta pode ser construída ou retornada pela função createProposalForUser
-        // Por enquanto, vamos usar um placeholder ou construir uma URL base
-        // Você precisará ajustar isso para a URL real da proposta gerada
         session.data.proposalPublicUrl = `https://www.borafecharai.com/proposta/${proposal.public_hash || proposal.id}`;
 
         // Resumo da proposta criada
@@ -720,7 +736,7 @@ async function handleMessage(update: TelegramUpdate) {
       if (text === '📧 Enviar Proposta por E-mail') {
         if (!session.data.proposalId) {
           await sendTelegramMessage(chatId, '❌ *Nenhuma proposta recente encontrada para enviar.* Por favor, crie uma proposta primeiro.');
-          session.step = 'main_menu'; // Volta para o menu principal
+          session.step = 'main_menu';
           break;
         }
         session.step = 'send_email_recipient_name';
@@ -789,10 +805,7 @@ async function handleMessage(update: TelegramUpdate) {
       break;
 
     case 'send_email_recipient_email':
-      const emailRegex = /^[^
-      @]+@[^
-        @] +\.[^
-          @] + $ /;
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(text.trim())) {
         await sendTelegramMessage(chatId, '❌ *E-mail inválido.* Por favor, digite um e-mail válido:');
         return;
@@ -832,7 +845,7 @@ async function handleMessage(update: TelegramUpdate) {
           recipientName: session.data.recipientName,
           emailSubject: session.data.emailSubject,
           emailMessage: session.data.emailMessage,
-          publicUrl: session.data.proposalPublicUrl // Passa a URL pública da proposta
+          publicUrl: session.data.proposalPublicUrl
         };
 
         console.log('Payload para send-proposal-email:', emailPayload);
@@ -841,7 +854,7 @@ async function handleMessage(update: TelegramUpdate) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` // Pode ser necessário para autenticação da Edge Function
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
           },
           body: JSON.stringify(emailPayload),
         });
@@ -858,8 +871,8 @@ async function handleMessage(update: TelegramUpdate) {
         console.error('Erro ao chamar função de envio de e-mail:', error);
         await sendTelegramMessage(chatId, `❌ *Erro interno ao enviar e-mail:* ${error.message}`);
       }
-      session.step = 'main_menu'; // Volta para o menu principal
-      session.data = {}; // Limpa dados da sessão
+      session.step = 'main_menu';
+      session.data = {};
       break;
 
     default:
@@ -924,6 +937,3 @@ serve(async (req) => {
     });
   }
 });
-
-
-
