@@ -7,8 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Mail, Send, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { useEmailTemplates } from '@/hooks/useEmailTemplates';
-import { useCompanies } from '@/hooks/useCompanies';
 
 interface SendProposalModalProps {
   isOpen: boolean;
@@ -29,9 +27,6 @@ const SendProposalModal = ({
   clientEmail = '',
   isLoading = false 
 }: SendProposalModalProps) => {
-  const { getProcessedTemplate } = useEmailTemplates();
-  const { data: companies } = useCompanies();
-  
   const [formData, setFormData] = useState({
     recipientEmail: '',
     recipientName: '',
@@ -41,33 +36,13 @@ const SendProposalModal = ({
 
   // Atualizar dados do formulário quando props mudarem
   useEffect(() => {
-    const companyData = companies?.[0]; // Primeira empresa do usuário
-    
-    if (companyData && getProcessedTemplate) {
-      const processedTemplate = getProcessedTemplate(companyData, proposalTitle, clientName || 'Cliente');
-      
-      // Processar o template de mensagem para incluir a assinatura
-      const fullMessage = processedTemplate.email_message_template.replace(
-        '[ASSINATURA_EMPRESA]', 
-        processedTemplate.email_signature
-      );
-      
-      setFormData({
-        recipientEmail: clientEmail || '',
-        recipientName: clientName || '',
-        emailSubject: processedTemplate.email_subject_template,
-        emailMessage: fullMessage
-      });
-    } else {
-      // Fallback para template padrão
-      setFormData({
-        recipientEmail: clientEmail || '',
-        recipientName: clientName || '',
-        emailSubject: `Sua proposta para o projeto ${proposalTitle} está pronta`,
-        emailMessage: `Olá ${clientName || 'Cliente'},\n\nEspero que esteja bem!\n\nSua proposta para o projeto "${proposalTitle}" está finalizada e disponível para visualização.\n\nPreparamos esta proposta cuidadosamente para atender às suas necessidades específicas. Para acessar todos os detalhes, clique no link abaixo:\n\n[LINK_DA_PROPOSTA]\n\nResumo do que incluímos:\n• Análise detalhada do seu projeto\n• Cronograma personalizado\n• Investimento transparente\n• Suporte durante toda a execução\n\nFico à disposição para esclarecer qualquer dúvida e discutir os próximos passos.\n\nAguardo seu retorno!\n\nAtenciosamente,\n[SEU_NOME]\nBora Fechar AI`
-      });
-    }
-  }, [proposalTitle, clientName, clientEmail, companies, getProcessedTemplate]);
+    setFormData({
+      recipientEmail: clientEmail || '',
+      recipientName: clientName || '',
+      emailSubject: `Sua proposta para o projeto ${proposalTitle} está pronta`,
+      emailMessage: `Olá ${clientName || 'Cliente'},\n\nEspero que esteja bem!\n\nSua proposta para o projeto "${proposalTitle}" está finalizada e disponível para visualização.\n\nPreparamos esta proposta cuidadosamente para atender às suas necessidades específicas. Para acessar todos os detalhes, clique no link abaixo:\n\n[LINK_DA_PROPOSTA]\n\nResumo do que incluímos:\n• Análise detalhada do seu projeto\n• Cronograma personalizado\n• Investimento transparente\n• Suporte durante toda a execução\n\nFico à disposição para esclarecer qualquer dúvida e discutir os próximos passos.\n\nAguardo seu retorno!\n\nAtenciosamente,\n[SEU_NOME]\nBora Fechar AI`
+    });
+  }, [proposalTitle, clientName, clientEmail]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -154,7 +129,7 @@ const SendProposalModal = ({
                 disabled={isLoading}
               />
               <p className="text-sm text-gray-500 mt-1">
-                O botão da proposta será inserido automaticamente onde estiver escrito [LINK_DA_PROPOSTA]
+                O link da proposta será inserido automaticamente onde estiver escrito [LINK_DA_PROPOSTA]
               </p>
             </div>
           </div>
@@ -169,9 +144,7 @@ const SendProposalModal = ({
               </div>
               <div className="max-h-48 overflow-y-auto">
                 <p className="whitespace-pre-line text-sm leading-relaxed">
-                  {formData.emailMessage
-                    ?.replace('[LINK_DA_PROPOSTA]', '[ 📄 Botão: "Visualizar Proposta" ]') || 
-                    'Mensagem do email aparecerá aqui...'}
+                  {formData.emailMessage || 'Mensagem do email aparecerá aqui...'}
                 </p>
               </div>
             </div>

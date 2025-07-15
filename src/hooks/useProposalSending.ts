@@ -1,15 +1,14 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSubscription } from './useSubscription';
 import { useTrialStatus } from './useTrialStatus';
-import { useEmailTemplates } from './useEmailTemplates';
 
 export const useProposalSending = () => {
   const [isSending, setIsSending] = useState(false);
   const { subscribed, subscription_tier } = useSubscription();
   const { isInTrial } = useTrialStatus();
-  const { getProcessedTemplate } = useEmailTemplates();
 
   const checkProposalLimits = async () => {
     try {
@@ -75,16 +74,6 @@ export const useProposalSending = () => {
       console.log('Iniciando envio da proposta:', proposal.id);
       console.log('Dados do email:', emailData);
 
-      // Buscar dados da empresa do usuário
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
-
-      const { data: companyData } = await supabase
-        .from('companies')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
       // Verificar se a proposta tem um hash público
       let publicHash = proposal.public_hash;
       
@@ -111,6 +100,9 @@ export const useProposalSending = () => {
       const publicUrl = `${window.location.origin}/proposta/${publicHash}`;
       console.log('URL pública da proposta:', publicUrl);
 
+      // Preparar o conteúdo do email
+      const emailContent = emailData.emailMessage.replace('[LINK_DA_PROPOSTA]', publicUrl);
+
       console.log('Enviando email via edge function...');
 
       const { data, error } = await supabase.functions.invoke('send-proposal-email', {
@@ -119,9 +111,8 @@ export const useProposalSending = () => {
           recipientEmail: emailData.recipientEmail,
           recipientName: emailData.recipientName,
           emailSubject: emailData.emailSubject,
-          emailMessage: emailData.emailMessage,
-          publicUrl: publicUrl,
-          companyData: companyData
+          emailMessage: emailContent,
+          publicUrl: publicUrl
         }
       });
 

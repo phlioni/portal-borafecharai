@@ -104,36 +104,6 @@ export type Database = {
         }
         Relationships: []
       }
-      email_templates: {
-        Row: {
-          created_at: string
-          email_message_template: string
-          email_signature: string
-          email_subject_template: string
-          id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          email_message_template: string
-          email_signature: string
-          email_subject_template: string
-          id?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          email_message_template?: string
-          email_signature?: string
-          email_subject_template?: string
-          id?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           avatar_url: string | null

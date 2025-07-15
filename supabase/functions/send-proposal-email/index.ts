@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.5'
@@ -13,7 +14,6 @@ interface EmailRequest {
   emailSubject?: string;
   emailMessage?: string;
   publicUrl?: string;
-  companyData?: any;
 }
 
 const corsHeaders = {
@@ -69,8 +69,7 @@ serve(async (req) => {
       recipientName,
       emailSubject,
       emailMessage,
-      publicUrl,
-      companyData 
+      publicUrl 
     }: EmailRequest = body;
 
     // Validar dados obrigatórios
@@ -145,6 +144,38 @@ serve(async (req) => {
     }
     console.log('URL pública final:', finalPublicUrl);
 
+    // Template de email otimizado
+    const defaultSubject = `Sua proposta para o projeto ${proposal.title} está pronta`;
+    const defaultMessage = `
+Olá ${recipientName},
+
+Espero que esteja bem!
+
+Sua proposta para o projeto "${proposal.title}" está finalizada e disponível para visualização.
+
+Preparamos esta proposta cuidadosamente para atender às suas necessidades específicas. Para acessar todos os detalhes, clique no link abaixo:
+
+${finalPublicUrl}
+
+Resumo do que incluímos:
+• Análise detalhada do seu projeto
+• Cronograma personalizado
+• Investimento transparente
+• Suporte durante toda a execução
+
+Informações da proposta:
+${proposal.value ? `• Investimento: R$ ${proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : ''}
+${proposal.delivery_time ? `• Prazo: ${proposal.delivery_time}` : ''}
+${proposal.validity_date ? `• Válida até: ${new Date(proposal.validity_date).toLocaleDateString('pt-BR')}` : ''}
+
+Fico à disposição para esclarecer qualquer dúvida e discutir os próximos passos.
+
+Aguardo seu retorno!
+
+Atenciosamente,
+Equipe Bora Fechar AI
+    `.trim();
+
     // Construir HTML otimizado da proposta para o email
     const proposalHtml = `
       <!DOCTYPE html>
@@ -193,21 +224,18 @@ serve(async (req) => {
             }
             .button { 
               display: inline-block; 
-              background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); 
+              background: #4f46e5; 
               color: white; 
-              padding: 16px 32px; 
+              padding: 14px 28px; 
               text-decoration: none; 
-              border-radius: 8px; 
+              border-radius: 6px; 
               font-weight: 600;
               font-size: 16px;
               margin: 24px 0; 
               text-align: center;
-              box-shadow: 0 4px 6px rgba(79, 70, 229, 0.3);
-              transition: all 0.3s ease;
             }
             .button:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 6px 12px rgba(79, 70, 229, 0.4);
+              background: #4338ca;
             }
             .proposal-details {
               background: #f8f9fa;
@@ -244,13 +272,12 @@ serve(async (req) => {
             .footer .company-info p {
               margin: 4px 0;
             }
-            .powered-by {
+            .unsubscribe {
               margin-top: 20px;
               font-size: 12px;
               color: #9ca3af;
-              font-style: italic;
             }
-            .powered-by a {
+            .unsubscribe a {
               color: #4f46e5;
               text-decoration: none;
             }
@@ -272,143 +299,141 @@ serve(async (req) => {
             </div>
 
             <div class="content">
+              <p>Olá <strong>${recipientName}</strong>,</p>
+              
               ${emailMessage ? 
-                emailMessage
-                  .replace(/\n/g, '</p><p>')
-                  .replace('[LINK_DA_PROPOSTA]', `</p><div style="text-align: center;"><a href="${finalPublicUrl}" class="button">📄 Visualizar Proposta Completa</a></div><p>`)
-              : 
-              `<p>Olá <strong>${recipientName}</strong>,</p>
-              <p>Espero que esteja bem!</p>
-              <p>Sua proposta para o projeto "<strong>${proposal.title}</strong>" está finalizada e disponível para visualização.</p>
-              <p>Preparamos esta proposta cuidadosamente para atender às suas necessidades específicas. Para acessar todos os detalhes, clique no botão abaixo:</p>
-              <div style="text-align: center;">
-                <a href="${finalPublicUrl}" class="button">📄 Visualizar Proposta Completa</a>
+                emailMessage.replace(/\n/g, '</p><p>').replace('[LINK_DA_PROPOSTA]', `</p><div style="text-align: center;"><a href="${finalPublicUrl}" class="button">📄 Visualizar Proposta Completa</a></div><p>`)
+                : 
+                `<p>Espero que esteja bem!</p>
+                <p>Sua proposta para o projeto "<strong>${proposal.title}</strong>" está finalizada e disponível para visualização.</p>
+                <p>Preparamos esta proposta cuidadosamente para atender às suas necessidades específicas. Para acessar todos os detalhes, clique no botão abaixo:</p>
+                <div style="text-align: center;">
+                  <a href="${finalPublicUrl}" class="button">📄 Visualizar Proposta Completa</a>
+                </div>
+                <p>Resumo do que incluímos:</p>
+                <ul>
+                  <li>Análise detalhada do seu projeto</li>
+                  <li>Cronograma personalizado</li>
+                  <li>Investimento transparente</li>
+                  <li>Suporte durante toda a execução</li>
+                </ul>`
+              }
+              
+              <div class="proposal-details">
+                <h3>Resumo da Proposta</h3>
+                ${proposal.service_description ? `<p><strong>Serviço:</strong> ${proposal.service_description}</p>` : ''}
+                ${proposal.value ? `<p><strong>Investimento:</strong> R$ ${proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>` : ''}
+                ${proposal.delivery_time ? `<p><strong>Prazo:</strong> ${proposal.delivery_time}</p>` : ''}
+                ${proposal.validity_date ? `<p><strong>Válida até:</strong> ${new Date(proposal.validity_date).toLocaleDateString('pt-BR')}</p>` : ''}
               </div>
-              <p>Resumo do que incluímos:</p>
-              <ul>
-                <li>Análise detalhada do seu projeto</li>
-                <li>Cronograma personalizado</li>
-                <li>Investimento transparente</li>
-                <li>Suporte durante toda a execução</li>
-              </ul>`
-            }
-            
-            <div class="proposal-details">
-              <h3>Resumo da Proposta</h3>
-              ${proposal.service_description ? `<p><strong>Serviço:</strong> ${proposal.service_description}</p>` : ''}
-              ${proposal.value ? `<p><strong>Investimento:</strong> R$ ${proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>` : ''}
-              ${proposal.delivery_time ? `<p><strong>Prazo:</strong> ${proposal.delivery_time}</p>` : ''}
-              ${proposal.validity_date ? `<p><strong>Válida até:</strong> ${new Date(proposal.validity_date).toLocaleDateString('pt-BR')}</p>` : ''}
+
+              <p>Fico à disposição para esclarecer qualquer dúvida e discutir os próximos passos.</p>
+              <p>Aguardo seu retorno!</p>
+              <p>Atenciosamente,<br><strong>Equipe Bora Fechar AI</strong></p>
+            </div>
+
+            <div class="footer">
+              <p><strong>💡 Dica:</strong> Na página da proposta, você pode baixar o arquivo em PDF para guardar ou imprimir.</p>
+              
+              <div class="company-info">
+                <p><strong>Bora Fechar AI</strong></p>
+                <p>Rua das Tecnologias, 123 - Centro</p>
+                <p>São Paulo, SP - CEP: 01234-567</p>
+                <p>Telefone: (11) 9999-8888</p>
+                <p>Site: <a href="https://www.borafecharai.com" style="color: #4f46e5;">www.borafecharai.com</a></p>
+              </div>
+
+              <div class="unsubscribe">
+                <p>Se não quiser mais receber e-mails sobre esta proposta, <a href="${finalPublicUrl}">clique aqui para gerenciar suas preferências</a>.</p>
+                <p>Esta proposta foi gerada em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}</p>
+                ${proposal.validity_date ? `<p><strong>⚠️ Atenção:</strong> Esta proposta expira em ${new Date(proposal.validity_date).toLocaleDateString('pt-BR')}</p>` : ''}
+              </div>
             </div>
           </div>
+        </body>
+      </html>
+    `;
 
-          <div class="footer">
-            <p><strong>💡 Dica:</strong> Na página da proposta, você pode baixar o arquivo em PDF para guardar ou imprimir.</p>
-            
-            ${companyData ? `
-            <div class="company-info">
-              <p><strong>${companyData.name}</strong></p>
-              ${companyData.address ? `<p>${companyData.address}</p>` : ''}
-              ${companyData.city && companyData.state ? `<p>${companyData.city}, ${companyData.state}</p>` : ''}
-              ${companyData.phone ? `<p>Telefone: ${companyData.phone}</p>` : ''}
-              ${companyData.email ? `<p>Email: ${companyData.email}</p>` : ''}
-              ${companyData.website ? `<p>Site: <a href="${companyData.website}" style="color: #4f46e5;">${companyData.website}</a></p>` : ''}
-            </div>
-            ` : ''}
+    console.log('Enviando email via Resend...');
 
-            <div class="powered-by">
-              <p>💡 Esta proposta foi criada de forma inteligente com <a href="https://www.borafecharai.com">BoraFecharAI</a> - a ferramenta que está revolucionando a forma como profissionais criam propostas. Que tal conhecer também?</p>
-              <p>Proposta gerada em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}</p>
-              ${proposal.validity_date ? `<p><strong>⚠️ Atenção:</strong> Esta proposta expira em ${new Date(proposal.validity_date).toLocaleDateString('pt-BR')}</p>` : ''}
-            </div>
-          </div>
-        </div>
-      </body>
-    </html>
-  `;
+    // Enviar email via Resend
+    const emailPayload = {
+      from: 'Bora Fechar AI <propostas@borafecharai.com>',
+      to: [recipientEmail],
+      subject: emailSubject || defaultSubject,
+      html: proposalHtml,
+      text: emailMessage ? emailMessage.replace('[LINK_DA_PROPOSTA]', finalPublicUrl) : defaultMessage,
+    };
 
-  console.log('Enviando email via Resend...');
+    console.log('Payload do email:', {
+      ...emailPayload,
+      html: '[HTML_CONTENT]',
+      text: '[TEXT_CONTENT]'
+    });
 
-  // Enviar email via Resend
-  const emailPayload = {
-    from: companyData?.name ? `${companyData.name} <propostas@borafecharai.com>` : 'Bora Fechar AI <propostas@borafecharai.com>',
-    to: [recipientEmail],
-    subject: emailSubject || `Sua proposta para o projeto ${proposal.title} está pronta`,
-    html: proposalHtml,
-    text: emailMessage ? 
-      emailMessage.replace('[LINK_DA_PROPOSTA]', `Visualizar proposta: ${finalPublicUrl}`) : 
-      `Olá ${recipientName},\n\nSua proposta para o projeto "${proposal.title}" está pronta!\n\nVisualize em: ${finalPublicUrl}\n\nAtenciosamente,\n${companyData?.name || 'Equipe BoraFecharAI'}`,
-  };
+    const emailResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(emailPayload),
+    });
 
-  console.log('Payload do email:', {
-    ...emailPayload,
-    html: '[HTML_CONTENT]',
-    text: '[TEXT_CONTENT]'
-  });
+    const emailResponseText = await emailResponse.text();
+    console.log('Status da resposta do Resend:', emailResponse.status);
+    console.log('Resposta do Resend (raw):', emailResponseText);
 
-  const emailResponse = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${resendApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(emailPayload),
-  });
+    if (!emailResponse.ok) {
+      console.error('Erro do Resend:', emailResponseText);
+      return new Response(JSON.stringify({ 
+        error: `Erro ao enviar email via Resend: ${emailResponseText}`,
+        details: {
+          status: emailResponse.status,
+          response: emailResponseText
+        }
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
-  const emailResponseText = await emailResponse.text();
-  console.log('Status da resposta do Resend:', emailResponse.status);
-  console.log('Resposta do Resend (raw):', emailResponseText);
+    let emailResult;
+    try {
+      emailResult = JSON.parse(emailResponseText);
+    } catch (parseError) {
+      console.error('Erro ao fazer parse da resposta do Resend:', parseError);
+      emailResult = { id: 'unknown', message: 'Email enviado mas resposta não pôde ser parseada' };
+    }
 
-  if (!emailResponse.ok) {
-    console.error('Erro do Resend:', emailResponseText);
+    console.log('Email enviado com sucesso:', emailResult);
+
+    // Atualizar status da proposta para enviada
+    console.log('Atualizando status da proposta...');
+    const { error: updateError } = await supabase
+      .from('proposals')
+      .update({ 
+        status: 'enviada',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', proposalId);
+
+    if (updateError) {
+      console.error('Erro ao atualizar status:', updateError);
+      // Não falhar aqui, apenas logar
+    }
+
+    console.log('=== Processo finalizado com sucesso ===');
+
     return new Response(JSON.stringify({ 
-      error: `Erro ao enviar email via Resend: ${emailResponseText}`,
-      details: {
-        status: emailResponse.status,
-        response: emailResponseText
-      }
+      success: true,
+      emailId: emailResult.id || 'sent',
+      message: 'Proposta enviada com sucesso!',
+      publicUrl: finalPublicUrl
     }), {
-      status: 500,
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-  }
-
-  let emailResult;
-  try {
-    emailResult = JSON.parse(emailResponseText);
-  } catch (parseError) {
-    console.error('Erro ao fazer parse da resposta do Resend:', parseError);
-    emailResult = { id: 'unknown', message: 'Email enviado mas resposta não pôde ser parseada' };
-  }
-
-  console.log('Email enviado com sucesso:', emailResult);
-
-  // Atualizar status da proposta para enviada
-  console.log('Atualizando status da proposta...');
-  const { error: updateError } = await supabase
-    .from('proposals')
-    .update({ 
-      status: 'enviada',
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', proposalId);
-
-  if (updateError) {
-    console.error('Erro ao atualizar status:', updateError);
-    // Não falhar aqui, apenas logar
-  }
-
-  console.log('=== Processo finalizado com sucesso ===');
-
-  return new Response(JSON.stringify({ 
-    success: true,
-    emailId: emailResult.id || 'sent',
-    message: 'Proposta enviada com sucesso!',
-    publicUrl: finalPublicUrl
-  }), {
-    status: 200,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
 
   } catch (error) {
     console.error('=== Erro geral na função ===');
