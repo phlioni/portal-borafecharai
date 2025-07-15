@@ -27,6 +27,7 @@ export const useProfiles = () => {
     }
 
     try {
+      console.log('Buscando perfil para usuário:', user.id);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -39,6 +40,7 @@ export const useProfiles = () => {
         return;
       }
 
+      console.log('Perfil carregado:', data);
       setProfile(data);
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -52,6 +54,8 @@ export const useProfiles = () => {
     if (!user) return;
 
     try {
+      console.log('Atualizando perfil com:', updates);
+
       // Verificar se o telefone já está em uso por outro usuário
       if (updates.phone) {
         const { data: existingProfile } = await supabase
@@ -83,6 +87,7 @@ export const useProfiles = () => {
         return { error };
       }
 
+      console.log('Perfil atualizado:', data);
       setProfile(data);
       toast.success('Perfil atualizado com sucesso!');
       return { data };
@@ -94,12 +99,19 @@ export const useProfiles = () => {
   };
 
   const uploadAvatar = async (file: File) => {
-    if (!user) return null;
+    if (!user) {
+      console.error('Usuário não autenticado');
+      return null;
+    }
 
     try {
+      console.log('Iniciando upload do avatar para usuário:', user.id);
+      
       // Criar nome único para o arquivo
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
+      console.log('Nome do arquivo:', fileName);
 
       // Upload do arquivo
       const { error: uploadError } = await supabase.storage
@@ -119,6 +131,7 @@ export const useProfiles = () => {
         .from('avatars')
         .getPublicUrl(fileName);
 
+      console.log('URL pública gerada:', data.publicUrl);
       return data.publicUrl;
     } catch (error) {
       console.error('Error uploading avatar:', error);

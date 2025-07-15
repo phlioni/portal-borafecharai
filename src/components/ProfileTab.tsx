@@ -23,6 +23,7 @@ const ProfileTab = () => {
 
   useEffect(() => {
     if (profile) {
+      console.log('Carregando dados do perfil no formulário:', profile);
       setFormData({
         name: profile.name || '',
         phone: profile.phone || '',
@@ -32,10 +33,12 @@ const ProfileTab = () => {
   }, [profile]);
 
   const handleInputChange = (field: string, value: string) => {
+    console.log('Alterando campo:', field, 'para:', value);
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleAvatarUpdate = (avatarUrl: string | null) => {
+    console.log('Atualizando avatar URL:', avatarUrl);
     setFormData(prev => ({ ...prev, avatar_url: avatarUrl || '' }));
   };
 
@@ -43,6 +46,8 @@ const ProfileTab = () => {
     setSaving(true);
     
     try {
+      console.log('Salvando perfil com dados:', formData);
+      
       // Validar formato do telefone se fornecido
       if (formData.phone && !formData.phone.match(/^\+\d{1,3}\d{10,11}$/)) {
         toast.error('Formato do telefone inválido. Use o formato: +DDIDDDxxxxxxxx');

@@ -3,6 +3,7 @@ import React, { useRef } from 'react';
 import { Camera, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { toast } from 'sonner';
 
 interface ProfileAvatarUploadProps {
   currentAvatarUrl?: string | null;
@@ -27,21 +28,30 @@ const ProfileAvatarUpload: React.FC<ProfileAvatarUploadProps> = ({
 
     // Validar tipo de arquivo
     if (!file.type.startsWith('image/')) {
+      toast.error('Por favor, selecione apenas arquivos de imagem');
       return;
     }
 
     // Validar tamanho (máximo 5MB)
     if (file.size > 5 * 1024 * 1024) {
+      toast.error('A imagem deve ter no máximo 5MB');
       return;
     }
 
     try {
+      console.log('Iniciando upload da imagem...', file.name);
       const avatarUrl = await onUpload(file);
+      console.log('Upload concluído:', avatarUrl);
+      
       if (avatarUrl) {
         onAvatarUpdate(avatarUrl);
+        toast.success('Imagem atualizada com sucesso!');
+      } else {
+        toast.error('Erro ao fazer upload da imagem');
       }
     } catch (error) {
       console.error('Erro ao fazer upload:', error);
+      toast.error('Erro ao fazer upload da imagem');
     }
   };
 
