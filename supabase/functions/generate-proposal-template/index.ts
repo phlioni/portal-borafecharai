@@ -1,8 +1,11 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.5';
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -60,6 +63,59 @@ serve(async (req) => {
 
   try {
     const { businessType, serviceType, targetAudience, tone } = await req.json();
+    
+    // Obter informações do usuário autenticado
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      throw new Error('Token de autorização não fornecido');
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const token = authHeader.replace('Bearer ', '');
+    
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    if (userError || !user) {
+      throw new Error('Usuário não autenticado');
+    }
+
+    // Verificar se o usuário pode criar propostas
+    const { data: canCreate, error: limitError } = await supabase.rpc('can_create_proposal', {
+      _user_id: user.id
+    });
+
+    if (limitError) {
+      console.error('Erro ao verificar limite:', limitError);
+      throw new Error('Erro ao verificar limite de propostas');
+    }
+
+    if (!canCreate) {
+      // Buscar informações sobre o limite atual
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      const { data: monthlyCount } = await supabase.rpc('get_monthly_proposal_count', {
+        _user_id: user.id,
+        _month: currentMonth
+      });
+
+      // Verificar se é trial ou usuário básico
+      const { data: subscriberData } = await supabase
+        .from('subscribers')
+        .select('subscribed, subscription_tier, trial_end_date')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const isInTrial = subscriberData?.trial_end_date && new Date(subscriberData.trial_end_date) > new Date();
+      const limit = isInTrial ? 20 : 10;
+
+      return new Response(JSON.stringify({ 
+        error: `Limite de ${limit} propostas por mês atingido. Você já criou ${monthlyCount || 0} propostas este mês. Faça upgrade para o plano Professional para ter propostas ilimitadas.`,
+        limitReached: true,
+        used: monthlyCount || 0,
+        limit: limit
+      }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -140,7 +196,15 @@ serve(async (req) => {
   } catch (error) {
     console.error('Erro ao gerar template:', error);
     
-    // Fallback com modelo oficial
+    // Se for erro de limite, retornar erro específico
+    if (error.message && error.message.includes('Limite de')) {
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // Fallback com modelo oficial para outros erros
     const fallbackTemplate = {
       title: "Proposta Comercial",
       service_description: "Descrição do serviço",

@@ -2,9 +2,71 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useSubscription } from './useSubscription';
+import { useTrialStatus } from './useTrialStatus';
 
 export const useProposalSending = () => {
   const [isSending, setIsSending] = useState(false);
+  const { subscribed, subscription_tier } = useSubscription();
+  const { trialStatus } = useTrialStatus();
+
+  const checkProposalLimits = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      // Usuários Professional têm propostas ilimitadas
+      if (subscribed && subscription_tier === 'professional') {
+        return { canCreate: true, remaining: Infinity };
+      }
+
+      // Verificar função do banco para validar se pode criar proposta
+      const { data: canCreate, error } = await supabase.rpc('can_create_proposal', {
+        _user_id: user.id
+      });
+
+      if (error) {
+        console.error('Erro ao verificar limite de propostas:', error);
+        throw new Error('Erro ao verificar limite de propostas');
+      }
+
+      if (!canCreate) {
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        const { data: monthlyCount } = await supabase.rpc('get_monthly_proposal_count', {
+          _user_id: user.id,
+          _month: currentMonth
+        });
+
+        const limit = trialStatus.isActive ? 20 : 10;
+        return { 
+          canCreate: false, 
+          remaining: 0,
+          used: monthlyCount || 0,
+          limit 
+        };
+      }
+
+      // Se pode criar, calcular quantas restam
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      const { data: monthlyCount } = await supabase.rpc('get_monthly_proposal_count', {
+        _user_id: user.id,
+        _month: currentMonth
+      });
+
+      const limit = trialStatus.isActive ? 20 : 10;
+      const remaining = limit - (monthlyCount || 0);
+
+      return { 
+        canCreate: true, 
+        remaining,
+        used: monthlyCount || 0,
+        limit 
+      };
+    } catch (error) {
+      console.error('Erro ao verificar limites:', error);
+      throw error;
+    }
+  };
 
   const sendProposal = async (proposal: any, emailData: any) => {
     setIsSending(true);
@@ -90,5 +152,5 @@ export const useProposalSending = () => {
     }
   };
 
-  return { sendProposal, isSending };
+  return { sendProposal, isSending, checkProposalLimits };
 };
