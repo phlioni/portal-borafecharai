@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, MessageCircle, Bot, CheckCircle, AlertTriangle, Settings } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Bot, CheckCircle, AlertTriangle, Settings, Copy, ExternalLink } from 'lucide-react';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useTelegramBot } from '@/hooks/useTelegramBot';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,6 +22,7 @@ const TelegramBotPage = () => {
   });
   const [isConfiguring, setIsConfiguring] = useState(false);
   const [webhookStatus, setWebhookStatus] = useState<'pending' | 'success' | 'error'>('pending');
+  const [showToken, setShowToken] = useState(false);
 
   useEffect(() => {
     if (settings.bot_token) {
@@ -39,6 +40,8 @@ const TelegramBotPage = () => {
     }
 
     setIsConfiguring(true);
+    setWebhookStatus('pending');
+    
     try {
       await saveSettings({
         bot_token: formData.bot_token,
@@ -104,6 +107,19 @@ const TelegramBotPage = () => {
     }
   };
 
+  const copyBotUsername = () => {
+    if (formData.bot_username) {
+      navigator.clipboard.writeText(`@${formData.bot_username}`);
+      toast.success('Username do bot copiado!');
+    }
+  };
+
+  const openTelegramBot = () => {
+    if (formData.bot_username) {
+      window.open(`https://t.me/${formData.bot_username}`, '_blank');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -149,7 +165,7 @@ const TelegramBotPage = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 flex-wrap">
                   {settings.bot_token ? (
                     <Badge variant="default" className="flex items-center gap-1">
                       <CheckCircle className="h-4 w-4" />
@@ -173,6 +189,31 @@ const TelegramBotPage = () => {
                       Webhook Pendente
                     </Badge>
                   )}
+
+                  {formData.bot_username && (
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        <Bot className="h-4 w-4" />
+                        @{formData.bot_username}
+                      </Badge>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        onClick={copyBotUsername}
+                        className="h-6 w-6 p-0"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        onClick={openTelegramBot}
+                        className="h-6 w-6 p-0"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -185,26 +226,40 @@ const TelegramBotPage = () => {
               <CardContent className="space-y-4">
                 <div>
                   <Label htmlFor="bot_token">Token do Bot</Label>
-                  <Input
-                    id="bot_token"
-                    type="password"
-                    value={formData.bot_token}
-                    onChange={(e) => setFormData({...formData, bot_token: e.target.value})}
-                    placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="bot_token"
+                      type={showToken ? "text" : "password"}
+                      value={formData.bot_token}
+                      onChange={(e) => setFormData({...formData, bot_token: e.target.value})}
+                      placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                      onClick={() => setShowToken(!showToken)}
+                    >
+                      {showToken ? '👁️' : '🙈'}
+                    </Button>
+                  </div>
                   <p className="text-sm text-gray-500 mt-1">
                     Obtenha o token conversando com @BotFather no Telegram
                   </p>
                 </div>
 
                 <div>
-                  <Label htmlFor="bot_username">Username do Bot (opcional)</Label>
+                  <Label htmlFor="bot_username">Username do Bot</Label>
                   <Input
                     id="bot_username"
                     value={formData.bot_username}
                     onChange={(e) => setFormData({...formData, bot_username: e.target.value})}
                     placeholder="meu_bot"
                   />
+                  <p className="text-sm text-gray-500 mt-1">
+                    Será preenchido automaticamente ao testar o bot
+                  </p>
                 </div>
 
                 <div className="flex gap-2">
@@ -221,7 +276,7 @@ const TelegramBotPage = () => {
                     ) : (
                       <>
                         <CheckCircle className="h-4 w-4" />
-                        Salvar Configuração
+                        Salvar e Configurar
                       </>
                     )}
                   </Button>
@@ -229,7 +284,7 @@ const TelegramBotPage = () => {
                   <Button 
                     variant="outline" 
                     onClick={testBot}
-                    disabled={!formData.bot_token}
+                    disabled={!formData.bot_token || isConfiguring}
                   >
                     Testar Bot
                   </Button>
@@ -244,6 +299,19 @@ const TelegramBotPage = () => {
                     <p className="text-sm text-green-600 mt-1">
                       O webhook foi configurado e o bot está pronto para enviar notificações.
                     </p>
+                    {formData.bot_username && (
+                      <div className="mt-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={openTelegramBot}
+                          className="text-green-700 border-green-300 hover:bg-green-100"
+                        >
+                          <ExternalLink className="h-4 w-4 mr-1" />
+                          Abrir no Telegram
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -255,7 +323,7 @@ const TelegramBotPage = () => {
                     </div>
                     <p className="text-sm text-red-600 mt-1">
                       O bot foi salvo, mas houve um problema ao configurar o webhook. 
-                      Verifique se o token está correto.
+                      Verifique se o token está correto e tente novamente.
                     </p>
                   </div>
                 )}
@@ -267,23 +335,54 @@ const TelegramBotPage = () => {
               <CardHeader>
                 <CardTitle>Como criar um bot no Telegram</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-600">
-                    <strong>1.</strong> Abra o Telegram e procure por @BotFather
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    <strong>2.</strong> Envie o comando /newbot
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    <strong>3.</strong> Escolha um nome para seu bot
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    <strong>4.</strong> Escolha um username (deve terminar com 'bot')
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    <strong>5.</strong> Copie o token fornecido e cole no campo acima
-                  </p>
+              <CardContent className="space-y-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-medium text-blue-900 mb-2">Passo a passo:</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-3">
+                      <span className="bg-blue-100 text-blue-800 rounded-full h-6 w-6 flex items-center justify-center text-sm font-medium">1</span>
+                      <p className="text-sm text-blue-800">
+                        Abra o Telegram e procure por <strong>@BotFather</strong>
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="bg-blue-100 text-blue-800 rounded-full h-6 w-6 flex items-center justify-center text-sm font-medium">2</span>
+                      <p className="text-sm text-blue-800">
+                        Envie o comando <code className="bg-blue-100 px-1 rounded">/newbot</code>
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="bg-blue-100 text-blue-800 rounded-full h-6 w-6 flex items-center justify-center text-sm font-medium">3</span>
+                      <p className="text-sm text-blue-800">
+                        Escolha um nome para seu bot (ex: "Meu Bot de Propostas")
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="bg-blue-100 text-blue-800 rounded-full h-6 w-6 flex items-center justify-center text-sm font-medium">4</span>
+                      <p className="text-sm text-blue-800">
+                        Escolha um username (deve terminar com 'bot', ex: "meubot_propostas_bot")
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="bg-blue-100 text-blue-800 rounded-full h-6 w-6 flex items-center justify-center text-sm font-medium">5</span>
+                      <p className="text-sm text-blue-800">
+                        Copie o token fornecido e cole no campo acima
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-amber-900 mb-1">Importante:</h4>
+                      <p className="text-sm text-amber-800">
+                        Mantenha o token do bot seguro e não compartilhe com terceiros. 
+                        Ele é como uma senha para controlar seu bot.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
