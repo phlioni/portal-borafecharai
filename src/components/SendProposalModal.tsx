@@ -31,8 +31,8 @@ const SendProposalModal = ({
   isLoading = false 
 }: SendProposalModalProps) => {
   const { user } = useAuth();
-  const { data: companies } = useCompanies();
-  const { getTemplate, processTemplate } = useEmailTemplates();
+  const { data: companies, isLoading: companiesLoading } = useCompanies();
+  const { getTemplate, processTemplate, templates, isLoading: templatesLoading } = useEmailTemplates();
   
   const [formData, setFormData] = useState({
     recipientEmail: '',
@@ -41,21 +41,25 @@ const SendProposalModal = ({
     emailMessage: ''
   });
 
-  // Carregar e processar template quando modal abrir
+  // Carregar e processar template quando modal abrir ou dados mudarem
   useEffect(() => {
-    if (isOpen) {
-      console.log('Modal aberto, carregando template...');
+    if (isOpen && !templatesLoading && !companiesLoading) {
+      console.log('Modal aberto, processando template...');
+      console.log('Templates disponíveis:', templates);
+      console.log('Empresas disponíveis:', companies);
       
       const template = getTemplate();
-      console.log('Template carregado:', template);
+      console.log('Template obtido:', template);
       
       const company = companies?.[0];
-      console.log('Empresa carregada:', company);
+      console.log('Empresa selecionada:', company);
       
       // Preparar variáveis para substituição no template
       const variables = {
         CLIENTE_NOME: clientName || 'Cliente',
-        PROJETO_NOME: proposalTitle,
+        NOME_CLIENTE: clientName || 'Cliente', // Variação do nome
+        PROJETO_NOME: proposalTitle || 'Projeto',
+        NOME_PROJETO: proposalTitle || 'Projeto', // Variação do nome
         SEU_NOME: user?.user_metadata?.name || company?.name || 'Equipe',
         EMPRESA_NOME: company?.name || 'Sua Empresa',
         EMPRESA_TELEFONE: company?.phone || '',
@@ -67,32 +71,30 @@ const SendProposalModal = ({
       console.log('Variáveis para substituição:', variables);
 
       // Processar templates com as variáveis
-      const processedSubject = processTemplate(template.email_subject_template, variables);
-      const processedMessage = processTemplate(template.email_message_template, variables);
-      const processedSignature = processTemplate(template.email_signature, variables);
+      const processedSubject = processTemplate(template.email_subject_template || '', variables);
+      const processedMessage = processTemplate(template.email_message_template || '', variables);
+      const processedSignature = processTemplate(template.email_signature || '', variables);
       
       console.log('Subject processado:', processedSubject);
       console.log('Message processada:', processedMessage);
       console.log('Signature processada:', processedSignature);
       
       // Combinar mensagem e assinatura
-      const fullMessage = `${processedMessage}\n\n${processedSignature}`;
+      const fullMessage = processedSignature ? 
+        `${processedMessage}\n\n${processedSignature}` : 
+        processedMessage;
 
-      setFormData({
+      const newFormData = {
         recipientEmail: clientEmail || '',
         recipientName: clientName || '',
         emailSubject: processedSubject,
         emailMessage: fullMessage
-      });
+      };
 
-      console.log('FormData atualizado:', {
-        recipientEmail: clientEmail || '',
-        recipientName: clientName || '',
-        emailSubject: processedSubject,
-        emailMessage: fullMessage
-      });
+      console.log('Atualizando FormData com:', newFormData);
+      setFormData(newFormData);
     }
-  }, [isOpen, proposalTitle, clientName, clientEmail, user, companies, getTemplate, processTemplate]);
+  }, [isOpen, proposalTitle, clientName, clientEmail, user, companies, templates, templatesLoading, companiesLoading, getTemplate, processTemplate]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({

@@ -182,16 +182,20 @@ export const useEmailTemplates = () => {
     // Processar variáveis no formato {VARIAVEL}
     Object.entries(variables).forEach(([key, value]) => {
       const regex = new RegExp(`\\{${key}\\}`, 'g');
-      processed = processed.replace(regex, value || '');
+      const safeValue = value || '';
+      processed = processed.replace(regex, safeValue);
+      console.log(`Substituindo {${key}} por "${safeValue}"`);
     });
     
     // Processar variáveis no formato [VARIAVEL] (compatibilidade)
     Object.entries(variables).forEach(([key, value]) => {
       const regex = new RegExp(`\\[${key}\\]`, 'g');
-      processed = processed.replace(regex, value || '');
+      const safeValue = value || '';
+      processed = processed.replace(regex, safeValue);
+      console.log(`Substituindo [${key}] por "${safeValue}"`);
     });
     
-    console.log('Template processado:', processed);
+    console.log('Template processado final:', processed);
     return processed;
   };
 
