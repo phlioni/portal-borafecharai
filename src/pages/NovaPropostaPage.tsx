@@ -225,7 +225,6 @@ const NovaPropostaPage = () => {
                   <SelectValue placeholder="Selecione um cliente" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhum cliente selecionado</SelectItem>
                   {companies?.map((company) => (
                     <SelectItem key={company.id} value={company.id}>
                       {company.name}
