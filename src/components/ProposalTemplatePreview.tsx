@@ -1,218 +1,255 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Building, DollarSign, Calendar, FileText, CheckCircle, Clock, User, Mail, Phone, CreditCard } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-
-interface ProposalData {
-  title: string;
-  client: string;
-  value?: number;
-  deliveryTime?: string;
-  description?: string;
-  template: string;
-  responsible?: string;
-  email?: string;
-  phone?: string;
-  paymentMethod?: string;
-}
 
 interface ProposalTemplatePreviewProps {
-  data: ProposalData;
+  data: {
+    title: string;
+    client: string;
+    value?: number;
+    deliveryTime?: string;
+    description?: string;
+    template: string;
+    responsible?: string;
+    email?: string;
+    phone?: string;
+    paymentMethod?: string;
+  };
   className?: string;
 }
 
-const ProposalTemplatePreview: React.FC<ProposalTemplatePreviewProps> = ({ data, className = "" }) => {
-  const getTemplateStyle = (template: string) => {
-    const styles = {
-      'moderno': 'bg-gradient-to-br from-blue-50 via-white to-indigo-50 border-blue-200 shadow-xl',
-      'executivo': 'bg-gradient-to-br from-gray-50 via-white to-gray-100 border-gray-300 shadow-xl',
-      'criativo': 'bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 border-purple-200 shadow-xl'
-    };
-    
-    return styles[template as keyof typeof styles] || styles.moderno;
+const ProposalTemplatePreview = ({ data, className = "" }: ProposalTemplatePreviewProps) => {
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
   };
 
-  const getAccentColor = (template: string) => {
-    const colors = {
-      'moderno': 'text-blue-600',
-      'executivo': 'text-gray-800',
-      'criativo': 'text-purple-600'
-    };
-    
-    return colors[template as keyof typeof colors] || colors.moderno;
+  // Função para renderizar conteúdo HTML de forma segura
+  const renderHTMLContent = (htmlContent: string) => {
+    // Se o conteúdo já é HTML (contém tags), renderize como HTML
+    if (htmlContent && htmlContent.includes('<')) {
+      return <div dangerouslySetInnerHTML={{ __html: htmlContent }} />;
+    }
+    // Caso contrário, renderize como texto simples com quebras de linha
+    return (
+      <div className="whitespace-pre-wrap">
+        {htmlContent}
+      </div>
+    );
   };
 
-  const getGradientColors = (template: string) => {
-    const gradients = {
-      'moderno': 'from-blue-500 to-blue-600',
-      'executivo': 'from-gray-700 to-gray-800',
-      'criativo': 'from-purple-500 to-blue-500'
-    };
-    
-    return gradients[template as keyof typeof gradients] || gradients.moderno;
-  };
-
-  const getIconColor = (template: string) => {
-    const colors = {
-      'moderno': 'text-blue-500',
-      'executivo': 'text-gray-600',
-      'criativo': 'text-purple-500'
-    };
-    
-    return colors[template as keyof typeof colors] || colors.moderno;
-  };
-
-  return (
-    <Card className={`${getTemplateStyle(data.template)} border-2 overflow-hidden ${className}`}>
-      <CardHeader className="text-center pb-6 bg-white/60 backdrop-blur-sm">
-        <div className="flex justify-between items-start mb-6">
-          <Badge variant="outline" className="bg-white/80 shadow-sm backdrop-blur-sm border-2">
-            <span className="font-semibold">
-              {data.template.charAt(0).toUpperCase() + data.template.slice(1)}
-            </span>
-          </Badge>
-          <div className="bg-white/80 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <Calendar className="h-4 w-4" />
-              <span>{format(new Date(), 'dd/MM/yyyy', { locale: ptBR })}</span>
-            </div>
+  // Template Moderno
+  if (data.template === 'moderno') {
+    return (
+      <div className={`bg-white p-8 ${className}`} style={{ fontFamily: 'Inter, sans-serif' }}>
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="border-b-2 border-blue-600 pb-6 mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              {data.title}
+            </h1>
+            <p className="text-blue-600 font-medium">Proposta Comercial</p>
           </div>
-        </div>
-        
-        <CardTitle className={`text-3xl font-bold mb-4 ${getAccentColor(data.template)}`}>
-          {data.title || 'Título da Proposta'}
-        </CardTitle>
-        
-        <div className="flex items-center justify-center gap-2 mb-4">
-          <User className={`h-5 w-5 ${getIconColor(data.template)}`} />
-          <span className="text-lg text-gray-700 font-medium">
-            {data.client || 'Nome do Cliente'}
-          </span>
-        </div>
 
-        {/* Informações de contato se disponíveis */}
-        {(data.responsible || data.email || data.phone) && (
-          <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 shadow-sm mb-4">
-            <h3 className={`font-semibold mb-2 ${getAccentColor(data.template)}`}>Informações de Contato</h3>
-            <div className="space-y-1 text-sm text-gray-600">
+          {/* Cliente Info */}
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Destinatário</h2>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p><span className="font-medium">Cliente:</span> {data.client}</p>
               {data.responsible && (
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  <span>Responsável: {data.responsible}</span>
-                </div>
+                <p><span className="font-medium">Responsável:</span> {data.responsible}</p>
               )}
-              {data.email && (
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4" />
-                  <span>Email: {data.email}</span>
-                </div>
-              )}
-              {data.phone && (
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4" />
-                  <span>Telefone: {data.phone}</span>
-                </div>
+              {(data.email || data.phone) && (
+                <p><span className="font-medium">Contato:</span> {data.email} {data.phone && `/ ${data.phone}`}</p>
               )}
             </div>
           </div>
-        )}
 
-        {data.description && (
-          <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 shadow-sm">
-            <p className="text-gray-700 leading-relaxed">
-              {data.description}
-            </p>
+          {/* Descrição */}
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Proposta</h2>
+            {renderHTMLContent(data.description || 'Descrição do serviço')}
           </div>
-        )}
-      </CardHeader>
 
-      <CardContent className="space-y-6 p-6">
-        {/* Financial and Timeline Info */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {data.value && (
-            <div className={`bg-gradient-to-r ${getGradientColors(data.template)} rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform duration-200`}>
-              <div className="flex items-center gap-3 mb-3">
-                <div className="bg-white/20 rounded-full p-2">
-                  <DollarSign className="h-5 w-5" />
+          {/* Valores e Condições */}
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            {data.value && (
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-blue-900 mb-2">Investimento</h3>
+                <p className="text-2xl font-bold text-blue-600">{formatCurrency(data.value)}</p>
+                {data.paymentMethod && (
+                  <p className="text-sm text-blue-700 mt-1">{data.paymentMethod}</p>
+                )}
+              </div>
+            )}
+            
+            {data.deliveryTime && (
+              <div className="bg-green-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-green-900 mb-2">Prazo de Entrega</h3>
+                <p className="text-lg font-medium text-green-600">{data.deliveryTime}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="border-t pt-6 text-center text-gray-600">
+            <p>Proposta válida por 30 dias</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Template Executivo
+  if (data.template === 'executivo') {
+    return (
+      <div className={`bg-white p-8 ${className}`} style={{ fontFamily: 'serif' }}>
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-8 pb-6 border-b border-gray-300">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              PROPOSTA COMERCIAL
+            </h1>
+            <h2 className="text-xl text-gray-700">{data.title}</h2>
+          </div>
+
+          {/* Cliente */}
+          <div className="mb-8">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3 uppercase tracking-wide">
+              Destinatário
+            </h3>
+            <div className="border-l-4 border-gray-800 pl-4">
+              <p className="font-medium">{data.client}</p>
+              {data.responsible && <p>Att: {data.responsible}</p>}
+              {(data.email || data.phone) && (
+                <p className="text-gray-600">{data.email} {data.phone && `| ${data.phone}`}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Conteúdo */}
+          <div className="mb-8">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3 uppercase tracking-wide">
+              Escopo dos Serviços
+            </h3>
+            <div className="text-justify leading-relaxed">
+              {renderHTMLContent(data.description || 'Descrição detalhada do serviço')}
+            </div>
+          </div>
+
+          {/* Condições */}
+          <div className="bg-gray-50 p-6 mb-8">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 uppercase tracking-wide">
+              Condições Comerciais
+            </h3>
+            <div className="grid md:grid-cols-2 gap-6">
+              {data.value && (
+                <div>
+                  <p className="font-medium text-gray-700">Valor Total:</p>
+                  <p className="text-xl font-bold text-gray-900">{formatCurrency(data.value)}</p>
+                  {data.paymentMethod && (
+                    <p className="text-sm text-gray-600">{data.paymentMethod}</p>
+                  )}
                 </div>
-                <h3 className="font-semibold text-lg">Investimento</h3>
-              </div>
-              <p className="text-3xl font-bold">
-                R$ {data.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </p>
-            </div>
-          )}
-          
-          {data.deliveryTime && (
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-200 transform hover:scale-105 transition-transform duration-200">
-              <div className="flex items-center gap-3 mb-3">
-                <div className={`${getIconColor(data.template)} bg-current/10 rounded-full p-2`}>
-                  <Clock className="h-5 w-5" />
+              )}
+              {data.deliveryTime && (
+                <div>
+                  <p className="font-medium text-gray-700">Prazo de Execução:</p>
+                  <p className="text-lg text-gray-900">{data.deliveryTime}</p>
                 </div>
-                <h3 className={`font-semibold text-lg ${getAccentColor(data.template)}`}>Prazo</h3>
-              </div>
-              <p className="text-xl font-semibold text-gray-700">{data.deliveryTime}</p>
+              )}
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Forma de pagamento se disponível */}
-        {data.paymentMethod && (
-          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-200">
-            <div className="flex items-center gap-3 mb-3">
-              <div className={`${getIconColor(data.template)} bg-current/10 rounded-full p-2`}>
-                <CreditCard className="h-5 w-5" />
-              </div>
-              <h3 className={`font-semibold text-lg ${getAccentColor(data.template)}`}>Forma de Pagamento</h3>
+          {/* Assinatura */}
+          <div className="text-center pt-8 border-t border-gray-300">
+            <p className="text-gray-600">Atenciosamente,</p>
+            <div className="mt-8 border-b border-gray-400 w-48 mx-auto"></div>
+            <p className="mt-2 text-gray-700">Equipe Comercial</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Template Criativo
+  if (data.template === 'criativo') {
+    return (
+      <div className={`bg-gradient-to-br from-purple-50 to-pink-50 p-8 ${className}`}>
+        <div className="max-w-4xl mx-auto">
+          {/* Header Criativo */}
+          <div className="text-center mb-8">
+            <div className="inline-block bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-full mb-4">
+              <h1 className="text-2xl font-bold">{data.title}</h1>
             </div>
-            <p className="text-gray-700">{data.paymentMethod}</p>
+            <p className="text-purple-600 font-medium">Uma proposta especial para você!</p>
           </div>
-        )}
 
-        {/* Service Highlights */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-200">
-          <div className="flex items-center gap-3 mb-4">
-            <div className={`${getIconColor(data.template)} bg-current/10 rounded-full p-2`}>
-              <CheckCircle className="h-5 w-5" />
+          {/* Card do Cliente */}
+          <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border-l-4 border-purple-500">
+            <h2 className="text-lg font-bold text-purple-700 mb-3">👋 Olá, {data.client}!</h2>
+            {data.responsible && (
+              <p className="text-gray-700">Responsável: {data.responsible}</p>
+            )}
+            {(data.email || data.phone) && (
+              <p className="text-gray-600">{data.email} {data.phone && `• ${data.phone}`}</p>
+            )}
+          </div>
+
+          {/* Conteúdo Principal */}
+          <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h2 className="text-xl font-bold text-purple-700 mb-4 flex items-center">
+              ✨ Nossa Proposta
+            </h2>
+            <div className="text-gray-700 leading-relaxed">
+              {renderHTMLContent(data.description || 'Descrição criativa do serviço')}
             </div>
-            <h3 className={`font-semibold text-lg ${getAccentColor(data.template)}`}>O que está incluído</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {[
-              'Análise inicial completa',
-              'Planejamento detalhado',
-              'Implementação profissional',
-              'Suporte pós-entrega'
-            ].map((item, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${getIconColor(data.template).replace('text-', 'bg-')}`}></div>
-                <span className="text-gray-700 text-sm">{item}</span>
+
+          {/* Cards de Valor e Prazo */}
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            {data.value && (
+              <div className="bg-gradient-to-r from-green-400 to-green-600 rounded-xl p-6 text-white">
+                <h3 className="text-lg font-bold mb-2">💰 Investimento</h3>
+                <p className="text-3xl font-bold">{formatCurrency(data.value)}</p>
+                {data.paymentMethod && (
+                  <p className="text-green-100 text-sm mt-2">{data.paymentMethod}</p>
+                )}
               </div>
-            ))}
+            )}
+            
+            {data.deliveryTime && (
+              <div className="bg-gradient-to-r from-blue-400 to-blue-600 rounded-xl p-6 text-white">
+                <h3 className="text-lg font-bold mb-2">⏰ Prazo</h3>
+                <p className="text-2xl font-bold">{data.deliveryTime}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Footer Criativo */}
+          <div className="text-center bg-white rounded-xl shadow-lg p-6">
+            <p className="text-purple-600 font-medium">🎯 Pronto para começarmos essa jornada juntos?</p>
+            <p className="text-gray-600 text-sm mt-2">Esta proposta é válida por 30 dias</p>
           </div>
         </div>
+      </div>
+    );
+  }
 
-        {/* Call to Action */}
-        <div className={`bg-gradient-to-r ${getGradientColors(data.template)} rounded-xl p-6 text-white text-center shadow-lg`}>
-          <h3 className="font-bold text-lg mb-2">Pronto para começar?</h3>
-          <p className="opacity-90 mb-4">Entre em contato conosco para dar início ao seu projeto</p>
-          <div className="bg-white/20 rounded-lg px-4 py-2 inline-block">
-            <span className="font-semibold">📧 Responda este e-mail ou ligue agora!</span>
-          </div>
+  // Fallback para template padrão
+  return (
+    <div className={`bg-white p-8 ${className}`}>
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-2xl font-bold mb-4">{data.title}</h1>
+        <p className="mb-4"><strong>Cliente:</strong> {data.client}</p>
+        {data.value && <p className="mb-4"><strong>Valor:</strong> {formatCurrency(data.value)}</p>}
+        {data.deliveryTime && <p className="mb-4"><strong>Prazo:</strong> {data.deliveryTime}</p>}
+        <div className="mt-6">
+          {renderHTMLContent(data.description || 'Descrição do serviço')}
         </div>
-
-        {/* Footer */}
-        <div className="text-center pt-4 border-t border-gray-200/50">
-          <p className="text-xs text-gray-500 flex items-center justify-center gap-2">
-            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-            Proposta válida por 30 dias • Template: {data.template.charAt(0).toUpperCase() + data.template.slice(1)}
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 
