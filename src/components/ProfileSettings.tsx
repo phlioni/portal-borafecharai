@@ -9,13 +9,12 @@ import { useProfiles } from '@/hooks/useProfiles';
 import { toast } from 'sonner';
 
 export const ProfileSettings = () => {
-  const { data: profiles, isLoading, createProfile, updateProfile } = useProfiles();
+  const { profile, loading, updateProfile } = useProfiles();
   const [formData, setFormData] = useState({
     name: '',
     phone: ''
   });
-
-  const profile = profiles?.[0];
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -34,15 +33,18 @@ export const ProfileSettings = () => {
   };
 
   const handleSave = async () => {
+    setIsSaving(true);
     try {
-      if (profile) {
-        await updateProfile.mutateAsync({ id: profile.id, ...formData });
+      const result = await updateProfile(formData);
+      if (result.error) {
+        toast.error('Erro ao atualizar perfil');
       } else {
-        await createProfile.mutateAsync(formData);
+        toast.success('Perfil atualizado com sucesso!');
       }
-      toast.success('Perfil atualizado com sucesso!');
     } catch (error) {
       toast.error('Erro ao atualizar perfil');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -66,7 +68,7 @@ export const ProfileSettings = () => {
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
               placeholder="Seu nome completo"
-              disabled={isLoading}
+              disabled={loading || isSaving}
             />
           </div>
           <div>
@@ -76,14 +78,14 @@ export const ProfileSettings = () => {
               value={formData.phone}
               onChange={(e) => handleInputChange('phone', e.target.value)}
               placeholder="(11) 99999-9999"
-              disabled={isLoading}
+              disabled={loading || isSaving}
             />
           </div>
         </div>
 
-        <Button onClick={handleSave} disabled={isLoading} className="flex items-center gap-2">
+        <Button onClick={handleSave} disabled={loading || isSaving} className="flex items-center gap-2">
           <Save className="h-4 w-4" />
-          {isLoading ? 'Salvando...' : 'Salvar Perfil'}
+          {isSaving ? 'Salvando...' : 'Salvar Perfil'}
         </Button>
       </CardContent>
     </Card>

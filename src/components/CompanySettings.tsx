@@ -6,11 +6,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, Save } from 'lucide-react';
-import { useCompanies } from '@/hooks/useCompanies';
+import { useCompanies, useUpdateCompany, useCreateCompany } from '@/hooks/useCompanies';
 import { toast } from 'sonner';
 
 export const CompanySettings = () => {
-  const { data: companies, isLoading, createCompany, updateCompany } = useCompanies();
+  const { data: companies, isLoading } = useCompanies();
+  const updateCompanyMutation = useUpdateCompany();
+  const createCompanyMutation = useCreateCompany();
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -53,15 +56,17 @@ export const CompanySettings = () => {
   const handleSave = async () => {
     try {
       if (company) {
-        await updateCompany.mutateAsync({ id: company.id, ...formData });
+        await updateCompanyMutation.mutateAsync({ id: company.id, updates: formData });
       } else {
-        await createCompany.mutateAsync(formData);
+        await createCompanyMutation.mutateAsync(formData);
       }
       toast.success('Informações da empresa salvas com sucesso!');
     } catch (error) {
       toast.error('Erro ao salvar informações da empresa');
     }
   };
+
+  const isSaving = updateCompanyMutation.isPending || createCompanyMutation.isPending;
 
   return (
     <Card>
@@ -83,7 +88,7 @@ export const CompanySettings = () => {
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
               placeholder="Sua Empresa Ltda"
-              disabled={isLoading}
+              disabled={isLoading || isSaving}
             />
           </div>
           <div>
@@ -94,7 +99,7 @@ export const CompanySettings = () => {
               value={formData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
               placeholder="contato@empresa.com"
-              disabled={isLoading}
+              disabled={isLoading || isSaving}
             />
           </div>
           <div>
@@ -104,7 +109,7 @@ export const CompanySettings = () => {
               value={formData.phone}
               onChange={(e) => handleInputChange('phone', e.target.value)}
               placeholder="(11) 99999-9999"
-              disabled={isLoading}
+              disabled={isLoading || isSaving}
             />
           </div>
           <div>
@@ -114,7 +119,7 @@ export const CompanySettings = () => {
               value={formData.website}
               onChange={(e) => handleInputChange('website', e.target.value)}
               placeholder="https://www.empresa.com"
-              disabled={isLoading}
+              disabled={isLoading || isSaving}
             />
           </div>
           <div>
@@ -124,7 +129,7 @@ export const CompanySettings = () => {
               value={formData.cnpj}
               onChange={(e) => handleInputChange('cnpj', e.target.value)}
               placeholder="00.000.000/0000-00"
-              disabled={isLoading}
+              disabled={isLoading || isSaving}
             />
           </div>
         </div>
@@ -137,7 +142,7 @@ export const CompanySettings = () => {
             onChange={(e) => handleInputChange('description', e.target.value)}
             placeholder="Breve descrição do seu negócio..."
             rows={3}
-            disabled={isLoading}
+            disabled={isLoading || isSaving}
           />
         </div>
 
@@ -149,7 +154,7 @@ export const CompanySettings = () => {
               value={formData.address}
               onChange={(e) => handleInputChange('address', e.target.value)}
               placeholder="Rua, número"
-              disabled={isLoading}
+              disabled={isLoading || isSaving}
             />
           </div>
           <div>
@@ -159,7 +164,7 @@ export const CompanySettings = () => {
               value={formData.city}
               onChange={(e) => handleInputChange('city', e.target.value)}
               placeholder="São Paulo"
-              disabled={isLoading}
+              disabled={isLoading || isSaving}
             />
           </div>
           <div>
@@ -169,14 +174,14 @@ export const CompanySettings = () => {
               value={formData.state}
               onChange={(e) => handleInputChange('state', e.target.value)}
               placeholder="SP"
-              disabled={isLoading}
+              disabled={isLoading || isSaving}
             />
           </div>
         </div>
 
-        <Button onClick={handleSave} disabled={isLoading} className="flex items-center gap-2">
+        <Button onClick={handleSave} disabled={isLoading || isSaving} className="flex items-center gap-2">
           <Save className="h-4 w-4" />
-          {isLoading ? 'Salvando...' : 'Salvar Informações'}
+          {isSaving ? 'Salvando...' : 'Salvar Informações'}
         </Button>
       </CardContent>
     </Card>
