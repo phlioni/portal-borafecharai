@@ -49,6 +49,7 @@ interface UserSession {
   };
   phone?: string;
   userId?: string;
+  proposalId?: string;
 }
 
 const supabase = createClient(
@@ -189,52 +190,57 @@ async function clearSession(telegramUserId: number) {
 }
 
 async function findUserByPhone(phone: string) {
-  console.log('Buscando usuário pelo telefone:', phone);
+  console.log('Buscando usuário pelo telefone na tabela profiles:', phone);
 
   const cleanPhone = phone.replace(/\D/g, '');
   console.log('Telefone limpo:', cleanPhone);
 
-  const { data: companies, error } = await supabase
-    .from('companies')
-    .select('user_id, name, email, phone, country_code')
+  // Buscar na tabela profiles
+  const { data: profiles, error } = await supabase
+    .from('profiles')
+    .select('user_id, name, phone')
     .or(`phone.eq.${phone},phone.eq.${cleanPhone}`)
     .limit(1);
 
-  console.log('Resultado da busca na tabela companies:', { companies, error });
+  console.log('Resultado da busca na tabela profiles:', { profiles, error });
 
-  if (companies && companies.length > 0) {
-    return companies[0];
+  if (profiles && profiles.length > 0) {
+    return {
+      user_id: profiles[0].user_id,
+      name: profiles[0].name,
+      phone: profiles[0].phone
+    };
   }
 
-  const { data: allCompanies, error: allError } = await supabase
-    .from('companies')
-    .select('user_id, name, email, phone, country_code');
+  // Se não encontrou com busca exata, buscar todos os perfis e comparar
+  const { data: allProfiles, error: allError } = await supabase
+    .from('profiles')
+    .select('user_id, name, phone');
 
-  console.log('Buscando em todas as empresas:', { count: allCompanies?.length, error: allError });
+  console.log('Buscando em todos os perfis:', { count: allProfiles?.length, error: allError });
 
-  if (allCompanies) {
-    for (const company of allCompanies) {
-      if (company.phone) {
-        const companyCleanPhone = company.phone.replace(/\D/g, '');
-        console.log(`Comparando: ${cleanPhone} com ${companyCleanPhone} (${company.phone})`);
+  if (allProfiles) {
+    for (const profile of allProfiles) {
+      if (profile.phone) {
+        const profileCleanPhone = profile.phone.replace(/\D/g, '');
+        console.log(`Comparando: ${cleanPhone} com ${profileCleanPhone} (${profile.phone})`);
 
-        const fullPhoneWithCountry = `${company.country_code || '+55'}${companyCleanPhone}`;
-        const userPhoneWithCountry = cleanPhone.startsWith('55') ? `+${cleanPhone}` : `+55${cleanPhone}`;
-
-        console.log(`Comparando com código do país: ${userPhoneWithCountry} com ${fullPhoneWithCountry}`);
-
-        if (cleanPhone === companyCleanPhone ||
-          userPhoneWithCountry === fullPhoneWithCountry ||
-          phone === fullPhoneWithCountry ||
-          cleanPhone === fullPhoneWithCountry.replace(/\D/g, '')) {
-          console.log('✅ Encontrada empresa com telefone compatível:', company);
-          return company;
+        if (cleanPhone === profileCleanPhone ||
+            phone === profile.phone ||
+            cleanPhone.includes(profileCleanPhone) ||
+            profileCleanPhone.includes(cleanPhone)) {
+          console.log('✅ Encontrado perfil com telefone compatível:', profile);
+          return {
+            user_id: profile.user_id,
+            name: profile.name,
+            phone: profile.phone
+          };
         }
       }
     }
   }
 
-  console.log('❌ Usuário não encontrado pelo telefone');
+  console.log('❌ Usuário não encontrado pelo telefone na tabela profiles');
   return null;
 }
 
@@ -339,6 +345,34 @@ async function createProposalForUser(session: UserSession) {
   return proposal;
 }
 
+async function sendProposalEmail(proposalId: string, clientEmail: string, clientName: string) {
+  console.log('Enviando email da proposta:', { proposalId, clientEmail, clientName });
+
+  try {
+    const { data, error } = await supabase.functions.invoke('send-proposal-email', {
+      body: {
+        proposalId: proposalId,
+        recipientEmail: clientEmail,
+        recipientName: clientName,
+        emailSubject: `Nova Proposta Comercial - Proposta via Telegram`,
+        emailMessage: `Olá ${clientName},\n\nEspero que esteja bem!\n\nTenho o prazer de apresentar nossa proposta comercial criada especialmente para você.\n\nClique no link abaixo para visualizar todos os detalhes:\n\n[LINK_DA_PROPOSTA]\n\nEstou à disposição para esclarecer qualquer dúvida e discutir os próximos passos.\n\nAguardo seu retorno!\n\nAtenciosamente,\nEquipe Comercial`
+      }
+    });
+
+    console.log('Resposta do envio de email:', { data, error });
+
+    if (error) {
+      console.error('Erro ao enviar email:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Erro ao chamar função de envio de email:', error);
+    return false;
+  }
+}
+
 async function storeUserChatId(userId: string, chatId: number) {
   try {
     const { error } = await supabase
@@ -404,18 +438,6 @@ async function handleMessage(update: TelegramUpdate) {
       // Armazenar chat_id para notificações futuras
       await storeUserChatId(user.user_id, chatId);
 
-      const { data: companyData } = await supabase
-        .from('companies')
-        .select('*')
-        .eq('user_id', user.user_id)
-        .single();
-
-      console.log('Dados da empresa:', companyData);
-
-      const businessInfo = companyData ?
-        `Empresa: ${companyData.name}\nSetor: ${companyData.description || 'Não informado'}` :
-        `Usuário: ${user.name}`;
-
       const keyboard = {
         keyboard: [
           [{ text: "🆕 Criar Nova Proposta" }],
@@ -426,8 +448,7 @@ async function handleMessage(update: TelegramUpdate) {
       };
 
       await sendTelegramMessage(chatId,
-        `✅ *Telefone identificado!* Olá ${user.name}!\n\n` +
-        `📋 ${businessInfo}\n\n` +
+        `✅ *Telefone identificado!* Olá ${user.name || 'usuário'}!\n\n` +
         `🤖 *Bem-vindo ao @borafecharai_bot!*\n\n` +
         `🚀 O que você gostaria de fazer?`,
         keyboard
@@ -439,9 +460,9 @@ async function handleMessage(update: TelegramUpdate) {
         `❌ *Telefone não encontrado na nossa base de dados.*\n\n` +
         `Para usar este bot, você precisa:\n` +
         `1. Ter uma conta no sistema Bora Fechar Aí\n` +
-        `2. Cadastrar seu telefone em "Configurações > Meu Negócio"\n\n` +
+        `2. Cadastrar seu telefone em "Configurações > Perfil"\n\n` +
         `📱 Telefone pesquisado: ${session.phone}\n\n` +
-        `💡 Acesse o sistema e verifique se seu telefone está correto em suas configurações.\n\n` +
+        `💡 Acesse o sistema e verifique se seu telefone está correto em seu perfil.\n\n` +
         `Digite /start para tentar novamente.`
       );
       await clearSession(telegramUserId);
@@ -653,6 +674,7 @@ async function handleMessage(update: TelegramUpdate) {
         );
 
         const proposal = await createProposalForUser(session);
+        session.proposalId = proposal.id;
 
         console.log('Proposta criada com sucesso:', proposal);
 
@@ -670,13 +692,10 @@ async function handleMessage(update: TelegramUpdate) {
           summary += `⏰ *Prazo:* ${session.data.deliveryTime}\n`;
         }
         summary += `\n✅ A proposta foi salva como rascunho na sua conta.\n\n`;
-        summary += `🌐 *Próximos passos:*\n`;
-        summary += `1. Acesse o sistema para revisar\n`;
-        summary += `2. Envie a proposta para o cliente\n`;
-        summary += `3. Acompanhe o status aqui no Telegram\n\n`;
 
         const keyboard = {
           keyboard: [
+            [{ text: "📧 Enviar por E-mail" }],
             [{ text: "🆕 Criar Nova Proposta" }],
             [{ text: "📊 Ver Status das Propostas" }]
           ],
@@ -686,9 +705,8 @@ async function handleMessage(update: TelegramUpdate) {
 
         await sendTelegramMessage(chatId, summary, keyboard);
 
-        // Voltar ao menu principal
-        session.step = 'main_menu';
-        session.data = {};
+        // Mudar para o passo de ações pós-criação
+        session.step = 'proposal_actions';
 
       } catch (error) {
         console.error('Erro ao criar proposta:', error);
@@ -700,6 +718,91 @@ async function handleMessage(update: TelegramUpdate) {
         );
         await clearSession(telegramUserId);
         return;
+      }
+      break;
+
+    case 'proposal_actions':
+      if (text === '📧 Enviar por E-mail') {
+        if (!session.data.clientEmail) {
+          await sendTelegramMessage(chatId,
+            `❌ *E-mail do cliente não informado*\n\n` +
+            `Para enviar a proposta por e-mail, é necessário ter o e-mail do cliente.\n\n` +
+            `💡 Você pode acessar o sistema web para adicionar o e-mail e enviar a proposta.`
+          );
+        } else {
+          await sendTelegramMessage(chatId,
+            `📧 *Enviando proposta por e-mail...*\n\n⏳ Por favor aguarde...`
+          );
+
+          const emailSent = await sendProposalEmail(
+            session.proposalId!,
+            session.data.clientEmail,
+            session.data.clientName || 'Cliente'
+          );
+
+          if (emailSent) {
+            await sendTelegramMessage(chatId,
+              `✅ *E-mail enviado com sucesso!*\n\n` +
+              `📧 A proposta foi enviada para: ${session.data.clientEmail}\n\n` +
+              `🔔 Você receberá notificações aqui no Telegram quando o cliente visualizar ou responder à proposta.`
+            );
+          } else {
+            await sendTelegramMessage(chatId,
+              `❌ *Erro ao enviar e-mail*\n\n` +
+              `Ocorreu um erro ao enviar a proposta por e-mail.\n\n` +
+              `💡 Você pode tentar novamente ou acessar o sistema web para enviar manualmente.`
+            );
+          }
+        }
+      } else if (text === '🆕 Criar Nova Proposta') {
+        session.step = 'client_name';
+        session.data = {}; // Reset proposal data
+        session.proposalId = undefined;
+        await sendTelegramMessage(chatId,
+          `🆕 *Vamos criar uma nova proposta!*\n\n*Para qual cliente você quer criar uma proposta?*\n` +
+          `Digite o nome da empresa ou cliente:`
+        );
+      } else if (text === '📊 Ver Status das Propostas') {
+        const proposals = await getRecentProposals(session.userId!);
+
+        if (proposals.length === 0) {
+          await sendTelegramMessage(chatId,
+            `📊 *Status das Propostas*\n\n` +
+            `❌ Você ainda não tem propostas cadastradas.\n\n` +
+            `💡 Que tal criar sua primeira proposta?`
+          );
+        } else {
+          let statusMessage = `📊 *Suas últimas ${proposals.length} propostas:*\n\n`;
+
+          proposals.forEach((proposal, index) => {
+            const statusEmoji = {
+              'rascunho': '📝',
+              'enviada': '📤',
+              'visualizada': '👁️',
+              'aceita': '✅',
+              'rejeitada': '❌'
+            };
+
+            const value = proposal.value ? `R$ ${proposal.value.toLocaleString('pt-BR')}` : 'Valor não definido';
+            const client = proposal.companies?.name || 'Cliente não informado';
+            const status = proposal.status || 'rascunho';
+
+            statusMessage += `${index + 1}. *${proposal.title}*\n`;
+            statusMessage += `   👤 Cliente: ${client}\n`;
+            statusMessage += `   💰 Valor: ${value}\n`;
+            statusMessage += `   ${statusEmoji[status]} Status: ${status.charAt(0).toUpperCase() + status.slice(1)}\n\n`;
+          });
+
+          await sendTelegramMessage(chatId, statusMessage);
+        }
+
+        // Voltar ao menu principal
+        session.step = 'main_menu';
+      } else {
+        await sendTelegramMessage(chatId,
+          `❓ *Não entendi sua mensagem.*\n\n` +
+          `🤖 Use os botões do menu disponíveis.`
+        );
       }
       break;
 
@@ -765,4 +868,3 @@ serve(async (req) => {
     });
   }
 });
-
