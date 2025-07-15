@@ -1,119 +1,41 @@
+
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { 
-  ArrowLeft, 
-  Save, 
-  Send, 
-  Eye, 
-  Palette,
-  Image,
-  FileText,
-  DollarSign,
-  Calendar,
-  User,
-  Plus
-} from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft, Save, Eye } from 'lucide-react';
 import { useCreateProposal } from '@/hooks/useProposals';
-import { useCreateCompany, useCompanies } from '@/hooks/useCompanies';
+import { useCompanies } from '@/hooks/useCompanies';
 import { useAuth } from '@/contexts/AuthContext';
-import { useUserPermissions } from '@/hooks/useUserPermissions';
-import PlanLimitGuard from '@/components/PlanLimitGuard';
-import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import ProposalPreviewModal from '@/components/ProposalPreviewModal';
-import SendProposalModal from '@/components/SendProposalModal';
-import { useProposalSending } from '@/hooks/useProposalSending';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
+import BudgetItemsManager from '@/components/BudgetItemsManager';
 
 const NovaPropostaPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { data: companies, isLoading: companiesLoading } = useCompanies();
-  const { canCreateProposal, canAccessPremiumTemplates, monthlyProposalCount, monthlyProposalLimit } = useUserPermissions();
   const createProposal = useCreateProposal();
-  const createCompany = useCreateCompany();
-  const { sendProposal, isSending } = useProposalSending();
-
-  const [selectedTemplate, setSelectedTemplate] = useState('moderno');
-  const [showNewCompanyForm, setShowNewCompanyForm] = useState(false);
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
-  const [showSendModal, setShowSendModal] = useState(false);
-  const [currentProposal, setCurrentProposal] = useState<any>(null);
+  const { data: companies } = useCompanies();
+  
   const [formData, setFormData] = useState({
-    titulo: '',
-    cliente: '',
-    clienteExistente: '',
-    email: '',
-    telefone: '',
-    servico: '',
-    descricao: '',
-    valor: '',
-    prazo: '',
-    validade: '',
-    observacoes: ''
+    title: '',
+    company_id: '',
+    service_description: '',
+    detailed_description: '',
+    value: '',
+    delivery_time: '',
+    validity_date: '',
+    observations: '',
+    template_id: 'moderno'
   });
 
-  const [newCompanyData, setNewCompanyData] = useState({
-    nome: '',
-    email: '',
-    telefone: ''
-  });
-
-  // Buscar templates personalizados para usuários do plano Profissional
-  const { data: customTemplates } = useQuery({
-    queryKey: ['custom-templates'],
-    queryFn: async () => {
-      // Implementar busca de templates personalizados
-      return [];
-    },
-    enabled: canAccessPremiumTemplates
-  });
-
-  const defaultTemplates = [
-    {
-      id: 'moderno',
-      name: 'Moderno',
-      description: 'Design limpo e profissional para serviços de tecnologia',
-      color: 'bg-blue-500',
-      preview: '/templates/moderno.jpg',
-      isPremium: false
-    },
-    {
-      id: 'executivo',
-      name: 'Executivo',
-      description: 'Estilo corporativo para grandes empresas',
-      color: 'bg-gray-800',
-      preview: '/templates/executivo.jpg',
-      isPremium: true
-    },
-    {
-      id: 'criativo',
-      name: 'Criativo',
-      description: 'Visual diferenciado para agências e design',
-      color: 'bg-purple-500',
-      preview: '/templates/criativo.jpg',
-      isPremium: true
-    }
-  ];
-
-  const templates = [
-    ...defaultTemplates,
-    ...(customTemplates || []).map((template: any) => ({
-      id: template.id,
-      name: template.name,
-      description: template.description,
-      color: 'bg-gradient-to-br from-purple-500 to-blue-500',
-      preview: '/templates/custom.jpg',
-      isPremium: false,
-      isCustom: true
-    }))
-  ];
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewProposal, setPreviewProposal] = useState(null);
+  const [companyLogo, setCompanyLogo] = useState('');
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -122,582 +44,228 @@ const NovaPropostaPage = () => {
     }));
   };
 
-  const handleNewCompanyChange = (field: string, value: string) => {
-    setNewCompanyData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleCreateCompany = async () => {
-    if (!user || !newCompanyData.nome) return;
-
-    try {
-      const result = await createCompany.mutateAsync({
-        name: newCompanyData.nome,
-        email: newCompanyData.email || null,
-        phone: newCompanyData.telefone || null
-      });
-
-      setFormData(prev => ({
-        ...prev,
-        clienteExistente: result.id,
-        cliente: result.name,
-        email: result.email || '',
-        telefone: result.phone || ''
-      }));
-
-      setNewCompanyData({ nome: '', email: '', telefone: '' });
-      setShowNewCompanyForm(false);
-      toast.success('Cliente criado com sucesso!');
-    } catch (error) {
-      console.error('Erro ao criar cliente:', error);
-      toast.error('Erro ao criar cliente');
-    }
-  };
-
-  const handleSubmit = async (action: 'save' | 'send') => {
-    console.log('handleSubmit chamado com ação:', action);
-    console.log('Dados do formulário:', formData);
-
-    if (!user) {
-      toast.error('Usuário não autenticado');
-      return;
-    }
-
-    if (!formData.titulo.trim()) {
-      toast.error('Título da proposta é obrigatório');
-      return;
-    }
-
-    if (action === 'send' && !canCreateProposal) {
-      toast.error('Você atingiu o limite de propostas do seu plano');
+  const handlePreview = async () => {
+    if (!formData.title) {
+      toast.error('Título é obrigatório para visualizar');
       return;
     }
 
     try {
-      let companyId = formData.clienteExistente;
-
-      // Se não há cliente selecionado e há dados de cliente preenchidos, criar novo cliente
-      if (!companyId && formData.cliente.trim()) {
-        console.log('Criando novo cliente...');
-        const result = await createCompany.mutateAsync({
-          name: formData.cliente,
-          email: formData.email || null,
-          phone: formData.telefone || null
-        });
-        companyId = result.id;
-        console.log('Cliente criado:', result);
+      // Buscar logo da empresa se selecionada
+      let logoUrl = '';
+      if (formData.company_id && companies) {
+        const selectedCompany = companies.find(c => c.id === formData.company_id);
+        logoUrl = selectedCompany?.logo_url || '';
       }
 
-      const proposalData = {
-        user_id: user.id,
-        company_id: companyId || null,
-        title: formData.titulo,
-        service_description: formData.servico || null,
-        detailed_description: formData.descricao || null,
-        value: formData.valor ? parseFloat(formData.valor.replace(/[^\d,]/g, '').replace(',', '.')) : null,
-        delivery_time: formData.prazo || null,
-        validity_date: formData.validade || null,
-        observations: formData.observacoes || null,
-        template_id: selectedTemplate,
-        status: action === 'send' ? 'rascunho' : 'rascunho'
+      const proposalForPreview = {
+        ...formData,
+        id: 'preview',
+        user_id: user?.id || '',
+        status: 'rascunho',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        value: formData.value ? parseFloat(formData.value.replace(/[^\d,]/g, '').replace(',', '.')) : null,
+        companies: formData.company_id && companies ? 
+          companies.find(c => c.id === formData.company_id) : null
       };
 
-      console.log('Criando proposta com dados:', proposalData);
-      const proposal = await createProposal.mutateAsync(proposalData);
-      console.log('Proposta criada:', proposal);
-
-      if (action === 'send') {
-        // Buscar dados da empresa para o preview
-        const company = companyId ? companies?.find(c => c.id === companyId) : null;
-        const proposalWithCompany = {
-          ...proposal,
-          companies: company || {
-            name: formData.cliente,
-            email: formData.email,
-            phone: formData.telefone
-          }
-        };
-        
-        console.log('Abrindo modal de preview com proposta:', proposalWithCompany);
-        setCurrentProposal(proposalWithCompany);
-        setShowPreviewModal(true);
-      } else {
-        toast.success('Proposta salva como rascunho!');
-        navigate('/propostas');
-      }
+      setPreviewProposal(proposalForPreview);
+      setCompanyLogo(logoUrl);
+      setShowPreview(true);
     } catch (error) {
-      console.error('Erro ao salvar proposta:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      toast.error(`Erro ao salvar proposta: ${errorMessage}`);
+      console.error('Erro ao preparar preview:', error);
+      toast.error('Erro ao preparar visualização');
     }
   };
 
-  const handleSendProposal = async (emailData: any) => {
-    console.log('handleSendProposal chamado com dados:', emailData);
-    console.log('Proposta atual:', currentProposal);
-    
-    if (!currentProposal) {
-      toast.error('Nenhuma proposta selecionada para envio');
+  const handleSave = async () => {
+    if (!formData.title) {
+      toast.error('Título é obrigatório');
       return;
     }
 
-    const success = await sendProposal(currentProposal, emailData);
-    if (success) {
-      setShowSendModal(false);
-      setShowPreviewModal(false);
-      toast.success('Proposta enviada com sucesso!');
+    try {
+      const proposalData = {
+        title: formData.title,
+        company_id: formData.company_id || null,
+        service_description: formData.service_description || null,
+        detailed_description: formData.detailed_description || null,
+        value: formData.value ? parseFloat(formData.value.replace(/[^\d,]/g, '').replace(',', '.')) : null,
+        delivery_time: formData.delivery_time || null,
+        validity_date: formData.validity_date || null,
+        observations: formData.observations || null,
+        template_id: formData.template_id,
+        status: 'rascunho',
+        user_id: user?.id || ''
+      };
+
+      await createProposal.mutateAsync(proposalData);
+      toast.success('Proposta criada com sucesso!');
       navigate('/propostas');
+    } catch (error) {
+      console.error('Erro ao criar proposta:', error);
+      toast.error('Erro ao criar proposta');
     }
   };
 
-  if (companiesLoading) {
-    return <LoadingSpinner message="Carregando dados..." />;
-  }
-
   return (
-    <PlanLimitGuard feature="createProposal">
-      <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" asChild>
-              <Link to="/propostas" className="flex items-center gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Voltar
-              </Link>
-            </Button>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Nova Proposta</h1>
-              <p className="text-muted-foreground mt-1">
-                Crie uma proposta profissional em minutos
-                {monthlyProposalLimit && (
-                  <span className="block text-sm text-orange-600 mt-1">
-                    {monthlyProposalCount} de {monthlyProposalLimit} propostas usadas este mês
-                  </span>
-                )}
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => handleSubmit('save')} 
-              disabled={createProposal.isPending}
-              className="w-full sm:w-auto"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              Salvar Rascunho
-            </Button>
-            <Button 
-              className="bg-primary hover:bg-primary/90 w-full sm:w-auto" 
-              onClick={() => handleSubmit('send')} 
-              disabled={createProposal.isPending || !canCreateProposal}
-            >
-              <Send className="h-4 w-4 mr-2" />
-              Enviar Proposta
-            </Button>
+    <div className="p-6 max-w-4xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={() => navigate('/propostas')}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Voltar
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Nova Proposta</h1>
+            <p className="text-gray-600 mt-1">Crie uma nova proposta comercial</p>
           </div>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-        {/* Form Section */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Client Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Informações do Cliente
-              </CardTitle>
-              <CardDescription>
-                Dados do cliente que receberá a proposta
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="clienteExistente">Cliente Existente</Label>
-                  <select
-                    id="clienteExistente"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={formData.clienteExistente}
-                    onChange={(e) => {
-                      const selectedCompany = companies?.find(c => c.id === e.target.value);
-                      setFormData(prev => ({
-                        ...prev,
-                        clienteExistente: e.target.value,
-                        cliente: selectedCompany?.name || '',
-                        email: selectedCompany?.email || '',
-                        telefone: selectedCompany?.phone || ''
-                      }));
-                    }}
-                  >
-                    <option value="">Selecione um cliente existente ou crie novo</option>
-                    {companies?.map((company) => (
-                      <option key={company.id} value={company.id}>
-                        {company.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">ou</span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowNewCompanyForm(!showNewCompanyForm)}
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Novo Cliente
-                  </Button>
-                </div>
-
-                {showNewCompanyForm && (
-                  <Card className="p-4 bg-blue-50 border-blue-200">
-                    <div className="space-y-3">
-                      <div>
-                        <Label htmlFor="novoClienteNome">Nome da Empresa/Cliente *</Label>
-                        <Input
-                          id="novoClienteNome"
-                          placeholder="Ex: Empresa ABC Ltda"
-                          value={newCompanyData.nome}
-                          onChange={(e) => handleNewCompanyChange('nome', e.target.value)}
-                        />
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <div>
-                          <Label htmlFor="novoClienteEmail">E-mail</Label>
-                          <Input
-                            id="novoClienteEmail"
-                            type="email"
-                            placeholder="cliente@empresa.com"
-                            value={newCompanyData.email}
-                            onChange={(e) => handleNewCompanyChange('email', e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="novoClienteTelefone">Telefone</Label>
-                          <Input
-                            id="novoClienteTelefone"
-                            placeholder="(11) 99999-9999"
-                            value={newCompanyData.telefone}
-                            onChange={(e) => handleNewCompanyChange('telefone', e.target.value)}
-                          />
-                        </div>
-                      </div>
-                       <div className="flex flex-col sm:flex-row gap-2">
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={handleCreateCompany}
-                          disabled={!newCompanyData.nome || createCompany.isPending}
-                          className="w-full sm:w-auto"
-                        >
-                          Criar Cliente
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setShowNewCompanyForm(false)}
-                          className="w-full sm:w-auto"
-                        >
-                          Cancelar
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                )}
-
-                {!formData.clienteExistente && !showNewCompanyForm && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="sm:col-span-2">
-                      <Label htmlFor="cliente">Nome da Empresa/Cliente</Label>
-                      <Input
-                        id="cliente"
-                        placeholder="Ex: Empresa ABC Ltda"
-                        value={formData.cliente}
-                        onChange={(e) => handleInputChange('cliente', e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="email">E-mail do Cliente</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="cliente@empresa.com"
-                        value={formData.email}
-                        onChange={(e) => handleInputChange('email', e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="telefone">Telefone (Opcional)</Label>
-                      <Input
-                        id="telefone"
-                        placeholder="(11) 99999-9999"
-                        value={formData.telefone}
-                        onChange={(e) => handleInputChange('telefone', e.target.value)}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Service Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Detalhes do Serviço
-              </CardTitle>
-              <CardDescription>
-                Descreva o que será entregue ao cliente
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="titulo">Título da Proposta *</Label>
-                <Input
-                  id="titulo"
-                  placeholder="Ex: Desenvolvimento de Website Institucional"
-                  value={formData.titulo}
-                  onChange={(e) => handleInputChange('titulo', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="servico">Resumo do Serviço</Label>
-                <Input
-                  id="servico"
-                  placeholder="Ex: Criação de website responsivo com CMS"
-                  value={formData.servico}
-                  onChange={(e) => handleInputChange('servico', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="descricao">Descrição Detalhada</Label>
-                <Textarea
-                  id="descricao"
-                  placeholder="Descreva em detalhes o que será entregue, metodologia, etapas, etc."
-                  rows={4}
-                  value={formData.descricao}
-                  onChange={(e) => handleInputChange('descricao', e.target.value)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Financial Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
-                Informações Financeiras
-              </CardTitle>
-              <CardDescription>
-                Valores e prazos da proposta
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="valor">Valor Total</Label>
-                  <Input
-                    id="valor"
-                    placeholder="R$ 0,00"
-                    value={formData.valor}
-                    onChange={(e) => handleInputChange('valor', e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="prazo">Prazo de Entrega</Label>
-                  <Input
-                    id="prazo"
-                    placeholder="Ex: 30 dias úteis"
-                    value={formData.prazo}
-                    onChange={(e) => handleInputChange('prazo', e.target.value)}
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="validade">Validade da Proposta</Label>
-                <Input
-                  id="validade"
-                  type="date"
-                  value={formData.validade}
-                  onChange={(e) => handleInputChange('validade', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="observacoes">Observações (Opcional)</Label>
-                <Textarea
-                  id="observacoes"
-                  placeholder="Condições de pagamento, informações adicionais, etc."
-                  rows={3}
-                  value={formData.observacoes}
-                  onChange={(e) => handleInputChange('observacoes', e.target.value)}
-                />
-              </div>
-            </CardContent>
-          </Card>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handlePreview}>
+            <Eye className="h-4 w-4 mr-2" />
+            Visualizar
+          </Button>
+          <Button onClick={handleSave} disabled={createProposal.isPending}>
+            <Save className="h-4 w-4 mr-2" />
+            Salvar Proposta
+          </Button>
         </div>
-
-        {/* Template Selection & Preview */}
-        <div className="space-y-6">
-          {/* Template Selection */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Palette className="h-5 w-5" />
-                Escolha o Template
-              </CardTitle>
-              <CardDescription>
-                Selecione o design da sua proposta
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {templates.map((template) => {
-                const isDisabled = template.isPremium && !canAccessPremiumTemplates;
-                
-                return (
-                  <div
-                    key={template.id}
-                    className={`border rounded-lg p-4 cursor-pointer transition-all relative ${
-                      selectedTemplate === template.id 
-                        ? 'border-blue-500 bg-blue-50' 
-                        : isDisabled
-                          ? 'border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed'
-                          : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => !isDisabled && setSelectedTemplate(template.id)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-4 h-4 rounded-full ${template.color}`} />
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-medium">{template.name}</h3>
-                          {template.isPremium && (
-                            <Badge variant="secondary" className="text-xs">Premium</Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-600">{template.description}</p>
-                      </div>
-                      {selectedTemplate === template.id && !isDisabled && (
-                        <Badge variant="default">Selecionado</Badge>
-                      )}
-                    </div>
-                    {isDisabled && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-gray-100/80 rounded-lg">
-                        <Link to="/planos">
-                          <Button size="sm" variant="outline">
-                            Upgrade para usar
-                          </Button>
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-
-          {/* Preview */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Eye className="h-5 w-5" />
-                Pré-visualização
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="bg-gray-100 rounded-lg p-8 text-center">
-                <Image className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="font-medium text-gray-900 mb-2">
-                  {formData.titulo || 'Título da Proposta'}
-                </h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Para: {formData.cliente || formData.clienteExistente ? companies?.find(c => c.id === formData.clienteExistente)?.name : 'Nome do Cliente'}
-                </p>
-                <div className="text-2xl font-bold text-blue-600 mb-2">
-                  {formData.valor || 'R$ 0,00'}
-                </div>
-                <p className="text-sm text-gray-500">
-                  Template: {templates.find(t => t.id === selectedTemplate)?.name}
-                </p>
-              </div>
-              <Button variant="outline" className="w-full mt-4">
-                <Eye className="h-4 w-4 mr-2" />
-                Visualizar Completa
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Tips */}
-          <Card className="bg-blue-50 border-blue-200">
-            <CardHeader>
-              <CardTitle className="text-blue-900 text-sm">💡 Dicas para uma boa proposta</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-blue-800 space-y-2">
-              <p>• Seja claro e específico na descrição</p>
-              <p>• Inclua prazos realistas</p>
-              <p>• Destaque o valor entregue ao cliente</p>
-              <p>• Use um template que combine com seu negócio</p>
-            </CardContent>
-          </Card>
-        </div>
-        </div>
-
-        {/* Preview Modal */}
-        {currentProposal && (
-          <ProposalPreviewModal
-            isOpen={showPreviewModal}
-            onClose={() => setShowPreviewModal(false)}
-            onContinue={() => {
-              console.log('Preview modal - Continuar clicado');
-              setShowPreviewModal(false);
-              setShowSendModal(true);
-            }}
-            proposal={currentProposal}
-            companyLogo={localStorage.getItem('company_logo') || ''}
-          />
-        )}
-
-        {/* Send Modal */}
-        {currentProposal && (
-          <SendProposalModal
-            isOpen={showSendModal}
-            onClose={() => setShowSendModal(false)}
-            onSend={handleSendProposal}
-            proposalTitle={currentProposal.title}
-            clientName={currentProposal.companies?.name}
-            clientEmail={currentProposal.companies?.email}
-            isLoading={isSending}
-          />
-        )}
-
-        {/* Loading states */}
-        {createProposal.isPending && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg">
-              <LoadingSpinner message="Salvando proposta..." />
-            </div>
-          </div>
-        )}
-
-        {isSending && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg">
-              <LoadingSpinner message="Enviando proposta..." />
-            </div>
-          </div>
-        )}
       </div>
-    </PlanLimitGuard>
+
+      {/* Form */}
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Informações Básicas</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="title">Título da Proposta</Label>
+              <Input
+                id="title"
+                value={formData.title}
+                onChange={(e) => handleInputChange('title', e.target.value)}
+                placeholder="Digite o título da proposta"
+              />
+            </div>
+            <div>
+              <Label htmlFor="company">Cliente</Label>
+              <Select value={formData.company_id} onValueChange={(value) => handleInputChange('company_id', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Nenhum cliente selecionado</SelectItem>
+                  {companies?.map((company) => (
+                    <SelectItem key={company.id} value={company.id}>
+                      {company.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="service_description">Resumo do Serviço</Label>
+              <Input
+                id="service_description"
+                value={formData.service_description}
+                onChange={(e) => handleInputChange('service_description', e.target.value)}
+                placeholder="Breve descrição do serviço"
+              />
+            </div>
+            <div>
+              <Label htmlFor="detailed_description">Descrição Detalhada</Label>
+              <Textarea
+                id="detailed_description"
+                rows={4}
+                value={formData.detailed_description}
+                onChange={(e) => handleInputChange('detailed_description', e.target.value)}
+                placeholder="Descrição completa do projeto/serviço"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="value">Valor</Label>
+                <Input
+                  id="value"
+                  value={formData.value}
+                  onChange={(e) => handleInputChange('value', e.target.value)}
+                  placeholder="R$ 0,00"
+                />
+              </div>
+              <div>
+                <Label htmlFor="delivery_time">Prazo de Entrega</Label>
+                <Input
+                  id="delivery_time"
+                  value={formData.delivery_time}
+                  onChange={(e) => handleInputChange('delivery_time', e.target.value)}
+                  placeholder="Ex: 30 dias"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="validity_date">Validade</Label>
+              <Input
+                id="validity_date"
+                type="date"
+                value={formData.validity_date}
+                onChange={(e) => handleInputChange('validity_date', e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="template_id">Modelo de Template</Label>
+              <Select value={formData.template_id} onValueChange={(value) => handleInputChange('template_id', value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="moderno">Moderno</SelectItem>
+                  <SelectItem value="executivo">Executivo</SelectItem>
+                  <SelectItem value="criativo">Criativo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="observations">Observações</Label>
+              <Textarea
+                id="observations"
+                rows={3}
+                value={formData.observations}
+                onChange={(e) => handleInputChange('observations', e.target.value)}
+                placeholder="Observações adicionais"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Budget Items Manager - será exibido apenas se a proposta for salva */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Orçamento Detalhado (Opcional)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600 mb-4">
+              O orçamento detalhado ficará disponível após salvar a proposta. 
+              Você poderá adicionar itens de materiais e mão de obra na página de edição.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Preview Modal */}
+      {showPreview && previewProposal && (
+        <ProposalPreviewModal
+          isOpen={showPreview}
+          onClose={() => setShowPreview(false)}
+          onContinue={handleSave}
+          proposal={previewProposal}
+          companyLogo={companyLogo}
+        />
+      )}
+    </div>
   );
 };
 

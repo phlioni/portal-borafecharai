@@ -9,49 +9,33 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const MODELO_OFICIAL = `<h1>Proposta Comercial para {servico}</h1>
+const MODELO_OFICIAL = `<h1>Orçamento {numero_orcamento}</h1>
 
-<p><strong>Número da proposta:</strong> {numero_proposta}</p>
 <p><strong>Data:</strong> {data}</p>
 
-<h2>Destinatário</h2>
-<p><strong>Cliente:</strong> {cliente}</p>
+<h2>Cliente</h2>
+<p><strong>Nome:</strong> {cliente}</p>
 <p><strong>Responsável:</strong> {responsavel}</p>
 <p><strong>Contato:</strong> {email} / {telefone}</p>
 
-<h2>Introdução</h2>
-<p>Prezada(o) {responsavel},</p>
-<p>Agradecemos a oportunidade de apresentar esta proposta para atender às suas necessidades com relação a <strong>{servico}</strong>. Nosso compromisso é oferecer um serviço de alta qualidade, com foco em resultados e em um relacionamento transparente e duradouro.</p>
+<h2>Serviços</h2>
+{servicos_detalhados}
 
-<h2>Escopo dos Serviços</h2>
-<ul>
-  <li>Análise inicial do cenário do cliente</li>
-  <li>Planejamento e definição do cronograma</li>
-  <li>Implementação dos serviços conforme escopo</li>
-  <li>Treinamento da equipe (se aplicável)</li>
-  <li>Suporte por {dias_suporte} dias após entrega</li>
-</ul>
+<h2>Materiais</h2>
+{materiais_detalhados}
 
-<p><strong>O que não está incluso:</strong></p>
-<ul>
-  <li>Custos de terceiros (viagens, licenças, etc.)</li>
-  <li>Serviços fora do escopo desta proposta</li>
-</ul>
+<h2>Resumo Financeiro</h2>
+<p><strong>Serviços:</strong> R$ {total_servicos}</p>
+<p><strong>Materiais:</strong> R$ {total_materiais}</p>
+<p><strong>Total:</strong> R$ {total_geral}</p>
 
-<h2>Prazos</h2>
-<p>O prazo estimado para execução dos serviços é de <strong>{prazo}</strong>, contados a partir da assinatura desta proposta e pagamento do sinal (se houver).</p>
+<h2>Pagamento</h2>
+<p><strong>Forma de pagamento:</strong> {forma_pagamento}</p>
+<p><strong>Prazo de entrega:</strong> {prazo_entrega}</p>
+<p><strong>Validade:</strong> {validade} dias</p>
 
-<h2>Investimento</h2>
-<p><strong>Valor total:</strong> R$ {valor}</p>
-<p><strong>Forma de pagamento:</strong> {pagamento}</p>
-<p><strong>Vencimento:</strong> {vencimento}</p>
-
-<h2>Condições Gerais</h2>
-<ul>
-  <li>Validade da proposta: {validade} dias</li>
-  <li>Eventuais alterações no escopo poderão impactar prazo e valores</li>
-  <li>Rescisão, multas, ou regras para cancelamento conforme contrato</li>
-</ul>`;
+<h2>Observações</h2>
+{observacoes}`;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -77,7 +61,10 @@ serve(async (req) => {
       6. Valor do projeto
       7. Prazo de entrega
       8. Forma de pagamento
-      9. Observações especiais
+      9. IMPORTANTE: Pergunte se o usuário quer incluir um orçamento detalhado com materiais e mão de obra. Se sim, colete:
+         - Itens de materiais (descrição, quantidade, valor unitário)
+         - Itens de mão de obra (descrição, quantidade, valor unitário)
+      10. Observações especiais
       
       Seja amigável, profissional e faça perguntas inteligentes para entender o contexto do negócio.
       
@@ -108,7 +95,15 @@ serve(async (req) => {
         "valor": "valor exato mencionado em formato numérico (sem R$)",
         "prazo": "prazo específico mencionado pelo usuário",
         "pagamento": "forma de pagamento mencionada ou 'A definir'",
-        "observacoes": "observações específicas mencionadas ou observações padrão do modelo"
+        "observacoes": "observações específicas mencionadas ou observações padrão do modelo",
+        "budget_items": [
+          {
+            "type": "material" ou "labor",
+            "description": "descrição do item",
+            "quantity": número,
+            "unit_price": número
+          }
+        ]
       }
       
       IMPORTANTE: 
@@ -116,6 +111,7 @@ serve(async (req) => {
       - Se uma informação não foi mencionada, use um valor padrão apropriado
       - Para o campo "descricao", use o modelo oficial HTML substituindo os placeholders com as informações coletadas
       - Para o valor, use apenas números (ex: 5400.00)
+      - Se o usuário mencionou itens de orçamento, inclua no array "budget_items"
       - Seja específico e preciso com as informações extraídas
       
       Certifique-se de que o JSON seja válido e contenha todas as informações extraídas da conversa.`;
