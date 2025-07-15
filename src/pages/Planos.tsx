@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,8 +46,8 @@ const Planos = () => {
   const plans = [
     {
       name: 'Essencial',
-      description: 'Perfeito para freelancers e pequenos negócios',
-      priceId: prices?.basico,
+      description: 'Permite uso do chat com IA e do bot do Telegram com limite de 20 propostas/mês',
+      priceId: prices?.basico?.priceId,
       features: [
         'Chat com IA para criação de propostas',
         'Bot do Telegram integrado',
@@ -62,8 +61,8 @@ const Planos = () => {
     },
     {
       name: 'Professional',
-      description: 'Para empresas que precisam de mais recursos',
-      priceId: prices?.profissional,
+      description: 'Inclui tudo do Essencial, com número ilimitado de propostas, acesso ao Analytics e uso do chat com IA e do bot do Telegram',
+      priceId: prices?.profissional?.priceId,
       features: [
         'Tudo do plano Essencial',
         'Propostas ilimitadas',

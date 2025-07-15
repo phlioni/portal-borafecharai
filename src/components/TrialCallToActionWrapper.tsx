@@ -5,7 +5,7 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
 import TrialCallToAction from './TrialCallToAction';
 
-export const TrialCallToActionWrapper = () => {
+const TrialCallToActionWrapper = () => {
   const { user } = useAuth();
   const { subscribed, loading: subscriptionLoading } = useSubscription();
   const { isInTrial, loading: trialLoading } = useTrialStatus();
@@ -35,3 +35,5 @@ export const TrialCallToActionWrapper = () => {
 
   return null;
 };
+
+export default TrialCallToActionWrapper;
