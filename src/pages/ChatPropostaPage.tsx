@@ -111,16 +111,26 @@ const ChatPropostaPage = () => {
 
       if (error) throw error;
 
+      console.log('Resposta da Edge Function:', data);
+
       let proposalData;
       try {
-        proposalData = JSON.parse(data.content);
+        // Tentar fazer parse do JSON, com tratamento para possíveis problemas
+        const jsonString = data.content.trim();
+        console.log('JSON string recebido:', jsonString);
+        
+        // Remover possíveis caracteres inválidos no início/fim
+        const cleanJson = jsonString.replace(/^[^{]*({.*})[^}]*$/s, '$1');
+        console.log('JSON limpo:', cleanJson);
+        
+        proposalData = JSON.parse(cleanJson);
+        console.log('Dados parseados:', proposalData);
       } catch (parseError) {
         console.error('Erro ao fazer parse dos dados:', parseError);
-        toast.error('Erro ao processar dados da proposta');
+        console.error('Conteúdo original:', data.content);
+        toast.error('Erro ao processar dados da proposta. Dados recebidos em formato inválido.');
         return;
       }
-
-      console.log('Dados da proposta gerada:', proposalData);
 
       // Validar dados obrigatórios
       if (!proposalData.titulo) {
@@ -129,9 +139,16 @@ const ChatPropostaPage = () => {
       }
 
       // Calcular valor total baseado nos itens do orçamento
-      const totalValue = (proposalData.budget_items || []).reduce((total: number, item: any) => {
-        return total + ((item.quantity || 0) * (item.unit_price || 0));
-      }, 0);
+      let totalValue = 0;
+      if (proposalData.budget_items && Array.isArray(proposalData.budget_items)) {
+        totalValue = proposalData.budget_items.reduce((total: number, item: any) => {
+          const quantity = parseFloat(item.quantity) || 0;
+          const unitPrice = parseFloat(item.unit_price) || 0;
+          return total + (quantity * unitPrice);
+        }, 0);
+      }
+
+      console.log('Valor total calculado:', totalValue);
 
       // Criar a proposta
       const newProposal = await createProposal.mutateAsync({
@@ -146,17 +163,22 @@ const ChatPropostaPage = () => {
         status: 'enviada'
       });
 
+      console.log('Proposta criada:', newProposal);
+
       // Criar itens de orçamento se existirem
-      if (proposalData.budget_items && proposalData.budget_items.length > 0) {
+      if (proposalData.budget_items && Array.isArray(proposalData.budget_items) && proposalData.budget_items.length > 0) {
+        console.log('Criando itens de orçamento:', proposalData.budget_items);
+        
         for (const item of proposalData.budget_items) {
           if (item.description && item.quantity && item.unit_price) {
-            await createBudgetItem.mutateAsync({
+            const budgetItem = await createBudgetItem.mutateAsync({
               proposal_id: newProposal.id,
               type: item.type === 'labor' ? 'labor' : 'material',
               description: item.description,
               quantity: parseFloat(item.quantity) || 1,
               unit_price: parseFloat(item.unit_price) || 0
             });
+            console.log('Item de orçamento criado:', budgetItem);
           }
         }
       }
@@ -242,19 +264,19 @@ const ChatPropostaPage = () => {
             
             <CardContent className="flex-1 flex flex-col">
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto space-y-4 mb-4">
+              <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-2">
                 {messages.map((message) => (
                   <div
                     key={message.id}
                     className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      className={`flex items-start gap-2 max-w-[80%] ${
+                      className={`flex items-start gap-2 max-w-[85%] ${
                         message.type === 'user' ? 'flex-row-reverse' : 'flex-row'
                       }`}
                     >
                       <div
-                        className={`p-2 rounded-full ${
+                        className={`p-2 rounded-full flex-shrink-0 ${
                           message.type === 'user' 
                             ? 'bg-blue-600 text-white' 
                             : 'bg-gray-200 text-gray-700'
@@ -267,13 +289,15 @@ const ChatPropostaPage = () => {
                         )}
                       </div>
                       <div
-                        className={`p-3 rounded-lg ${
+                        className={`p-3 rounded-lg break-words ${
                           message.type === 'user'
                             ? 'bg-blue-600 text-white'
                             : 'bg-gray-100 text-gray-900'
                         }`}
                       >
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        <p className="text-sm whitespace-pre-wrap break-words overflow-wrap-anywhere">
+                          {message.content}
+                        </p>
                       </div>
                     </div>
                   </div>
