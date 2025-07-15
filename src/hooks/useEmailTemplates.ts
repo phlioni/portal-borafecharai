@@ -33,8 +33,8 @@ Aguardo seu retorno!`,
 {SEU_NOME}
 {EMPRESA_NOME}
 
-📧 {EMPRESA_EMAIL}
-📱 {EMPRESA_TELEFONE}`
+{EMPRESA_EMAIL}
+{EMPRESA_TELEFONE}`
 };
 
 export const useEmailTemplates = () => {
@@ -174,7 +174,6 @@ export const useEmailTemplates = () => {
       const regex = new RegExp(`\\{${key}\\}`, 'g');
       const safeValue = value || '';
       processed = processed.replace(regex, safeValue);
-      console.log(`Substituindo {${key}} por "${safeValue}"`);
     });
     
     // Processar variáveis no formato [VARIAVEL] (compatibilidade)
@@ -182,16 +181,18 @@ export const useEmailTemplates = () => {
       const regex = new RegExp(`\\[${key}\\]`, 'g');
       const safeValue = value || '';
       processed = processed.replace(regex, safeValue);
-      console.log(`Substituindo [${key}] por "${safeValue}"`);
     });
 
-    // Limpar linhas vazias que contêm apenas emojis sem texto
+    // Limpar linhas que contêm apenas campos vazios ou emojis sem texto
     const lines = processed.split('\n');
     const cleanedLines = lines.filter(line => {
       const trimmed = line.trim();
-      // Remove linhas que são apenas emojis sem conteúdo
+      // Remove linhas vazias
+      if (trimmed === '') return false;
+      // Remove linhas com apenas emojis
       if (trimmed === '📧' || trimmed === '📱') return false;
-      if (trimmed.match(/^📧\s*$/) || trimmed.match(/^📱\s*$/)) return false;
+      // Remove linhas com emojis seguidos apenas de espaços
+      if (trimmed === '📧 ' || trimmed === '📱 ') return false;
       return true;
     });
     

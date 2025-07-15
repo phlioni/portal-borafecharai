@@ -62,8 +62,8 @@ const SendProposalModal = ({
         NOME_PROJETO: proposalTitle || 'Projeto',
         SEU_NOME: user?.user_metadata?.name || company?.name || 'Equipe',
         EMPRESA_NOME: company?.name || 'Sua Empresa',
-        EMPRESA_TELEFONE: company?.phone || '',
-        EMPRESA_EMAIL: company?.email || user?.email || '',
+        EMPRESA_TELEFONE: company?.phone ? `📱 ${company.phone}` : '',
+        EMPRESA_EMAIL: company?.email ? `📧 ${company.email}` : '',
         BOTAO_PROPOSTA: '[LINK_DA_PROPOSTA]'
       };
 
@@ -75,18 +75,6 @@ const SendProposalModal = ({
       
       // Processar assinatura
       let processedSignature = processTemplate(template.email_signature || '', variables);
-      
-      // Filtrar campos vazios da assinatura
-      if (processedSignature) {
-        const signatureLines = processedSignature.split('\n').filter(line => {
-          const trimmedLine = line.trim();
-          // Remove linhas vazias ou que contêm apenas emojis sem texto
-          if (trimmedLine === '' || trimmedLine === '📧' || trimmedLine === '📱') return false;
-          if (trimmedLine === '📧 ' || trimmedLine === '📱 ') return false;
-          return true;
-        });
-        processedSignature = signatureLines.join('\n');
-      }
       
       console.log('Subject processado:', processedSubject);
       console.log('Message processada:', processedMessage);
@@ -142,7 +130,7 @@ const SendProposalModal = ({
         <a href="#" style="
           display: inline-block;
           background-color: #2563eb;
-          color: white;
+          color: #ffffff;
           padding: 12px 24px;
           text-decoration: none;
           border-radius: 8px;
