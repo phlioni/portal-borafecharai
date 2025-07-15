@@ -3,7 +3,7 @@ import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { X, Save, Send, FileText } from 'lucide-react';
-import ProposalTemplateRenderer from '@/components/ProposalTemplateRenderer';
+import StandardProposalTemplate from '@/components/StandardProposalTemplate';
 
 interface ProposalCreatePreviewModalProps {
   isOpen: boolean;
@@ -28,7 +28,8 @@ const ProposalCreatePreviewModal = ({
   console.log('ProposalCreatePreviewModal - Dados da proposta:', {
     value: proposal?.value,
     title: proposal?.title,
-    template: proposal?.template_id
+    template: proposal?.template_id,
+    budgetItems: proposal?.proposal_budget_items
   });
 
   return (
@@ -63,7 +64,7 @@ const ProposalCreatePreviewModal = ({
           <div className="border rounded-lg p-1 bg-white shadow-inner">
             <div className="transform scale-90 origin-top">
               {proposal && (
-                <ProposalTemplateRenderer proposal={proposal} companyLogo={companyLogo} />
+                <StandardProposalTemplate proposal={proposal} companyLogo={companyLogo} />
               )}
             </div>
           </div>

@@ -143,18 +143,33 @@ const ChatPropostaPage = () => {
         return;
       }
 
-      let totalValue = 0;
-      if (proposalData.budget_items && Array.isArray(proposalData.budget_items)) {
-        totalValue = proposalData.budget_items.reduce((total: number, item: any) => {
-          const quantity = parseFloat(item.quantity) || 0;
-          const unitPrice = parseFloat(item.unit_price) || 0;
-          return total + (quantity * unitPrice);
-        }, 0);
-      }
+      // Processar itens de orçamento com campos corretos
+      const processedBudgetItems = proposalData.budget_items ? proposalData.budget_items.map((item: any) => {
+        const quantity = parseFloat(item.quantity) || 0;
+        const unitPrice = parseFloat(item.unit_price) || 0;
+        const totalPrice = quantity * unitPrice;
+        
+        return {
+          id: `temp-${Math.random()}`,
+          proposal_id: 'temp-id',
+          type: item.type === 'labor' ? 'labor' : 'material',
+          description: item.description,
+          quantity: quantity,
+          unit_price: unitPrice,
+          total_price: totalPrice,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+      }) : [];
+
+      let totalValue = processedBudgetItems.reduce((total: number, item: any) => {
+        return total + (item.total_price || 0);
+      }, 0);
 
       console.log('Valor total calculado:', totalValue);
+      console.log('Itens processados:', processedBudgetItems);
 
-      // Preparar proposta para preview
+      // Preparar proposta para preview com a estrutura correta
       const proposalForPreview = {
         id: 'temp-id',
         title: proposalData.titulo,
@@ -166,10 +181,8 @@ const ChatPropostaPage = () => {
         companies: proposalData.cliente ? { name: proposalData.cliente } : null,
         created_at: new Date().toISOString(),
         user_id: user.id,
-        proposal_budget_items: proposalData.budget_items ? proposalData.budget_items.map((item: any) => ({
-          ...item,
-          total_price: (parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0)
-        })) : []
+        // Incluir os itens de orçamento no formato correto para o hook useBudgetItems
+        proposal_budget_items: processedBudgetItems
       };
 
       // Buscar logo da empresa
@@ -185,7 +198,7 @@ const ChatPropostaPage = () => {
       // Salvar dados temporários para usar depois
       sessionStorage.setItem('tempProposalData', JSON.stringify({
         proposalData,
-        budgetItems: proposalData.budget_items || []
+        budgetItems: processedBudgetItems
       }));
       
       setShowPreview(true);

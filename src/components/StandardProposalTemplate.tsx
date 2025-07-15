@@ -19,16 +19,27 @@ interface ProposalData {
   detailed_description?: string;
   observations?: string;
   created_at: string;
+  proposal_budget_items?: any[];
 }
 
 interface StandardProposalTemplateProps {
   proposal: ProposalData;
   className?: string;
+  companyLogo?: string;
 }
 
-const StandardProposalTemplate = ({ proposal, className = "" }: StandardProposalTemplateProps) => {
+const StandardProposalTemplate = ({ proposal, className = "", companyLogo }: StandardProposalTemplateProps) => {
   const { user } = useAuth();
-  const { data: budgetItems = [] } = useBudgetItems(proposal.id);
+  
+  // Usar hook apenas se não temos dados diretos da proposta
+  const { data: hookBudgetItems = [] } = useBudgetItems(
+    proposal.id && proposal.id !== 'temp-id' ? proposal.id : ''
+  );
+
+  // Usar dados diretos da proposta ou do hook
+  const budgetItems = proposal.proposal_budget_items && proposal.proposal_budget_items.length > 0 
+    ? proposal.proposal_budget_items 
+    : hookBudgetItems;
 
   // Buscar dados da empresa do usuário
   const { data: userCompany } = useQuery({
@@ -88,15 +99,18 @@ const StandardProposalTemplate = ({ proposal, className = "" }: StandardProposal
   const materialsTotal = materials.reduce((total, item) => total + (item.total_price || 0), 0);
   const grandTotal = servicesTotal + materialsTotal;
 
+  // Usar logo passada como prop ou da empresa
+  const logoToUse = companyLogo || userCompany?.logo_url;
+
   return (
     <div className={`bg-white p-8 max-w-4xl mx-auto font-sans text-gray-800 ${className}`}>
       {/* Cabeçalho da Empresa */}
       <div className="mb-8">
         <div className="flex justify-between items-start">
           <div>
-            {userCompany?.logo_url && (
+            {logoToUse && (
               <img 
-                src={userCompany.logo_url} 
+                src={logoToUse} 
                 alt="Logo da Empresa" 
                 className="h-16 w-auto object-contain mb-4" 
               />
