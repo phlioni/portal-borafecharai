@@ -41,12 +41,18 @@ const SendProposalModal = ({
     emailMessage: ''
   });
 
-  // Atualizar dados do formulário quando props mudarem
+  // Carregar e processar template quando modal abrir
   useEffect(() => {
     if (isOpen) {
-      const template = getTemplate();
-      const company = companies?.[0];
+      console.log('Modal aberto, carregando template...');
       
+      const template = getTemplate();
+      console.log('Template carregado:', template);
+      
+      const company = companies?.[0];
+      console.log('Empresa carregada:', company);
+      
+      // Preparar variáveis para substituição no template
       const variables = {
         CLIENTE_NOME: clientName || 'Cliente',
         PROJETO_NOME: proposalTitle,
@@ -57,13 +63,28 @@ const SendProposalModal = ({
         BOTAO_PROPOSTA: '[LINK_DA_PROPOSTA]'
       };
 
+      console.log('Variáveis para substituição:', variables);
+
+      // Processar templates com as variáveis
       const processedSubject = processTemplate(template.email_subject_template, variables);
       const processedMessage = processTemplate(template.email_message_template, variables);
       const processedSignature = processTemplate(template.email_signature, variables);
       
+      console.log('Subject processado:', processedSubject);
+      console.log('Message processada:', processedMessage);
+      console.log('Signature processada:', processedSignature);
+      
+      // Combinar mensagem e assinatura
       const fullMessage = `${processedMessage}\n\n${processedSignature}`;
 
       setFormData({
+        recipientEmail: clientEmail || '',
+        recipientName: clientName || '',
+        emailSubject: processedSubject,
+        emailMessage: fullMessage
+      });
+
+      console.log('FormData atualizado:', {
         recipientEmail: clientEmail || '',
         recipientName: clientName || '',
         emailSubject: processedSubject,

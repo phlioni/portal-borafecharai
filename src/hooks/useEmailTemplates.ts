@@ -51,18 +51,25 @@ export const useEmailTemplates = () => {
   const { data: templates, isLoading } = useQuery({
     queryKey: ['email-templates'],
     queryFn: async () => {
+      console.log('Buscando templates de email...');
       const { data, error } = await supabase
         .from('email_templates')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao buscar templates:', error);
+        throw error;
+      }
+      
+      console.log('Templates encontrados:', data);
       return data || [];
     },
   });
 
   const createTemplate = useMutation({
     mutationFn: async (template: Omit<EmailTemplate, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+      console.log('Criando template:', template);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
@@ -75,7 +82,12 @@ export const useEmailTemplates = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao criar template:', error);
+        throw error;
+      }
+      
+      console.log('Template criado:', data);
       return data;
     },
     onSuccess: () => {
@@ -90,6 +102,7 @@ export const useEmailTemplates = () => {
 
   const updateTemplate = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<EmailTemplate> }) => {
+      console.log('Atualizando template:', id, updates);
       const { data, error } = await supabase
         .from('email_templates')
         .update(updates)
@@ -97,7 +110,12 @@ export const useEmailTemplates = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao atualizar template:', error);
+        throw error;
+      }
+      
+      console.log('Template atualizado:', data);
       return data;
     },
     onSuccess: () => {
@@ -112,12 +130,18 @@ export const useEmailTemplates = () => {
 
   const deleteTemplate = useMutation({
     mutationFn: async (id: string) => {
+      console.log('Excluindo template:', id);
       const { error } = await supabase
         .from('email_templates')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao excluir template:', error);
+        throw error;
+      }
+      
+      console.log('Template excluído com sucesso');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['email-templates'] });
@@ -130,18 +154,29 @@ export const useEmailTemplates = () => {
   });
 
   const getTemplate = () => {
+    console.log('Obtendo template. Templates disponíveis:', templates);
+    
     if (templates && templates.length > 0) {
-      return templates[0];
+      const template = templates[0];
+      console.log('Usando template salvo:', template);
+      return template;
     }
+    
+    console.log('Usando template padrão:', DEFAULT_EMAIL_TEMPLATE);
     return DEFAULT_EMAIL_TEMPLATE;
   };
 
   const processTemplate = (template: string, variables: Record<string, string>) => {
+    console.log('Processando template:', template);
+    console.log('Com variáveis:', variables);
+    
     let processed = template;
     Object.entries(variables).forEach(([key, value]) => {
       const regex = new RegExp(`{${key}}`, 'g');
       processed = processed.replace(regex, value || '');
     });
+    
+    console.log('Template processado:', processed);
     return processed;
   };
 
