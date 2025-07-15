@@ -83,6 +83,51 @@ const ProposalTemplateRenderer = ({ proposal, companyLogo: providedLogo }: Propo
     fetchCompanyLogo();
   }, [user, providedLogo]);
 
+  // Função para extrair dados do HTML do modelo oficial
+  const extractDataFromOfficialModel = (htmlContent: string) => {
+    if (!htmlContent || !htmlContent.includes('<h1>Proposta Comercial para')) {
+      return null;
+    }
+
+    // Extrair título do serviço
+    const titleMatch = htmlContent.match(/<h1>Proposta Comercial para ([^<]+)<\/h1>/);
+    const serviceTitle = titleMatch ? titleMatch[1].trim() : '';
+
+    // Extrair valor
+    const valueMatch = htmlContent.match(/<strong>Valor total:<\/strong>\s*R\$\s*([^<]+)/);
+    const valueText = valueMatch ? valueMatch[1].trim() : '';
+    
+    // Converter valor para número
+    let numericValue = 0;
+    if (valueText) {
+      const cleanValue = valueText.replace(/[^\d,]/g, '');
+      if (cleanValue && cleanValue !== '0,00') {
+        numericValue = parseFloat(cleanValue.replace(',', '.'));
+      }
+    }
+
+    // Extrair prazo
+    const deadlineMatch = htmlContent.match(/<strong>([^<]*prazo[^<]*)<\/strong>[^<]*<strong>([^<]+)<\/strong>/i);
+    const deadline = deadlineMatch ? deadlineMatch[2].trim() : '';
+
+    // Extrair cliente
+    const clientMatch = htmlContent.match(/<strong>Cliente:<\/strong>\s*([^<]+)/);
+    const client = clientMatch ? clientMatch[1].trim() : '';
+
+    // Extrair responsável
+    const responsibleMatch = htmlContent.match(/<strong>Responsável:<\/strong>\s*([^<]+)/);
+    const responsible = responsibleMatch ? responsibleMatch[1].trim() : '';
+
+    return {
+      serviceTitle,
+      numericValue,
+      deadline,
+      client,
+      responsible,
+      fullHtmlContent: htmlContent
+    };
+  };
+
   // Função para processar conteúdo usando o modelo oficial
   const processProposalContent = (content: string) => {
     if (!content || content.includes('Proposta Comercial para')) {
@@ -120,6 +165,25 @@ const ProposalTemplateRenderer = ({ proposal, companyLogo: providedLogo }: Propo
 
   const templateId = proposal.template_id || 'moderno';
 
+  // Processar dados do modelo oficial se disponível
+  const officialModelData = proposal.detailed_description ? 
+    extractDataFromOfficialModel(proposal.detailed_description) : null;
+
+  // Criar proposta estruturada baseada no modelo oficial
+  const structuredProposal = {
+    ...proposal,
+    title: officialModelData?.serviceTitle || proposal.title,
+    service_description: officialModelData?.serviceTitle || proposal.service_description,
+    value: officialModelData?.numericValue || proposal.value,
+    delivery_time: officialModelData?.deadline || proposal.delivery_time,
+    companies: {
+      ...proposal.companies,
+      name: officialModelData?.client || proposal.companies?.name
+    },
+    // Manter o HTML original para renderização nos templates
+    detailed_description: officialModelData?.fullHtmlContent || processProposalContent(proposal.detailed_description || '')
+  };
+
   // Renderizar template personalizado se disponível e usuário tem acesso
   if ((canAccessPremiumTemplates || isAdmin) && customTemplates.length > 0) {
     const customTemplate = customTemplates.find(t => t.template_id === templateId);
@@ -134,23 +198,15 @@ const ProposalTemplateRenderer = ({ proposal, companyLogo: providedLogo }: Propo
       );
     }
   }
-
-  // Processar conteúdo para templates padrão
-  const proposalWithProcessedContent = {
-    ...proposal,
-    detailed_description: proposal.detailed_description ? 
-      processProposalContent(proposal.detailed_description) : 
-      processProposalContent('')
-  };
   
-  // Renderizar templates padrão
+  // Renderizar templates padrão com dados estruturados
   switch (templateId) {
     case 'executivo':
-      return <ExecutivoTemplate proposal={proposalWithProcessedContent} companyLogo={companyLogo} />;
+      return <ExecutivoTemplate proposal={structuredProposal} companyLogo={companyLogo} />;
     case 'criativo':
-      return <CriativoTemplate proposal={proposalWithProcessedContent} companyLogo={companyLogo} />;
+      return <CriativoTemplate proposal={structuredProposal} companyLogo={companyLogo} />;
     default:
-      return <ModernoTemplate proposal={proposalWithProcessedContent} companyLogo={companyLogo} />;
+      return <ModernoTemplate proposal={structuredProposal} companyLogo={companyLogo} />;
   }
 };
 
