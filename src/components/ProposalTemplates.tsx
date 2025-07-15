@@ -24,7 +24,7 @@ export const ModernoTemplate: React.FC<{ proposal: any; companyLogo: string }> =
     if (proposal.detailed_description && proposal.detailed_description.includes('<h1>Proposta Comercial para')) {
       return (
         <div 
-          className="prose max-w-none"
+          className="prose max-w-none prose-headings:text-blue-800 prose-h1:text-3xl prose-h1:font-bold prose-h1:mb-8 prose-h1:pb-4 prose-h1:border-b-2 prose-h1:border-blue-200 prose-h2:text-xl prose-h2:font-semibold prose-h2:text-blue-700 prose-h2:mt-8 prose-h2:mb-4 prose-h2:flex prose-h2:items-center prose-h2:gap-2 prose-h2:before:content-['●'] prose-h2:before:text-blue-500 prose-p:text-gray-700 prose-p:leading-relaxed prose-strong:text-blue-800 prose-ul:space-y-2 prose-li:text-gray-700"
           dangerouslySetInnerHTML={{ __html: proposal.detailed_description }} 
         />
       );
@@ -32,43 +32,52 @@ export const ModernoTemplate: React.FC<{ proposal: any; companyLogo: string }> =
 
     // Fallback para estrutura antiga
     return (
-      <div className="space-y-6">
+      <div className="space-y-8">
         {proposal.service_description && (
-          <div>
-            <h2 className="text-xl font-semibold mb-2">Serviço</h2>
-            <p className="text-gray-700">{proposal.service_description}</p>
+          <div className="bg-blue-50 rounded-xl p-6 border-l-4 border-blue-500">
+            <h2 className="text-xl font-semibold mb-3 text-blue-800 flex items-center gap-2">
+              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+              Serviço
+            </h2>
+            <p className="text-gray-700 leading-relaxed">{proposal.service_description}</p>
           </div>
         )}
         
         {proposal.detailed_description && (
-          <div>
-            <h2 className="text-xl font-semibold mb-2">Descrição Detalhada</h2>
-            <p className="text-gray-700 whitespace-pre-wrap">{proposal.detailed_description}</p>
+          <div className="bg-gray-50 rounded-xl p-6">
+            <h2 className="text-xl font-semibold mb-3 text-gray-800 flex items-center gap-2">
+              <span className="w-2 h-2 bg-gray-500 rounded-full"></span>
+              Descrição Detalhada
+            </h2>
+            <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{proposal.detailed_description}</p>
           </div>
         )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {proposal.value && (
-            <div>
-              <h3 className="font-semibold mb-1">Valor Total</h3>
-              <p className="text-2xl font-bold text-blue-600">
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl p-6 shadow-lg">
+              <h3 className="font-semibold mb-2 opacity-90">Valor Total</h3>
+              <p className="text-3xl font-bold">
                 R$ {proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </p>
             </div>
           )}
           
           {proposal.delivery_time && (
-            <div>
-              <h3 className="font-semibold mb-1">Prazo de Entrega</h3>
-              <p className="text-gray-700">{proposal.delivery_time}</p>
+            <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-xl p-6 shadow-lg">
+              <h3 className="font-semibold mb-2 opacity-90">Prazo de Entrega</h3>
+              <p className="text-xl font-semibold">{proposal.delivery_time}</p>
             </div>
           )}
         </div>
         
         {proposal.observations && (
-          <div>
-            <h2 className="text-xl font-semibold mb-2">Observações</h2>
-            <p className="text-gray-700 whitespace-pre-wrap">{proposal.observations}</p>
+          <div className="bg-amber-50 rounded-xl p-6 border-l-4 border-amber-400">
+            <h2 className="text-xl font-semibold mb-3 text-amber-800 flex items-center gap-2">
+              <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
+              Observações
+            </h2>
+            <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{proposal.observations}</p>
           </div>
         )}
       </div>
@@ -76,15 +85,31 @@ export const ModernoTemplate: React.FC<{ proposal: any; companyLogo: string }> =
   };
 
   return (
-    <div className="p-8 bg-white">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          {companyLogo && <img src={companyLogo} alt="Logo" className="h-16 mx-auto mb-4" />}
-          <h1 className="text-3xl font-bold text-gray-900">{proposal.title}</h1>
-          <p className="text-gray-600 mt-2">Proposta para: {proposal.companies?.name}</p>
+    <div className="p-8 bg-gradient-to-br from-gray-50 to-blue-50 min-h-screen">
+      <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-2xl overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-8">
+          <div className="flex items-center justify-between">
+            {companyLogo && (
+              <div className="bg-white rounded-lg p-3">
+                <img src={companyLogo} alt="Logo" className="h-12 max-w-[200px] object-contain" />
+              </div>
+            )}
+            <div className="text-right">
+              <h1 className="text-3xl font-bold mb-2">{proposal.title}</h1>
+              <p className="opacity-90 text-lg">Proposta para: {proposal.companies?.name}</p>
+            </div>
+          </div>
         </div>
         
-        {renderContent()}
+        <div className="p-8">
+          {renderContent()}
+        </div>
+        
+        <div className="bg-gray-50 p-6 text-center border-t">
+          <p className="text-sm text-gray-600">
+            Proposta gerada em {new Date().toLocaleDateString('pt-BR')} • Válida por 30 dias
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -96,7 +121,7 @@ export const ExecutivoTemplate: React.FC<{ proposal: any; companyLogo: string }>
     if (proposal.detailed_description && proposal.detailed_description.includes('<h1>Proposta Comercial para')) {
       return (
         <div 
-          className="prose max-w-none prose-headings:text-gray-800 prose-p:text-gray-700"
+          className="prose max-w-none prose-headings:text-gray-900 prose-h1:text-3xl prose-h1:font-bold prose-h1:mb-8 prose-h1:pb-4 prose-h1:border-b prose-h1:border-gray-300 prose-h2:text-xl prose-h2:font-bold prose-h2:text-gray-800 prose-h2:mt-8 prose-h2:mb-4 prose-h2:uppercase prose-h2:tracking-wide prose-h2:text-sm prose-p:text-gray-700 prose-p:leading-relaxed prose-strong:text-gray-900 prose-ul:space-y-2 prose-li:text-gray-700"
           dangerouslySetInnerHTML={{ __html: proposal.detailed_description }} 
         />
       );
@@ -104,38 +129,40 @@ export const ExecutivoTemplate: React.FC<{ proposal: any; companyLogo: string }>
 
     // Fallback para estrutura antiga
     return (
-      <div className="space-y-8">
+      <div className="space-y-10">
         {proposal.service_description && (
           <div>
-            <h2 className="text-xl font-bold text-gray-800 mb-3">Serviço Proposto</h2>
-            <p className="text-gray-700">{proposal.service_description}</p>
+            <h2 className="text-sm font-bold text-gray-800 mb-4 uppercase tracking-wide border-b border-gray-300 pb-2">Serviço Proposto</h2>
+            <div className="bg-gray-50 p-6 rounded border-l-4 border-gray-800">
+              <p className="text-gray-700 leading-relaxed">{proposal.service_description}</p>
+            </div>
           </div>
         )}
         
         {proposal.detailed_description && (
           <div>
-            <h2 className="text-xl font-bold text-gray-800 mb-3">Especificações</h2>
-            <div className="bg-gray-50 p-4 rounded">
-              <p className="text-gray-700 whitespace-pre-wrap">{proposal.detailed_description}</p>
+            <h2 className="text-sm font-bold text-gray-800 mb-4 uppercase tracking-wide border-b border-gray-300 pb-2">Especificações</h2>
+            <div className="bg-gray-50 p-6 rounded border-l-4 border-gray-800">
+              <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{proposal.detailed_description}</p>
             </div>
           </div>
         )}
         
-        <div className="bg-gray-800 text-white p-6 rounded">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-gray-900 text-white p-8 rounded">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {proposal.value && (
-              <div>
-                <h3 className="font-semibold mb-2">Investimento</h3>
-                <p className="text-3xl font-bold">
+              <div className="text-center md:text-left">
+                <h3 className="font-bold mb-3 text-gray-300 uppercase tracking-wide text-sm">Investimento</h3>
+                <p className="text-4xl font-bold">
                   R$ {proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
             )}
             
             {proposal.delivery_time && (
-              <div>
-                <h3 className="font-semibold mb-2">Prazo</h3>
-                <p className="text-xl">{proposal.delivery_time}</p>
+              <div className="text-center md:text-right">
+                <h3 className="font-bold mb-3 text-gray-300 uppercase tracking-wide text-sm">Prazo</h3>
+                <p className="text-2xl font-semibold">{proposal.delivery_time}</p>
               </div>
             )}
           </div>
@@ -143,8 +170,10 @@ export const ExecutivoTemplate: React.FC<{ proposal: any; companyLogo: string }>
         
         {proposal.observations && (
           <div>
-            <h2 className="text-xl font-bold text-gray-800 mb-3">Termos e Condições</h2>
-            <p className="text-gray-700 whitespace-pre-wrap">{proposal.observations}</p>
+            <h2 className="text-sm font-bold text-gray-800 mb-4 uppercase tracking-wide border-b border-gray-300 pb-2">Termos e Condições</h2>
+            <div className="bg-gray-50 p-6 rounded border-l-4 border-gray-800">
+              <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{proposal.observations}</p>
+            </div>
           </div>
         )}
       </div>
@@ -152,25 +181,35 @@ export const ExecutivoTemplate: React.FC<{ proposal: any; companyLogo: string }>
   };
 
   return (
-    <div className="p-8 bg-gray-50">
-      <div className="max-w-4xl mx-auto bg-white shadow-lg">
-        <div className="bg-gray-800 text-white p-6">
+    <div className="p-8 bg-gray-100 min-h-screen">
+      <div className="max-w-4xl mx-auto bg-white shadow-2xl">
+        <div className="bg-gray-900 text-white p-8">
           <div className="flex items-center justify-between">
-            {companyLogo && <img src={companyLogo} alt="Logo" className="h-12" />}
+            {companyLogo && (
+              <div className="bg-white rounded p-3">
+                <img src={companyLogo} alt="Logo" className="h-12 max-w-[200px] object-contain" />
+              </div>
+            )}
             <div className="text-right">
-              <h1 className="text-2xl font-bold">{proposal.title}</h1>
-              <p className="opacity-90">Proposta Comercial</p>
+              <h1 className="text-3xl font-bold mb-1">{proposal.title}</h1>
+              <p className="opacity-90 uppercase tracking-wide text-sm">Proposta Comercial</p>
             </div>
           </div>
         </div>
         
         <div className="p-8">
-          <div className="border-l-4 border-gray-800 pl-4 mb-8">
-            <h2 className="text-lg font-semibold text-gray-800">Cliente</h2>
-            <p className="text-gray-600">{proposal.companies?.name}</p>
+          <div className="border-l-4 border-gray-900 pl-6 mb-10">
+            <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wide">Cliente</h2>
+            <p className="text-xl text-gray-700 mt-1">{proposal.companies?.name}</p>
           </div>
           
           {renderContent()}
+        </div>
+        
+        <div className="bg-gray-100 p-6 text-center border-t">
+          <p className="text-sm text-gray-600 uppercase tracking-wide">
+            Proposta gerada em {new Date().toLocaleDateString('pt-BR')} • Válida por 30 dias
+          </p>
         </div>
       </div>
     </div>
@@ -183,7 +222,7 @@ export const CriativoTemplate: React.FC<{ proposal: any; companyLogo: string }> 
     if (proposal.detailed_description && proposal.detailed_description.includes('<h1>Proposta Comercial para')) {
       return (
         <div 
-          className="prose max-w-none prose-headings:bg-gradient-to-r prose-headings:from-purple-600 prose-headings:to-blue-600 prose-headings:bg-clip-text prose-headings:text-transparent prose-p:text-gray-700"
+          className="prose max-w-none prose-headings:bg-gradient-to-r prose-headings:from-purple-600 prose-headings:to-blue-600 prose-headings:bg-clip-text prose-headings:text-transparent prose-h1:text-4xl prose-h1:font-bold prose-h1:mb-8 prose-h1:text-center prose-h2:text-2xl prose-h2:font-bold prose-h2:mt-8 prose-h2:mb-6 prose-h2:flex prose-h2:items-center prose-h2:gap-3 prose-h2:before:content-[''] prose-h2:before:w-1 prose-h2:before:h-8 prose-h2:before:bg-gradient-to-b prose-h2:before:from-purple-500 prose-h2:before:to-blue-500 prose-h2:before:rounded prose-p:text-gray-700 prose-p:leading-relaxed prose-strong:bg-gradient-to-r prose-strong:from-purple-600 prose-strong:to-blue-600 prose-strong:bg-clip-text prose-strong:text-transparent prose-ul:space-y-3 prose-li:text-gray-700 prose-li:relative prose-li:pl-6 prose-li:before:content-['✦'] prose-li:before:absolute prose-li:before:left-0 prose-li:before:text-purple-500"
           dangerouslySetInnerHTML={{ __html: proposal.detailed_description }} 
         />
       );
@@ -193,49 +232,49 @@ export const CriativoTemplate: React.FC<{ proposal: any; companyLogo: string }> 
     return (
       <div className="space-y-8">
         {proposal.service_description && (
-          <div className="bg-white rounded-xl p-6 shadow-lg">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-              <span className="w-2 h-8 bg-gradient-to-b from-purple-500 to-blue-500 rounded mr-3"></span>
+          <div className="bg-white rounded-2xl p-8 shadow-xl border border-purple-100">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-3">
+              <span className="w-1 h-8 bg-gradient-to-b from-purple-500 to-blue-500 rounded"></span>
               O que vamos criar
             </h2>
-            <p className="text-gray-700 text-lg">{proposal.service_description}</p>
+            <p className="text-gray-700 text-lg leading-relaxed">{proposal.service_description}</p>
           </div>
         )}
         
         {proposal.detailed_description && (
-          <div className="bg-white rounded-xl p-6 shadow-lg">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-              <span className="w-2 h-8 bg-gradient-to-b from-purple-500 to-blue-500 rounded mr-3"></span>
+          <div className="bg-white rounded-2xl p-8 shadow-xl border border-purple-100">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-3">
+              <span className="w-1 h-8 bg-gradient-to-b from-purple-500 to-blue-500 rounded"></span>
               Detalhes do Projeto
             </h2>
             <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{proposal.detailed_description}</p>
           </div>
         )}
         
-        <div className="bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl p-6 text-white">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-gradient-to-r from-purple-500 to-blue-500 rounded-2xl p-8 text-white shadow-2xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {proposal.value && (
-              <div>
-                <h3 className="font-semibold mb-2 opacity-90">Investimento Total</h3>
-                <p className="text-4xl font-bold">
+              <div className="text-center md:text-left">
+                <h3 className="font-semibold mb-3 opacity-90 text-lg">Investimento Total</h3>
+                <p className="text-5xl font-bold">
                   R$ {proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
             )}
             
             {proposal.delivery_time && (
-              <div>
-                <h3 className="font-semibold mb-2 opacity-90">Tempo de Entrega</h3>
-                <p className="text-2xl font-semibold">{proposal.delivery_time}</p>
+              <div className="text-center md:text-right">
+                <h3 className="font-semibold mb-3 opacity-90 text-lg">Tempo de Entrega</h3>
+                <p className="text-3xl font-semibold">{proposal.delivery_time}</p>
               </div>
             )}
           </div>
         </div>
         
         {proposal.observations && (
-          <div className="bg-white rounded-xl p-6 shadow-lg">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-              <span className="w-2 h-8 bg-gradient-to-b from-purple-500 to-blue-500 rounded mr-3"></span>
+          <div className="bg-white rounded-2xl p-8 shadow-xl border border-purple-100">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-3">
+              <span className="w-1 h-8 bg-gradient-to-b from-purple-500 to-blue-500 rounded"></span>
               Informações Importantes
             </h2>
             <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{proposal.observations}</p>
@@ -246,20 +285,30 @@ export const CriativoTemplate: React.FC<{ proposal: any; companyLogo: string }> 
   };
 
   return (
-    <div className="p-8 bg-gradient-to-br from-purple-50 to-blue-50">
+    <div className="p-8 bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 min-h-screen">
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8 relative">
+        <div className="text-center mb-12 relative">
           <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-blue-400 opacity-10 rounded-full blur-3xl"></div>
-          <div className="relative">
-            {companyLogo && <img src={companyLogo} alt="Logo" className="h-20 mx-auto mb-4" />}
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+          <div className="relative bg-white rounded-3xl p-8 shadow-2xl border border-purple-100">
+            {companyLogo && (
+              <div className="mb-6">
+                <img src={companyLogo} alt="Logo" className="h-20 mx-auto max-w-[250px] object-contain" />
+              </div>
+            )}
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-4">
               {proposal.title}
             </h1>
-            <p className="text-gray-600 mt-2 text-lg">para {proposal.companies?.name}</p>
+            <p className="text-gray-600 text-xl">para {proposal.companies?.name}</p>
           </div>
         </div>
         
         {renderContent()}
+        
+        <div className="text-center mt-12 bg-white rounded-2xl p-6 shadow-lg border border-purple-100">
+          <p className="text-sm text-gray-600">
+            ✨ Proposta gerada em {new Date().toLocaleDateString('pt-BR')} • Válida por 30 dias ✨
+          </p>
+        </div>
       </div>
     </div>
   );
