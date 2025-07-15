@@ -7,8 +7,8 @@ import { User, Mail, Phone, Calendar, Edit, Trash2 } from 'lucide-react';
 interface Client {
   id: string;
   name: string;
-  email: string;
-  phone?: string;
+  email: string | null;
+  phone: string | null;
   created_at: string;
 }
 
@@ -32,10 +32,12 @@ const MobileClientCard = ({ client, onEdit, onDelete, isDeleting }: MobileClient
           <span className="font-medium">{client.name}</span>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Mail className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">{client.email}</span>
-        </div>
+        {client.email && (
+          <div className="flex items-center gap-2">
+            <Mail className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">{client.email}</span>
+          </div>
+        )}
 
         {client.phone && (
           <div className="flex items-center gap-2">

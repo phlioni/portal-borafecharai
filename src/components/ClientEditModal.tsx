@@ -26,7 +26,7 @@ interface ClientEditModalProps {
   onCompanyUpdated: () => void;
 }
 
-export const ClientEditModal: React.FC<ClientEditModalProps> = ({
+const ClientEditModal: React.FC<ClientEditModalProps> = ({
   company,
   open,
   onOpenChange,
@@ -332,3 +332,5 @@ export const ClientEditModal: React.FC<ClientEditModalProps> = ({
     </Dialog>
   );
 };
+
+export default ClientEditModal;

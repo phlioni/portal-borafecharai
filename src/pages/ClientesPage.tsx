@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,9 +23,11 @@ import MobileClientCard from '@/components/MobileClientCard';
 interface Client {
   id: string;
   name: string;
-  email: string;
-  phone?: string;
+  email: string | null;
+  phone: string | null;
   created_at: string;
+  updated_at: string;
+  user_id: string;
 }
 
 const ClientesPage = () => {
@@ -42,7 +45,7 @@ const ClientesPage = () => {
 
     try {
       const { data, error } = await supabase
-        .from('clients')
+        .from('companies')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
@@ -62,12 +65,12 @@ const ClientesPage = () => {
     }
   };
 
-  const createClient = async (clientData: Omit<Client, 'id' | 'created_at'>) => {
+  const createClient = async (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
     if (!user) return;
 
     try {
       const { data, error } = await supabase
-        .from('clients')
+        .from('companies')
         .insert([{
           ...clientData,
           user_id: user.id
@@ -94,7 +97,7 @@ const ClientesPage = () => {
 
     try {
       const { error } = await supabase
-        .from('clients')
+        .from('companies')
         .update(clientData)
         .eq('id', id)
         .eq('user_id', user.id);
@@ -119,7 +122,7 @@ const ClientesPage = () => {
     setDeletingClientId(clientId);
     try {
       const { error } = await supabase
-        .from('clients')
+        .from('companies')
         .delete()
         .eq('id', clientId)
         .eq('user_id', user.id);
@@ -150,7 +153,7 @@ const ClientesPage = () => {
     setSelectedClient(null);
   };
 
-  const handleSaveClient = async (clientData: Omit<Client, 'id' | 'created_at'>) => {
+  const handleSaveClient = async (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
     if (selectedClient) {
       await updateClient(selectedClient.id, clientData);
     } else {
@@ -165,7 +168,7 @@ const ClientesPage = () => {
 
   const filteredClients = clients.filter(client =>
     client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.email.toLowerCase().includes(searchTerm.toLowerCase())
+    (client.email && client.email.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   if (loading) {
@@ -261,7 +264,7 @@ const ClientesPage = () => {
                   filteredClients.map((client) => (
                     <TableRow key={client.id}>
                       <TableCell className="font-medium">{client.name}</TableCell>
-                      <TableCell>{client.email}</TableCell>
+                      <TableCell>{client.email || '-'}</TableCell>
                       <TableCell>{client.phone || '-'}</TableCell>
                       <TableCell>
                         {new Date(client.created_at).toLocaleDateString('pt-BR')}
@@ -297,10 +300,10 @@ const ClientesPage = () => {
       </Card>
 
       <ClientEditModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        onSave={handleSaveClient}
-        client={selectedClient}
+        company={selectedClient}
+        open={isModalOpen}
+        onOpenChange={handleCloseModal}
+        onCompanyUpdated={fetchClients}
       />
     </div>
   );

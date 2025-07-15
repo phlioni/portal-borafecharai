@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -21,10 +21,11 @@ interface AdminUser {
 }
 
 export const useAdminOperations = () => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const loadUsers = async (): Promise<AdminUser[]> => {
-    setIsLoading(true);
+    setLoading(true);
     try {
       // Buscar usuários
       const { data: authUsers, error: authError } = await supabase.functions.invoke('get-users');
@@ -51,13 +52,63 @@ export const useAdminOperations = () => {
         };
       });
 
+      setUsers(usersWithData);
       return usersWithData;
     } catch (error) {
       console.error('Erro ao carregar usuários:', error);
       toast.error('Erro ao carregar usuários');
       return [];
     } finally {
-      setIsLoading(false);
+      setLoading(false);
+    }
+  };
+
+  const deleteUser = async (userId: string) => {
+    try {
+      // Deletar dados relacionados
+      await supabase.from('proposals').delete().eq('user_id', userId);
+      await supabase.from('companies').delete().eq('user_id', userId);
+      await supabase.from('subscribers').delete().eq('user_id', userId);
+      await supabase.from('user_roles').delete().eq('user_id', userId);
+
+      // Deletar usuário via edge function
+      const { error: deleteError } = await supabase.functions.invoke('delete-user', {
+        body: { userId }
+      });
+
+      if (deleteError) {
+        console.error('Erro ao excluir usuário:', deleteError);
+        toast.error('Erro ao excluir usuário');
+        return false;
+      }
+
+      toast.success('Usuário excluído com sucesso!');
+      await loadUsers(); // Recarregar lista
+      return true;
+    } catch (error) {
+      console.error('Erro ao deletar usuário:', error);
+      toast.error('Erro ao deletar usuário');
+      return false;
+    }
+  };
+
+  const createAdminUser = async (email: string) => {
+    try {
+      const { error } = await supabase.functions.invoke('create-admin-user', {
+        body: { email }
+      });
+
+      if (error) {
+        console.error('Erro ao criar admin:', error);
+        toast.error('Erro ao criar usuário administrador');
+        throw error;
+      }
+
+      toast.success('Usuário administrador criado com sucesso!');
+      await loadUsers(); // Recarregar lista
+    } catch (error) {
+      console.error('Erro ao criar admin:', error);
+      throw error;
     }
   };
 
@@ -89,106 +140,11 @@ export const useAdminOperations = () => {
       }
 
       toast.success('Dados do usuário resetados com sucesso!');
+      await loadUsers(); // Recarregar lista
       return true;
     } catch (error) {
       console.error('Erro ao resetar dados:', error);
       toast.error('Erro ao resetar dados do usuário');
-      return false;
-    }
-  };
-
-  const manageUserStatus = async (userId: string, action: 'activate' | 'deactivate' | 'delete', makeAdmin = false) => {
-    const confirmMessages = {
-      activate: 'Tem certeza que deseja ativar este usuário?',
-      deactivate: 'Tem certeza que deseja desativar este usuário?',
-      delete: 'Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.'
-    };
-
-    if (!confirm(confirmMessages[action])) return false;
-
-    try {
-      // Gerenciar permissão de admin
-      if (makeAdmin) {
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .upsert({ user_id: userId, role: 'admin' });
-
-        if (roleError) {
-          console.error('Erro ao definir admin:', roleError);
-          toast.error('Erro ao definir permissões de admin');
-          return false;
-        }
-      } else {
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .delete()
-          .eq('user_id', userId)
-          .eq('role', 'admin');
-
-        if (roleError) {
-          console.error('Erro ao remover admin:', roleError);
-        }
-      }
-
-      // Processar ação
-      switch (action) {
-        case 'activate':
-          const { error: activateError } = await supabase
-            .from('subscribers')
-            .update({ subscribed: true })
-            .eq('user_id', userId);
-
-          if (activateError) {
-            console.error('Erro ao ativar usuário:', activateError);
-            toast.error('Erro ao ativar usuário');
-            return false;
-          }
-          break;
-
-        case 'deactivate':
-          const { error: deactivateError } = await supabase
-            .from('subscribers')
-            .update({ subscribed: false })
-            .eq('user_id', userId);
-
-          if (deactivateError) {
-            console.error('Erro ao desativar usuário:', deactivateError);
-            toast.error('Erro ao desativar usuário');
-            return false;
-          }
-          break;
-
-        case 'delete':
-          // Deletar dados relacionados
-          await supabase.from('proposals').delete().eq('user_id', userId);
-          await supabase.from('companies').delete().eq('user_id', userId);
-          await supabase.from('subscribers').delete().eq('user_id', userId);
-          await supabase.from('user_roles').delete().eq('user_id', userId);
-
-          // Deletar usuário via edge function
-          const { error: deleteError } = await supabase.functions.invoke('delete-user', {
-            body: { userId }
-          });
-
-          if (deleteError) {
-            console.error('Erro ao excluir usuário:', deleteError);
-            toast.error('Erro ao excluir usuário');
-            return false;
-          }
-          break;
-      }
-
-      const successMessages = {
-        activate: 'ativado',
-        deactivate: 'desativado',
-        delete: 'excluído'
-      };
-
-      toast.success(`Usuário ${successMessages[action]} com sucesso!`);
-      return true;
-    } catch (error) {
-      console.error('Erro ao gerenciar usuário:', error);
-      toast.error('Erro ao gerenciar usuário');
       return false;
     }
   };
@@ -215,11 +171,18 @@ export const useAdminOperations = () => {
     }
   };
 
+  // Carregar usuários na inicialização
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
   return {
-    isLoading,
+    users,
+    loading,
+    deleteUser,
+    createAdminUser,
     loadUsers,
     resetUserData,
-    manageUserStatus,
     checkUniquePhone
   };
 };
