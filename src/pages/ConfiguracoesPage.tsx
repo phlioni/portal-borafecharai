@@ -108,34 +108,40 @@ const ConfiguracoesPage = () => {
     }
   };
 
+  // Planos atualizados para ficar igual à página /planos
   const plans = [
     {
       name: 'Essencial',
+      description: 'Ideal para freelancers e pequenos projetos',
       price: 'R$ 39,90',
       priceId: 'price_1RktM2IjvuQQ47SwvTDKabRJ',
       currency: 'BRL',
       features: [
         'Até 10 propostas por mês',
-        'Templates básicos',
+        'Chat com IA para criação de propostas',
+        'Bot do Telegram para consultas',
+        'Gestão de clientes',
         'Suporte por email'
       ],
-      buttonText: subscription.subscription_tier === 'basico' ? 'Plano Atual' : 'Escolher Plano',
+      buttonText: subscription.subscription_tier === 'basico' ? 'Plano Atual' : 'Assinar Agora',
       current: subscription.subscription_tier === 'basico',
       popular: false
     },
     {
       name: 'Professional',
+      description: 'Para empresas que precisam de mais recursos',
       price: 'R$ 79,90',
       currency: 'BRL',
       priceId: 'price_1RktMUIjvuQQ47Swctsuavr9',
       features: [
         'Propostas ilimitadas',
-        'Todos os templates',
-        'Analytics avançadas',
-        'Suporte prioritário',
-        'Telegram Bot'
+        'Chat com IA para criação avançada',
+        'Bot do Telegram com recursos completos',
+        'Gestão avançada de clientes',
+        'Analytics completo',
+        'Suporte prioritário'
       ],
-      buttonText: subscription.subscription_tier === 'professional' ? 'Plano Atual' : 'Escolher Plano',
+      buttonText: subscription.subscription_tier === 'professional' ? 'Plano Atual' : 'Assinar Agora',
       current: subscription.subscription_tier === 'professional',
       popular: true
     }
@@ -341,10 +347,10 @@ const ConfiguracoesPage = () => {
 
               <div className="grid grid-cols-1 gap-6">
                 {plans.map((plan) => (
-                  <Card key={plan.name} className={`relative ${plan.popular ? 'border-blue-500 shadow-lg' : ''} ${plan.current ? 'ring-2 ring-green-500' : ''}`}>
+                  <Card key={plan.name} className={`relative ${plan.popular ? 'border-blue-600 shadow-lg' : ''} ${plan.current ? 'ring-2 ring-green-500' : ''}`}>
                     {plan.popular && (
                       <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                        <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
+                        <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
                           <Crown className="w-3 h-3" />
                           Mais Popular
                         </span>
@@ -352,13 +358,14 @@ const ConfiguracoesPage = () => {
                     )}
                     {plan.current && (
                       <div className="absolute -top-3 right-4">
-                        <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                          Seu Plano
+                        <span className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                          Plano Atual
                         </span>
                       </div>
                     )}
                     <CardHeader className="text-center">
                       <CardTitle className="text-xl">{plan.name}</CardTitle>
+                      <CardDescription className="text-sm text-gray-600">{plan.description}</CardDescription>
                       <div className="text-2xl font-bold text-blue-600">{plan.price}</div>
                       <CardDescription>por mês</CardDescription>
                     </CardHeader>
@@ -382,6 +389,16 @@ const ConfiguracoesPage = () => {
                     </CardContent>
                   </Card>
                 ))}
+              </div>
+
+              {/* Trial Info */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                <h3 className="text-lg font-semibold text-green-900 mb-2">
+                  🎉 Teste Gratuito de 15 Dias
+                </h3>
+                <p className="text-green-700 text-sm">
+                  Experimente todos os recursos premium gratuitamente por 15 dias com até 20 propostas incluídas!
+                </p>
               </div>
 
               {isProfessional && (
@@ -589,10 +606,10 @@ const ConfiguracoesPage = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {plans.map((plan) => (
-                <Card key={plan.name} className={`relative ${plan.popular ? 'border-blue-500 shadow-lg' : ''} ${plan.current ? 'ring-2 ring-green-500' : ''}`}>
+                <Card key={plan.name} className={`relative ${plan.popular ? 'border-blue-600 shadow-lg' : ''} ${plan.current ? 'ring-2 ring-green-500' : ''}`}>
                   {plan.popular && (
                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                      <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
+                      <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
                         <Crown className="w-3 h-3" />
                         Mais Popular
                       </span>
@@ -600,13 +617,14 @@ const ConfiguracoesPage = () => {
                   )}
                   {plan.current && (
                     <div className="absolute -top-3 right-4">
-                      <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                        Seu Plano
+                      <span className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                        Plano Atual
                       </span>
                     </div>
                   )}
                   <CardHeader className="text-center">
                     <CardTitle className="text-2xl">{plan.name}</CardTitle>
+                    <CardDescription className="text-gray-600">{plan.description}</CardDescription>
                     <div className="text-3xl font-bold text-blue-600">{plan.price}</div>
                     <CardDescription>por mês</CardDescription>
                   </CardHeader>
@@ -630,6 +648,16 @@ const ConfiguracoesPage = () => {
                   </CardContent>
                 </Card>
               ))}
+            </div>
+
+            {/* Trial Info */}
+            <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+              <h3 className="text-lg font-semibold text-green-900 mb-2">
+                🎉 Teste Gratuito de 15 Dias
+              </h3>
+              <p className="text-green-700">
+                Experimente todos os recursos premium gratuitamente por 15 dias com até 20 propostas incluídas!
+              </p>
             </div>
 
             {isProfessional && (

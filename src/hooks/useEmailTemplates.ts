@@ -176,13 +176,6 @@ export const useEmailTemplates = () => {
       processed = processed.replace(regex, safeValue);
     });
     
-    // Processar variáveis no formato [VARIAVEL] (compatibilidade)
-    Object.entries(variables).forEach(([key, value]) => {
-      const regex = new RegExp(`\\[${key}\\]`, 'g');
-      const safeValue = value || '';
-      processed = processed.replace(regex, safeValue);
-    });
-
     // Limpar linhas que contêm apenas campos vazios ou emojis sem texto
     const lines = processed.split('\n');
     const cleanedLines = lines.filter(line => {

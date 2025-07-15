@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Mail, Save, RotateCcw, Info, Lock } from 'lucide-react';
+import { Mail, Save, RotateCcw, Info } from 'lucide-react';
 import { useEmailTemplates, EmailTemplate } from '@/hooks/useEmailTemplates';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -110,21 +110,18 @@ const EmailTemplateSettings = () => {
           </div>
 
           <div>
-            <Label htmlFor="emailSignature" className="flex items-center gap-2">
-              Assinatura do Email
-              <Lock className="h-4 w-4 text-muted-foreground" />
-            </Label>
+            <Label htmlFor="emailSignature">Assinatura do Email</Label>
             <Textarea
               id="emailSignature"
               value={formData.email_signature}
               onChange={(e) => handleInputChange('email_signature', e.target.value)}
               placeholder="Sua assinatura personalizada"
               rows={6}
-              className="resize-none bg-muted"
-              disabled={true}
+              className="resize-none"
+              disabled={isLoading || isSaving}
             />
             <p className="text-sm text-muted-foreground mt-1">
-              A assinatura é automaticamente preenchida com as informações da sua empresa configuradas em "Meu Negócio"
+              Use as variáveis como {'{SEU_NOME}'}, {'{EMPRESA_NOME}'}, {'{EMPRESA_EMAIL}'} e {'{EMPRESA_TELEFONE}'} para personalizar sua assinatura
             </p>
           </div>
 
