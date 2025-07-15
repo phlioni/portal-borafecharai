@@ -9,7 +9,6 @@ import {
   BarChart3,
   LogOut,
   MessageSquare,
-  Palette,
   PlusCircle
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -56,7 +55,6 @@ const Layout = ({ children }: LayoutProps) => {
     ...(canCreateProposal ? [{ path: '/propostas/nova', icon: PlusCircle, label: 'Nova Proposta' }] : []),
     { path: '/clientes', icon: Users, label: 'Clientes' },
     { path: '/analytics', icon: BarChart3, label: 'Analytics' },
-    { path: '/templates-personalizados', icon: Palette, label: 'Templates' },
     { path: '/propostas/chat', icon: MessageSquare, label: 'Chat Proposta' },
     { path: '/configuracoes', icon: Settings, label: 'Configurações' },
   ];
