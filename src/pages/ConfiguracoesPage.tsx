@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -5,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Building, CreditCard, Users, MessageSquare, Crown, Check } from 'lucide-react';
+import { Building, CreditCard, Users, MessageSquare, Crown, Check, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -15,6 +16,7 @@ import { toast } from 'sonner';
 import GerenciamentoUsuariosPage from './GerenciamentoUsuariosPage';
 import TelegramBotUserGuide from '@/components/TelegramBotUserGuide';
 import TelegramBotPage from './TelegramBotPage';
+import ProfileTab from '@/components/ProfileTab';
 
 const ConfiguracoesPage = () => {
   const { user } = useAuth();
@@ -24,7 +26,7 @@ const ConfiguracoesPage = () => {
   const updateCompanyMutation = useUpdateCompany();
   const createCompanyMutation = useCreateCompany();
 
-  const [activeTab, setActiveTab] = useState('negocio');
+  const [activeTab, setActiveTab] = useState('perfil');
   const [companyData, setCompanyData] = useState({
     name: '',
     email: '',
@@ -159,7 +161,11 @@ const ConfiguracoesPage = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'}`}>
+        <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-5' : 'grid-cols-4'}`}>
+          <TabsTrigger value="perfil" className="flex items-center gap-2">
+            <User className="h-4 w-4" />
+            Perfil
+          </TabsTrigger>
           <TabsTrigger value="negocio" className="flex items-center gap-2">
             <Building className="h-4 w-4" />
             Meu Negócio
@@ -179,6 +185,10 @@ const ConfiguracoesPage = () => {
             </TabsTrigger>
           )}
         </TabsList>
+
+        <TabsContent value="perfil">
+          <ProfileTab />
+        </TabsContent>
 
         <TabsContent value="negocio">
           <Card>
