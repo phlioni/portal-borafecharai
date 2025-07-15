@@ -281,8 +281,8 @@ const Login = () => {
                 Faça login ou crie sua conta para começar
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-0">
-              <Tabs defaultValue="login" className="space-y-3">
+            <CardContent className="pt-0 pb-6">
+              <Tabs defaultValue="login" className="space-y-4">
                 <TabsList className="grid w-full grid-cols-2 bg-blue-50 h-9">
                   <TabsTrigger value="login" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-sm">
                     Entrar
@@ -335,9 +335,9 @@ const Login = () => {
                   </div>
                 </div>
 
-                <TabsContent value="login" className="space-y-3">
-                  <form onSubmit={handleLogin} className="space-y-3">
-                    <div className="space-y-1.5">
+                <TabsContent value="login" className="space-y-4">
+                  <form onSubmit={handleLogin} className="space-y-4">
+                    <div className="space-y-2">
                       <Label htmlFor="login-email" className="text-gray-700 text-sm">Email</Label>
                       <Input
                         id="login-email"
@@ -350,7 +350,7 @@ const Login = () => {
                         className="border-gray-200 focus:border-blue-500 focus:ring-blue-500 h-10"
                       />
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       <Label htmlFor="login-password" className="text-gray-700 text-sm">Senha</Label>
                       <Input
                         id="login-password"
@@ -363,29 +363,31 @@ const Login = () => {
                         className="border-gray-200 focus:border-blue-500 focus:ring-blue-500 h-10"
                       />
                     </div>
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium h-10" 
-                      disabled={isLoading || isGoogleLoading}
-                    >
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Entrando...
-                        </>
-                      ) : (
-                        <>
-                          <Zap className="mr-2 h-4 w-4" />
-                          Entrar
-                        </>
-                      )}
-                    </Button>
+                    <div className="pt-2">
+                      <Button 
+                        type="submit" 
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium h-11" 
+                        disabled={isLoading || isGoogleLoading}
+                      >
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Entrando...
+                          </>
+                        ) : (
+                          <>
+                            <Zap className="mr-2 h-4 w-4" />
+                            Entrar
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </form>
                 </TabsContent>
 
-                <TabsContent value="signup" className="space-y-3">
-                  <form onSubmit={handleSignup} className="space-y-3">
-                    <div className="space-y-1.5">
+                <TabsContent value="signup" className="space-y-4">
+                  <form onSubmit={handleSignup} className="space-y-4">
+                    <div className="space-y-2">
                       <Label htmlFor="signup-email" className="text-gray-700 text-sm">Email</Label>
                       <Input
                         id="signup-email"
@@ -398,7 +400,7 @@ const Login = () => {
                         className="border-gray-200 focus:border-blue-500 focus:ring-blue-500 h-10"
                       />
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       <Label htmlFor="signup-password" className="text-gray-700 text-sm">Senha</Label>
                       <Input
                         id="signup-password"
@@ -412,7 +414,7 @@ const Login = () => {
                         className="border-gray-200 focus:border-blue-500 focus:ring-blue-500 h-10"
                       />
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       <Label htmlFor="signup-confirm" className="text-gray-700 text-sm">Confirmar Senha</Label>
                       <Input
                         id="signup-confirm"
@@ -425,30 +427,32 @@ const Login = () => {
                         className="border-gray-200 focus:border-blue-500 focus:ring-blue-500 h-10"
                       />
                     </div>
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium h-10" 
-                      disabled={isLoading || isGoogleLoading}
-                    >
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Cadastrando...
-                        </>
-                      ) : (
-                        <>
-                          <Users className="mr-2 h-4 w-4" />
-                          Criar Conta Gratuita
-                        </>
-                      )}
-                    </Button>
+                    <div className="pt-2">
+                      <Button 
+                        type="submit" 
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium h-11" 
+                        disabled={isLoading || isGoogleLoading}
+                      >
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Cadastrando...
+                          </>
+                        ) : (
+                          <>
+                            <Users className="mr-2 h-4 w-4" />
+                            Criar Conta Gratuita
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </form>
                 </TabsContent>
               </Tabs>
             </CardContent>
           </Card>
 
-          <div className="text-center mt-4 text-xs text-gray-500">
+          <div className="text-center mt-6 text-xs text-gray-500">
             <p>
               Ao criar uma conta, você concorda com nossos{' '}
               <Link to="/termos-de-uso" className="text-blue-600 hover:text-blue-800 underline">
