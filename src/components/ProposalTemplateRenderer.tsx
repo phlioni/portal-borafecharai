@@ -1,54 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { ModernoTemplate, ExecutivoTemplate, CriativoTemplate } from '@/components/ProposalTemplates';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCustomTemplates } from '@/hooks/useCustomTemplates';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
-
-const MODELO_OFICIAL_HTML = `<h1>Proposta Comercial para {servico}</h1>
-
-<p><strong>Número da proposta:</strong> {numero_proposta}</p>
-<p><strong>Data:</strong> {data}</p>
-
-<h2>Destinatário</h2>
-<p><strong>Cliente:</strong> {cliente}</p>
-<p><strong>Responsável:</strong> {responsavel}</p>
-<p><strong>Contato:</strong> {email} / {telefone}</p>
-
-<h2>Introdução</h2>
-<p>Prezada(o) {responsavel},</p>
-<p>Agradecemos a oportunidade de apresentar esta proposta para atender às suas necessidades com relação a <strong>{servico}</strong>. Nosso compromisso é oferecer um serviço de alta qualidade, com foco em resultados e em um relacionamento transparente e duradouro.</p>
-
-<h2>Escopo dos Serviços</h2>
-<ul>
-  <li>Análise inicial do cenário do cliente</li>
-  <li>Planejamento e definição do cronograma</li>
-  <li>Implementação dos serviços conforme escopo</li>
-  <li>Treinamento da equipe (se aplicável)</li>
-  <li>Suporte por {dias_suporte} dias após entrega</li>
-</ul>
-
-<p><strong>O que não está incluso:</strong></p>
-<ul>
-  <li>Custos de terceiros (viagens, licenças, etc.)</li>
-  <li>Serviços fora do escopo desta proposta</li>
-</ul>
-
-<h2>Prazos</h2>
-<p>O prazo estimado para execução dos serviços é de <strong>{prazo}</strong>, contados a partir da assinatura desta proposta e pagamento do sinal (se houver).</p>
-
-<h2>Investimento</h2>
-<p><strong>Valor total:</strong> R$ {valor}</p>
-<p><strong>Forma de pagamento:</strong> {pagamento}</p>
-<p><strong>Vencimento:</strong> {vencimento}</p>
-
-<h2>Condições Gerais</h2>
-<ul>
-  <li>Validade da proposta: {validade} dias</li>
-  <li>Eventuais alterações no escopo poderão impactar prazo e valores</li>
-  <li>Rescisão, multas, ou regras para cancelamento conforme contrato</li>
-</ul>`;
+import ProposalTemplatePreview from '@/components/ProposalTemplatePreview';
 
 interface ProposalTemplateRendererProps {
   proposal: any;
@@ -118,49 +74,38 @@ const ProposalTemplateRenderer = ({ proposal, companyLogo: providedLogo }: Propo
     const responsibleMatch = htmlContent.match(/<strong>Responsável:<\/strong>\s*([^<]+)/);
     const responsible = responsibleMatch ? responsibleMatch[1].trim() : '';
 
+    // Extrair descrição detalhada (texto entre tags p)
+    const descriptionMatches = htmlContent.match(/<p>([^<]+)<\/p>/g);
+    let description = '';
+    if (descriptionMatches) {
+      // Pegar as primeiras descrições relevantes, ignorando dados estruturados
+      const relevantDescriptions = descriptionMatches
+        .map(match => match.replace(/<\/?p>/g, ''))
+        .filter(text => 
+          !text.includes('Número da proposta:') && 
+          !text.includes('Data:') &&
+          !text.includes('Cliente:') &&
+          !text.includes('Responsável:') &&
+          !text.includes('Contato:') &&
+          !text.includes('Valor total:') &&
+          !text.includes('Forma de pagamento:') &&
+          text.length > 20
+        );
+      
+      if (relevantDescriptions.length > 0) {
+        description = relevantDescriptions[0];
+      }
+    }
+
     return {
       serviceTitle,
       numericValue,
       deadline,
       client,
       responsible,
+      description,
       fullHtmlContent: htmlContent
     };
-  };
-
-  // Função para processar conteúdo usando o modelo oficial
-  const processProposalContent = (content: string) => {
-    if (!content || content.includes('Proposta Comercial para')) {
-      return content;
-    }
-
-    // Se o conteúdo não segue o modelo oficial, usar o modelo como base
-    let processedContent = MODELO_OFICIAL_HTML;
-    
-    // Substituir placeholders básicos
-    const today = new Date();
-    const replacements = {
-      '{servico}': proposal.title || proposal.service_description || 'Serviço',
-      '{numero_proposta}': `PROP-${proposal.id?.slice(-8) || Date.now()}`,
-      '{data}': today.toLocaleDateString('pt-BR'),
-      '{cliente}': proposal.companies?.name || 'Cliente',
-      '{responsavel}': proposal.companies?.name || 'Responsável',
-      '{email}': proposal.companies?.email || 'email@exemplo.com',
-      '{telefone}': proposal.companies?.phone || '(11) 99999-9999',
-      '{prazo}': proposal.delivery_time || '30 dias',
-      '{valor}': proposal.value ? proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '0,00',
-      '{pagamento}': 'A definir',
-      '{vencimento}': 'A definir',
-      '{dias_suporte}': '30',
-      '{validade}': '30'
-    };
-
-    // Aplicar substituições
-    for (const [placeholder, value] of Object.entries(replacements)) {
-      processedContent = processedContent.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), value);
-    }
-
-    return processedContent;
   };
 
   const templateId = proposal.template_id || 'moderno';
@@ -169,45 +114,38 @@ const ProposalTemplateRenderer = ({ proposal, companyLogo: providedLogo }: Propo
   const officialModelData = proposal.detailed_description ? 
     extractDataFromOfficialModel(proposal.detailed_description) : null;
 
-  // Criar proposta estruturada baseada no modelo oficial
-  const structuredProposal = {
-    ...proposal,
-    title: officialModelData?.serviceTitle || proposal.title,
-    service_description: officialModelData?.serviceTitle || proposal.service_description,
+  // Preparar dados para o componente de preview (mesmo formato usado no chat)
+  const previewData = {
+    title: officialModelData?.serviceTitle || proposal.title || proposal.service_description || 'Proposta Comercial',
+    client: officialModelData?.client || proposal.companies?.name || 'Cliente',
     value: officialModelData?.numericValue || proposal.value,
-    delivery_time: officialModelData?.deadline || proposal.delivery_time,
-    companies: {
-      ...proposal.companies,
-      name: officialModelData?.client || proposal.companies?.name
-    },
-    // Manter o HTML original para renderização nos templates
-    detailed_description: officialModelData?.fullHtmlContent || processProposalContent(proposal.detailed_description || '')
+    deliveryTime: officialModelData?.deadline || proposal.delivery_time,
+    description: officialModelData?.description || proposal.detailed_description || proposal.service_description,
+    template: templateId
   };
 
   // Renderizar template personalizado se disponível e usuário tem acesso
   if ((canAccessPremiumTemplates || isAdmin) && customTemplates.length > 0) {
     const customTemplate = customTemplates.find(t => t.template_id === templateId);
     if (customTemplate) {
-      const processedContent = processProposalContent(customTemplate.html_content);
+      const processedContent = customTemplate.html_content.replace(/\{\{companyLogo\}\}/g, companyLogo || '');
       return (
         <div 
           dangerouslySetInnerHTML={{ 
-            __html: processedContent.replace(/\{\{companyLogo\}\}/g, companyLogo || '')
+            __html: processedContent
           }} 
         />
       );
     }
   }
   
-  // Renderizar templates padrão com dados estruturados
-  switch (templateId) {
-    case 'executivo':
-      return <ExecutivoTemplate proposal={structuredProposal} companyLogo={companyLogo} />;
-    case 'criativo':
-      return <CriativoTemplate proposal={structuredProposal} companyLogo={companyLogo} />;
-    default:
-      return <ModernoTemplate proposal={structuredProposal} companyLogo={companyLogo} />;
-  }
+  // Usar o mesmo componente de preview usado no chat para manter consistência visual
+  return (
+    <ProposalTemplatePreview 
+      data={previewData}
+      className="max-w-4xl mx-auto"
+    />
+  );
 };
 
 export default ProposalTemplateRenderer;
