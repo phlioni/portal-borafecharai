@@ -1,484 +1,767 @@
-
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { Telegram } from 'https://deno.land/x/telegram@v0.0.3/mod.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const telegramBotToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
-const supabaseUrl = Deno.env.get('SUPABASE_URL');
-const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
-
-if (!telegramBotToken || !supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing required environment variables');
-  Deno.exit(1);
-}
-
-const telegram = new Telegram(telegramBotToken);
-const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: false
-  }
-});
-
-let userId: string | null = null;
-let userName: string | null = null;
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const MODELO_OFICIAL = `<h1>Proposta Comercial para {servico}</h1>
+interface TelegramUpdate {
+  update_id: number;
+  message?: {
+    message_id: number;
+    from: {
+      id: number;
+      is_bot: boolean;
+      first_name: string;
+      last_name?: string;
+      username?: string;
+    };
+    chat: {
+      id: number;
+      first_name: string;
+      last_name?: string;
+      username?: string;
+      type: string;
+    };
+    date: number;
+    text?: string;
+    contact?: {
+      phone_number: string;
+      first_name: string;
+      last_name?: string;
+      user_id: number;
+    };
+  };
+}
 
-<p><strong>Número da proposta:</strong> {numero_proposta}</p>
-<p><strong>Data:</strong> {data}</p>
+interface UserSession {
+  step: string;
+  data: {
+    clientName?: string;
+    clientEmail?: string;
+    projectTitle?: string;
+    serviceDescription?: string;
+    detailedDescription?: string;
+    value?: string;
+    deliveryTime?: string;
+    observations?: string;
+  };
+  phone?: string;
+  userId?: string;
+}
 
-<h2>Destinatário</h2>
-<p><strong>Cliente:</strong> {cliente}</p>
-<p><strong>Responsável:</strong> {responsavel}</p>
-<p><strong>Contato:</strong> {email} / {telefone}</p>
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+);
 
-<h2>Introdução</h2>
-<p>Prezada(o) {responsavel},</p>
-<p>Agradecemos a oportunidade de apresentar esta proposta para atender às suas necessidades com relação a <strong>{servico}</strong>. Nosso compromisso é oferecer um serviço de alta qualidade, com foco em resultados e em um relacionamento transparente e duradouro.</p>
+const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
 
-<h2>Escopo dos Serviços</h2>
-<ul>
-  <li>Análise inicial do cenário do cliente</li>
-  <li>Planejamento e definição do cronograma</li>
-  <li>Implementação dos serviços conforme escopo</li>
-  <li>Treinamento da equipe (se aplicável)</li>
-  <li>Suporte por {dias_suporte} dias após entrega</li>
-</ul>
+async function sendTelegramMessage(chatId: number, text: string, replyMarkup?: any) {
+  console.log(`Enviando mensagem para chat ${chatId}:`, text);
 
-<p><strong>O que não está incluso:</strong></p>
-<ul>
-  <li>Custos de terceiros (viagens, licenças, etc.)</li>
-  <li>Serviços fora do escopo desta proposta</li>
-</ul>
+  if (!botToken) {
+    console.error('TELEGRAM_BOT_TOKEN não configurado');
+    return;
+  }
 
-<h2>Prazos</h2>
-<p>O prazo estimado para execução dos serviços é de <strong>{prazo}</strong>, contados a partir da assinatura desta proposta e pagamento do sinal (se houver).</p>
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
-<h2>Investimento</h2>
-<p><strong>Valor total:</strong> R$ {valor}</p>
-<p><strong>Forma de pagamento:</strong> {pagamento}</p>
-<p><strong>Vencimento:</strong> {vencimento}</p>
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: text,
+        reply_markup: replyMarkup,
+        parse_mode: 'Markdown'
+      }),
+    });
 
-<h2>Condições Gerais</h2>
-<ul>
-  <li>Validade da proposta: {validade} dias</li>
-  <li>Eventuais alterações no escopo poderão impactar prazo e valores</li>
-  <li>Rescisão, multas, ou regras para cancelamento conforme contrato</li>
-</ul>`;
+    const responseData = await response.json();
+    console.log('Resposta do Telegram:', responseData);
+
+    if (!response.ok) {
+      console.error('Erro ao enviar mensagem Telegram:', responseData);
+    }
+  } catch (error) {
+    console.error('Erro na requisição para Telegram:', error);
+  }
+}
+
+// Função para carregar sessão do banco de dados
+async function loadSession(telegramUserId: number, chatId: number): Promise<UserSession> {
+  console.log(`Carregando sessão para usuário ${telegramUserId}`);
+
+  try {
+    const { data: sessionData, error } = await supabase
+      .from('telegram_sessions')
+      .select('*')
+      .eq('telegram_user_id', telegramUserId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 = not found
+      console.error('Erro ao carregar sessão:', error);
+    }
+
+    if (sessionData) {
+      console.log('Sessão encontrada:', sessionData);
+
+      // Verificar se a sessão não expirou
+      if (new Date(sessionData.expires_at) > new Date()) {
+        return {
+          step: sessionData.step,
+          data: sessionData.session_data || {},
+          phone: sessionData.phone,
+          userId: sessionData.user_id
+        };
+      } else {
+        console.log('Sessão expirada, removendo...');
+        await supabase
+          .from('telegram_sessions')
+          .delete()
+          .eq('telegram_user_id', telegramUserId);
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao carregar sessão:', error);
+  }
+
+  // Retornar sessão padrão se não encontrou ou expirou
+  console.log('Criando nova sessão padrão');
+  return {
+    step: 'start',
+    data: {}
+  };
+}
+
+// Função para salvar sessão no banco de dados
+async function saveSession(telegramUserId: number, chatId: number, session: UserSession) {
+  console.log(`Salvando sessão para usuário ${telegramUserId}:`, session);
+
+  try {
+    const { error } = await supabase
+      .from('telegram_sessions')
+      .upsert({
+        telegram_user_id: telegramUserId,
+        chat_id: chatId,
+        step: session.step,
+        session_data: session.data,
+        phone: session.phone,
+        user_id: session.userId,
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 horas
+      }, {
+        onConflict: 'telegram_user_id'
+      });
+
+    if (error) {
+      console.error('Erro ao salvar sessão:', error);
+    } else {
+      console.log('Sessão salva com sucesso');
+    }
+  } catch (error) {
+    console.error('Erro ao salvar sessão:', error);
+  }
+}
+
+// Função para limpar sessão
+async function clearSession(telegramUserId: number) {
+  console.log(`Limpando sessão para usuário ${telegramUserId}`);
+
+  try {
+    const { error } = await supabase
+      .from('telegram_sessions')
+      .delete()
+      .eq('telegram_user_id', telegramUserId);
+
+    if (error) {
+      console.error('Erro ao limpar sessão:', error);
+    } else {
+      console.log('Sessão limpa com sucesso');
+    }
+  } catch (error) {
+    console.error('Erro ao limpar sessão:', error);
+  }
+}
+
+async function findUserByPhone(phone: string) {
+  console.log('Buscando usuário pelo telefone:', phone);
+
+  const cleanPhone = phone.replace(/\D/g, '');
+  console.log('Telefone limpo:', cleanPhone);
+
+  const { data: companies, error } = await supabase
+    .from('companies')
+    .select('user_id, name, email, phone, country_code')
+    .or(`phone.eq.${phone},phone.eq.${cleanPhone}`)
+    .limit(1);
+
+  console.log('Resultado da busca na tabela companies:', { companies, error });
+
+  if (companies && companies.length > 0) {
+    return companies[0];
+  }
+
+  const { data: allCompanies, error: allError } = await supabase
+    .from('companies')
+    .select('user_id, name, email, phone, country_code');
+
+  console.log('Buscando em todas as empresas:', { count: allCompanies?.length, error: allError });
+
+  if (allCompanies) {
+    for (const company of allCompanies) {
+      if (company.phone) {
+        const companyCleanPhone = company.phone.replace(/\D/g, '');
+        console.log(`Comparando: ${cleanPhone} com ${companyCleanPhone} (${company.phone})`);
+
+        const fullPhoneWithCountry = `${company.country_code || '+55'}${companyCleanPhone}`;
+        const userPhoneWithCountry = cleanPhone.startsWith('55') ? `+${cleanPhone}` : `+55${cleanPhone}`;
+
+        console.log(`Comparando com código do país: ${userPhoneWithCountry} com ${fullPhoneWithCountry}`);
+
+        if (cleanPhone === companyCleanPhone ||
+          userPhoneWithCountry === fullPhoneWithCountry ||
+          phone === fullPhoneWithCountry ||
+          cleanPhone === fullPhoneWithCountry.replace(/\D/g, '')) {
+          console.log('✅ Encontrada empresa com telefone compatível:', company);
+          return company;
+        }
+      }
+    }
+  }
+
+  console.log('❌ Usuário não encontrado pelo telefone');
+  return null;
+}
+
+async function getRecentProposals(userId: string) {
+  try {
+    const { data: proposals, error } = await supabase
+      .from('proposals')
+      .select(`
+        id,
+        title,
+        status,
+        value,
+        created_at,
+        companies (name)
+      `)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (error) {
+      console.error('Erro ao buscar propostas:', error);
+      return [];
+    }
+
+    return proposals || [];
+  } catch (error) {
+    console.error('Erro ao buscar propostas:', error);
+    return [];
+  }
+}
+
+async function createProposalForUser(session: UserSession) {
+  console.log('Criando proposta para usuário:', session.userId);
+  console.log('Dados da sessão:', session.data);
+
+  if (!session.userId) {
+    throw new Error('Usuário não identificado');
+  }
+
+  let companyId = null;
+  if (session.data.clientName) {
+    console.log('Criando empresa para o cliente:', session.data.clientName);
+
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .insert({
+        user_id: session.userId,
+        name: session.data.clientName,
+        email: session.data.clientEmail || null,
+        phone: session.phone || null
+      })
+      .select()
+      .single();
+
+    console.log('Resultado da criação da empresa:', { company, companyError });
+
+    if (!companyError && company) {
+      companyId = company.id;
+    }
+  }
+
+  const proposalValue = session.data.value ?
+    parseFloat(session.data.value.replace(/[^\d,]/g, '').replace(',', '.')) :
+    null;
+
+  console.log('Dados da proposta a ser criada:', {
+    user_id: session.userId,
+    company_id: companyId,
+    title: session.data.projectTitle || 'Proposta via Telegram',
+    service_description: session.data.serviceDescription,
+    detailed_description: session.data.detailedDescription,
+    value: proposalValue,
+    delivery_time: session.data.deliveryTime,
+    observations: session.data.observations,
+    template_id: 'moderno',
+    status: 'rascunho'
+  });
+
+  const { data: proposal, error: proposalError } = await supabase
+    .from('proposals')
+    .insert({
+      user_id: session.userId,
+      company_id: companyId,
+      title: session.data.projectTitle || 'Proposta via Telegram',
+      service_description: session.data.serviceDescription,
+      detailed_description: session.data.detailedDescription,
+      value: proposalValue,
+      delivery_time: session.data.deliveryTime,
+      observations: session.data.observations,
+      template_id: 'moderno',
+      status: 'rascunho'
+    })
+    .select()
+    .single();
+
+  console.log('Resultado da criação da proposta:', { proposal, proposalError });
+
+  if (proposalError) {
+    throw proposalError;
+  }
+
+  return proposal;
+}
+
+async function storeUserChatId(userId: string, chatId: number) {
+  try {
+    const { error } = await supabase
+      .from('telegram_bot_settings')
+      .upsert({
+        user_id: userId,
+        chat_id: chatId
+      }, {
+        onConflict: 'user_id'
+      });
+
+    if (error) {
+      console.error('Erro ao salvar chat_id:', error);
+    }
+  } catch (error) {
+    console.error('Erro ao salvar chat_id:', error);
+  }
+}
+
+async function handleMessage(update: TelegramUpdate) {
+  console.log('=== PROCESSANDO MENSAGEM ===');
+  console.log('Update recebido:', JSON.stringify(update, null, 2));
+
+  const message = update.message;
+  if (!message) {
+    console.log('Nenhuma mensagem encontrada no update');
+    return;
+  }
+
+  const chatId = message.chat.id;
+  const telegramUserId = message.from.id;
+  const text = message.text || '';
+
+  console.log(`Mensagem recebida de ${telegramUserId} (chat: ${chatId}): ${text}`);
+
+  // Carregar sessão do banco de dados
+  let session = await loadSession(telegramUserId, chatId);
+
+  // Verificar se é comando /start
+  if (text === '/start') {
+    console.log('Comando /start recebido, reiniciando conversa');
+    // Limpar sessão anterior
+    await clearSession(telegramUserId);
+
+    // Criar nova sessão
+    session = {
+      step: 'start',
+      data: {}
+    };
+  }
+
+  console.log('Estado atual da sessão:', session);
+
+  if (message.contact) {
+    console.log('Contato compartilhado:', message.contact);
+    session.phone = message.contact.phone_number;
+
+    const user = await findUserByPhone(session.phone);
+    if (user) {
+      session.userId = user.user_id;
+      console.log('Usuário encontrado:', user);
+
+      // Armazenar chat_id para notificações futuras
+      await storeUserChatId(user.user_id, chatId);
+
+      const { data: companyData } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('user_id', user.user_id)
+        .single();
+
+      console.log('Dados da empresa:', companyData);
+
+      const businessInfo = companyData ?
+        `Empresa: ${companyData.name}\nSetor: ${companyData.description || 'Não informado'}` :
+        `Usuário: ${user.name}`;
+
+      const keyboard = {
+        keyboard: [
+          [{ text: "🆕 Criar Nova Proposta" }],
+          [{ text: "📊 Ver Status das Propostas" }]
+        ],
+        one_time_keyboard: false,
+        resize_keyboard: true
+      };
+
+      await sendTelegramMessage(chatId,
+        `✅ *Telefone identificado!* Olá ${user.name}!\n\n` +
+        `📋 ${businessInfo}\n\n` +
+        `🤖 *Bem-vindo ao @borafecharai_bot!*\n\n` +
+        `🚀 O que você gostaria de fazer?`,
+        keyboard
+      );
+      session.step = 'main_menu';
+    } else {
+      console.log('Usuário não encontrado pelo telefone:', session.phone);
+      await sendTelegramMessage(chatId,
+        `❌ *Telefone não encontrado na nossa base de dados.*\n\n` +
+        `Para usar este bot, você precisa:\n` +
+        `1. Ter uma conta no sistema Bora Fechar Aí\n` +
+        `2. Cadastrar seu telefone em "Configurações > Meu Negócio"\n\n` +
+        `📱 Telefone pesquisado: ${session.phone}\n\n` +
+        `💡 Acesse o sistema e verifique se seu telefone está correto em suas configurações.\n\n` +
+        `Digite /start para tentar novamente.`
+      );
+      await clearSession(telegramUserId);
+      return;
+    }
+
+    // Salvar sessão após autenticação
+    await saveSession(telegramUserId, chatId, session);
+    return;
+  }
+
+  switch (session.step) {
+    case 'start':
+      console.log('Processando comando /start');
+      const keyboard = {
+        keyboard: [[{
+          text: "📱 Compartilhar Telefone",
+          request_contact: true
+        }]],
+        one_time_keyboard: true,
+        resize_keyboard: true
+      };
+
+      await sendTelegramMessage(chatId,
+        `🤖 *Olá! Eu sou o @borafecharai_bot!*\n\n` +
+        `Sou seu assistente para criação de propostas profissionais.\n\n` +
+        `📲 *Funcionalidades:*\n` +
+        `• Criar propostas pelo Telegram\n` +
+        `• Ver status das suas propostas\n` +
+        `• Receber notificações em tempo real\n\n` +
+        `Para começar, preciso identificar você pelo seu telefone cadastrado no sistema.\n\n` +
+        `👇 *Clique no botão abaixo para compartilhar seu telefone:*`,
+        keyboard
+      );
+      break;
+
+    case 'main_menu':
+      if (text === '🆕 Criar Nova Proposta') {
+        session.step = 'client_name';
+        session.data = {}; // Reset proposal data
+        await sendTelegramMessage(chatId,
+          `🆕 *Vamos criar uma nova proposta!*\n\n*Para qual cliente você quer criar uma proposta?*\n` +
+          `Digite o nome da empresa ou cliente:`
+        );
+      } else if (text === '📊 Ver Status das Propostas') {
+        const proposals = await getRecentProposals(session.userId!);
+
+        if (proposals.length === 0) {
+          await sendTelegramMessage(chatId,
+            `📊 *Status das Propostas*\n\n` +
+            `❌ Você ainda não tem propostas cadastradas.\n\n` +
+            `💡 Que tal criar sua primeira proposta?`
+          );
+        } else {
+          let statusMessage = `📊 *Suas últimas ${proposals.length} propostas:*\n\n`;
+
+          proposals.forEach((proposal, index) => {
+            const statusEmoji = {
+              'rascunho': '📝',
+              'enviada': '📤',
+              'visualizada': '👁️',
+              'aceita': '✅',
+              'rejeitada': '❌'
+            };
+
+            const value = proposal.value ? `R$ ${proposal.value.toLocaleString('pt-BR')}` : 'Valor não definido';
+            const client = proposal.companies?.name || 'Cliente não informado';
+            const status = proposal.status || 'rascunho';
+
+            statusMessage += `${index + 1}. *${proposal.title}*\n`;
+            statusMessage += `   👤 Cliente: ${client}\n`;
+            statusMessage += `   💰 Valor: ${value}\n`;
+            statusMessage += `   ${statusEmoji[status]} Status: ${status.charAt(0).toUpperCase() + status.slice(1)}\n\n`;
+          });
+
+          await sendTelegramMessage(chatId, statusMessage);
+        }
+      } else {
+        await sendTelegramMessage(chatId,
+          `❓ *Não entendi sua mensagem.*\n\n` +
+          `🤖 Use os botões do menu ou digite /start para começar novamente.`
+        );
+      }
+      break;
+
+    case 'client_name':
+      if (!text.trim()) {
+        await sendTelegramMessage(chatId,
+          `❌ *Nome do cliente não pode estar vazio.*\n\nPor favor, digite o nome da empresa ou cliente:`
+        );
+        return;
+      }
+
+      console.log('Coletando nome do cliente:', text);
+      session.data.clientName = text.trim();
+      session.step = 'client_email';
+      await sendTelegramMessage(chatId,
+        `✅ Cliente: *${text}*\n\n*Qual o e-mail do cliente?*\n(opcional - digite "pular" para pular)`
+      );
+      break;
+
+    case 'client_email':
+      console.log('Coletando email do cliente:', text);
+      if (text.toLowerCase().trim() !== 'pular') {
+        // Validar email básico
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(text.trim())) {
+          await sendTelegramMessage(chatId,
+            `❌ *E-mail inválido.* Por favor, digite um e-mail válido ou "pular" para pular:`
+          );
+          return;
+        }
+        session.data.clientEmail = text.trim();
+      }
+      session.step = 'project_title';
+      await sendTelegramMessage(chatId,
+        `${text.toLowerCase().trim() !== 'pular' ? '✅ E-mail: *' + text + '*' : '⏭️ E-mail pulado'}\n\n*Qual é o título do projeto/proposta?*\nEx: "Desenvolvimento de Website Institucional"`
+      );
+      break;
+
+    case 'project_title':
+      if (!text.trim()) {
+        await sendTelegramMessage(chatId,
+          `❌ *Título não pode estar vazio.*\n\nPor favor, digite o título do projeto:`
+        );
+        return;
+      }
+
+      console.log('Coletando título do projeto:', text);
+      session.data.projectTitle = text.trim();
+      session.step = 'service_description';
+      await sendTelegramMessage(chatId,
+        `✅ Título: *${text}*\n\n*Faça um resumo do serviço:*\nEx: "Criação de website responsivo com CMS"`
+      );
+      break;
+
+    case 'service_description':
+      if (!text.trim()) {
+        await sendTelegramMessage(chatId,
+          `❌ *Descrição não pode estar vazia.*\n\nPor favor, faça um resumo do serviço:`
+        );
+        return;
+      }
+
+      console.log('Coletando descrição do serviço:', text);
+      session.data.serviceDescription = text.trim();
+      session.step = 'detailed_description';
+      await sendTelegramMessage(chatId,
+        `✅ Resumo salvo!\n\n*Agora faça uma descrição mais detalhada do que será entregue:*\n\n💡 Seja específico sobre o que o cliente receberá.`
+      );
+      break;
+
+    case 'detailed_description':
+      if (!text.trim()) {
+        await sendTelegramMessage(chatId,
+          `❌ *Descrição detalhada não pode estar vazia.*\n\nPor favor, descreva o que será entregue:`
+        );
+        return;
+      }
+
+      console.log('Coletando descrição detalhada:', text);
+      session.data.detailedDescription = text.trim();
+      session.step = 'value';
+      await sendTelegramMessage(chatId,
+        `✅ Descrição detalhada salva!\n\n*Qual o valor da proposta?*\nEx: "R$ 5.000,00" ou "5000" (ou digite "pular" para definir depois)`
+      );
+      break;
+
+    case 'value':
+      console.log('Coletando valor:', text);
+      if (text.toLowerCase().trim() !== 'pular') {
+        // Validar se é um número válido
+        const numericValue = text.replace(/[^\d,]/g, '').replace(',', '.');
+        if (!numericValue || isNaN(parseFloat(numericValue))) {
+          await sendTelegramMessage(chatId,
+            `❌ *Valor inválido.* Por favor, digite um valor numérico (ex: 5000 ou R$ 5.000,00) ou "pular":`
+          );
+          return;
+        }
+        session.data.value = text.trim();
+      }
+      session.step = 'delivery_time';
+      await sendTelegramMessage(chatId,
+        `${text.toLowerCase().trim() !== 'pular' ? '✅ Valor: *' + text + '*' : '⏭️ Valor para definir depois'}\n\n*Qual o prazo de entrega?*\nEx: "30 dias" ou "2 semanas" (ou digite "pular")`
+      );
+      break;
+
+    case 'delivery_time':
+      console.log('Coletando prazo:', text);
+      if (text.toLowerCase().trim() !== 'pular') {
+        session.data.deliveryTime = text.trim();
+      }
+      session.step = 'observations';
+      await sendTelegramMessage(chatId,
+        `${text.toLowerCase().trim() !== 'pular' ? '✅ Prazo: *' + text + '*' : '⏭️ Prazo para definir depois'}\n\n*Alguma observação adicional?*\nEx: Condições de pagamento, garantias, etc.\n\n(ou digite "pular" para finalizar)`
+      );
+      break;
+
+    case 'observations':
+      console.log('Coletando observações:', text);
+      if (text.toLowerCase().trim() !== 'pular') {
+        session.data.observations = text.trim();
+      }
+
+      try {
+        console.log('Iniciando criação da proposta...');
+        await sendTelegramMessage(chatId,
+          `🎯 *Gerando sua proposta...*\n\n⏳ Por favor aguarde, estou processando suas informações...`
+        );
+
+        const proposal = await createProposalForUser(session);
+
+        console.log('Proposta criada com sucesso:', proposal);
+
+        // Resumo da proposta criada
+        let summary = `🎉 *Proposta criada com sucesso!*\n\n`;
+        summary += `📝 *Título:* ${session.data.projectTitle}\n`;
+        summary += `👤 *Cliente:* ${session.data.clientName}\n`;
+        if (session.data.clientEmail) {
+          summary += `📧 *E-mail:* ${session.data.clientEmail}\n`;
+        }
+        if (session.data.value) {
+          summary += `💰 *Valor:* ${session.data.value}\n`;
+        }
+        if (session.data.deliveryTime) {
+          summary += `⏰ *Prazo:* ${session.data.deliveryTime}\n`;
+        }
+        summary += `\n✅ A proposta foi salva como rascunho na sua conta.\n\n`;
+        summary += `🌐 *Próximos passos:*\n`;
+        summary += `1. Acesse o sistema para revisar\n`;
+        summary += `2. Envie a proposta para o cliente\n`;
+        summary += `3. Acompanhe o status aqui no Telegram\n\n`;
+
+        const keyboard = {
+          keyboard: [
+            [{ text: "🆕 Criar Nova Proposta" }],
+            [{ text: "📊 Ver Status das Propostas" }]
+          ],
+          one_time_keyboard: false,
+          resize_keyboard: true
+        };
+
+        await sendTelegramMessage(chatId, summary, keyboard);
+
+        // Voltar ao menu principal
+        session.step = 'main_menu';
+        session.data = {};
+
+      } catch (error) {
+        console.error('Erro ao criar proposta:', error);
+        await sendTelegramMessage(chatId,
+          `❌ *Erro ao criar proposta*\n\n` +
+          `Ocorreu um erro interno: ${error.message}\n\n` +
+          `🔄 Tente novamente digitando /start ou use o sistema web diretamente.\n\n` +
+          `💬 Se o problema persistir, entre em contato com o suporte.`
+        );
+        await clearSession(telegramUserId);
+        return;
+      }
+      break;
+
+    default:
+      console.log('Comando não reconhecido, orientando usuário...');
+      await sendTelegramMessage(chatId,
+        `❓ *Não entendi sua mensagem.*\n\n` +
+        `🤖 Para começar uma nova conversa, digite /start\n\n` +
+        `💡 *Comandos disponíveis:*\n` +
+        `• /start - Iniciar ou reiniciar conversa\n` +
+        `• Compartilhar telefone - Para identificação`
+      );
+      break;
+  }
+
+  // Salvar sessão após cada interação
+  await saveSession(telegramUserId, chatId, session);
+  console.log('Sessão salva:', session);
+}
 
 serve(async (req) => {
-  // This is needed if you're planning to invoke your function from a browser.
+  console.log('=== WEBHOOK TELEGRAM CHAMADO ===');
+  console.log('Método:', req.method);
+  console.log('URL:', req.url);
+  console.log('Headers:', Object.fromEntries(req.headers.entries()));
+
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    console.log('Requisição OPTIONS (CORS preflight)');
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const update = await req.json();
-    console.log('Received Telegram update:', update);
+    if (req.method === 'POST') {
+      const body = await req.text();
+      console.log('Body bruto recebido:', body);
 
-    if (!update.message && !update.callback_query) {
-      console.log('Ignoring non-message update');
-      return new Response('Ignoring non-message update');
+      const update: TelegramUpdate = JSON.parse(body);
+      console.log('Update parseado:', JSON.stringify(update, null, 2));
+
+      await handleMessage(update);
+
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    let chatId: number;
-    let text: string | undefined;
-    let from: any;
-    let messageId: number | undefined;
+    console.log('Requisição GET recebida - webhook está ativo');
+    return new Response('🤖 @borafecharai_bot webhook ativo e funcionando!', {
+      headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+    });
 
-    if (update.message) {
-      chatId = update.message.chat.id;
-      text = update.message.text;
-      from = update.message.from;
-      messageId = update.message.message_id;
-    } else if (update.callback_query) {
-      chatId = update.callback_query.message.chat.id;
-      text = update.callback_query.data;
-      from = update.callback_query.from;
-      messageId = update.callback_query.message.message_id;
-    } else {
-      console.error('Unknown update type');
-      return new Response('Unknown update type');
-    }
-
-    console.log(`Received message "${text}" from chat ID ${chatId}`);
-
-    const sendMessage = async (chat_id: number, text: string, reply_markup: any = null) => {
-      try {
-        const payload: any = {
-          chat_id: chat_id,
-          text: text,
-          parse_mode: 'Markdown'
-        };
-
-        if (reply_markup) {
-          payload.reply_markup = reply_markup;
-        }
-
-        const response = await telegram.sendMessage(payload);
-        console.log('Sent message:', response);
-        return response;
-      } catch (error) {
-        console.error('Error sending message:', error);
-        throw error;
-      }
-    };
-
-    // Verificar se existe um usuário com este telefone na tabela profiles
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('user_id, name')
-      .eq('phone', from.id.toString())
-      .single();
-
-    if (profileError || !profileData) {
-      await sendMessage(chatId, 
-        `Olá! Para usar o bot, você precisa primeiro se cadastrar no sistema com este número de telefone (${from.id}). ` +
-        `Acesse o sistema e cadastre-se usando este telefone.`
-      );
-      return new Response('OK');
-    }
-
-    userId = profileData.user_id;
-    userName = profileData.name || from.first_name || 'Usuário';
-
-    // Carregar sessão
-    let { data: session, error: sessionError } = await supabase
-      .from('telegram_sessions')
-      .select('*')
-      .eq('chat_id', chatId)
-      .single();
-
-    if (sessionError && sessionError.code !== 'PGRST116') {
-      console.error('Error fetching session:', sessionError);
-      await sendMessage(chatId, 'Erro ao carregar sessão. Tente novamente.');
-      return new Response('Error fetching session');
-    }
-
-    // Se não existe, criar nova sessão
-    if (!session) {
-      const { data, error } = await supabase
-        .from('telegram_sessions')
-        .insert({
-          chat_id: chatId,
-          user_id: userId,
-          step: 'start',
-          session_data: {}
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating session:', error);
-        await sendMessage(chatId, 'Erro ao criar sessão. Tente novamente.');
-        return new Response('Error creating session');
-      }
-
-      session = data;
-      console.log('New session created:', session);
-      await sendMessage(chatId, `Olá, ${userName}! Vamos criar uma proposta juntos! Qual o nome do seu cliente?`);
-      return new Response('OK');
-    }
-
-    console.log('Session data:', session);
-
-    // Função para atualizar a sessão
-    const updateSession = async (updates: any) => {
-      const { data, error } = await supabase
-        .from('telegram_sessions')
-        .update(updates)
-        .eq('chat_id', chatId)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error updating session:', error);
-        await sendMessage(chatId, 'Erro ao atualizar sessão. Tente novamente.');
-        return false;
-      }
-
-      console.log('Session updated:', data);
-      session = data;
-      return true;
-    };
-
-    // Função para limpar a sessão
-    const clearSession = async () => {
-      const { error } = await supabase
-        .from('telegram_sessions')
-        .delete()
-        .eq('chat_id', chatId);
-
-      if (error) {
-        console.error('Error deleting session:', error);
-        await sendMessage(chatId, 'Erro ao limpar sessão. Tente novamente.');
-        return false;
-      }
-
-      console.log('Session cleared');
-      return true;
-    };
-
-    // Função para validar valor
-    const isValidValue = (value: string) => {
-      const regex = /^\d+(\,\d{3})*(\,\d{2})?$/;
-      return regex.test(value);
-    };
-
-    // Função para formatar valor
-    const formatValue = (value: string) => {
-      return value.replace(/[^0-9,]/g, '').replace('.', '').replace(',', '.');
-    };
-
-    // Handle callback queries
-    if (update.callback_query) {
-      const callbackData = update.callback_query.data;
-
-      if (callbackData === 'new_proposal') {
-        await clearSession();
-        await sendMessage(chatId, `Ok, vamos começar uma nova proposta! Qual o nome do seu cliente?`);
-        return new Response('OK');
-      }
-
-      if (callbackData === 'finish') {
-        await clearSession();
-        await sendMessage(chatId, 'Ok, finalizando! Se precisar de algo mais, é só chamar!');
-        return new Response('OK');
-      }
-
-      if (callbackData.startsWith('send_email_')) {
-        const proposalId = callbackData.split('_')[2];
-        console.log('Sending email for proposal ID:', proposalId);
-        
-        try {
-          // Buscar dados da proposta
-          const { data: proposal, error: proposalError } = await supabase
-            .from('proposals')
-            .select('*')
-            .eq('id', proposalId)
-            .single();
-
-          if (proposalError || !proposal) {
-            console.error('Error fetching proposal:', proposalError);
-            await sendMessage(chatId, 'Erro ao buscar proposta. Tente novamente mais tarde.');
-            return new Response('OK');
-          }
-
-          // Buscar dados da empresa do usuário
-          const { data: company, error: companyError } = await supabase
-            .from('companies')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
-
-          if (companyError || !company) {
-            console.error('Error fetching company:', companyError);
-            await sendMessage(chatId, 'Erro: É necessário ter uma empresa cadastrada para enviar propostas por e-mail.');
-            return new Response('OK');
-          }
-
-          // Chamar função de envio de e-mail
-          const { data: emailResponse, error: emailError } = await supabase.functions.invoke('send-proposal-email', {
-            body: {
-              proposal_id: proposalId,
-              recipient_email: session.session_data.email || company.email || 'cliente@exemplo.com',
-              recipient_name: session.session_data.client || 'Cliente',
-              sender_name: userName || company.name || 'Equipe Comercial',
-              sender_email: company.email || 'comercial@borafecharai.com'
-            }
-          });
-
-          if (emailError) {
-            console.error('Error sending email:', emailError);
-            await sendMessage(chatId, 'Erro ao enviar e-mail. Verifique se o endereço está correto e tente novamente.');
-          } else {
-            console.log('Email sent successfully:', emailResponse);
-            await sendMessage(chatId, '✅ E-mail enviado com sucesso! O cliente receberá a proposta em breve.');
-          }
-        } catch (error) {
-          console.error('Error in email sending process:', error);
-          await sendMessage(chatId, 'Erro interno ao enviar e-mail. Tente novamente mais tarde.');
-        }
-        
-        return new Response('OK');
-      }
-    }
-
-    // Update handleCreateProposal function to use the new official model
-    async function handleCreateProposal(chatId: number, sessionData: any) {
-      try {
-        console.log('Creating proposal with data:', sessionData);
-        
-        // Substituir placeholders no modelo oficial
-        let proposalContent = MODELO_OFICIAL;
-        const today = new Date();
-        const proposalNumber = `PROP-${Date.now()}`;
-        
-        // Substituições básicas
-        const replacements = {
-          '{servico}': sessionData.service || 'Serviço',
-          '{numero_proposta}': proposalNumber,
-          '{data}': today.toLocaleDateString('pt-BR'),
-          '{cliente}': sessionData.client || 'Cliente',
-          '{responsavel}': sessionData.client || 'Responsável',
-          '{email}': sessionData.email || 'email@exemplo.com',
-          '{telefone}': sessionData.phone || '(11) 99999-9999',
-          '{prazo}': sessionData.deadline || '30 dias',
-          '{valor}': sessionData.value || '0,00',
-          '{pagamento}': sessionData.payment || 'A definir',
-          '{vencimento}': 'A definir',
-          '{dias_suporte}': '30',
-          '{validade}': '30'
-        };
-        
-        // Aplicar todas as substituições
-        for (const [placeholder, value] of Object.entries(replacements)) {
-          proposalContent = proposalContent.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), value);
-        }
-        
-        // Salvar proposta no banco
-        const { data: proposal, error: proposalError } = await supabase
-          .from('proposals')
-          .insert({
-            user_id: userId,
-            title: sessionData.service || 'Proposta via Telegram',
-            service_description: sessionData.service || '',
-            detailed_description: proposalContent,
-            value: parseFloat(sessionData.value?.replace(/[^\d,]/g, '').replace(',', '.')) || 0,
-            delivery_time: sessionData.deadline || '',
-            observations: sessionData.observations || '',
-            template_id: 'moderno'
-          })
-          .select()
-          .single();
-
-        if (proposalError) {
-          console.error('Error creating proposal:', proposalError);
-          await sendMessage(chatId, 'Erro ao criar proposta. Tente novamente.');
-          return;
-        }
-
-        console.log('Proposal created successfully:', proposal.id);
-        
-        // Preparar link público
-        const proposalUrl = `https://preview--proposta-inteligente-brasil.lovable.app/proposta/${proposal.public_hash}`;
-        
-        const successMessage = `✅ *Proposta criada com sucesso!*
-
-📋 *Resumo:*
-• *Cliente:* ${sessionData.client}
-• *Serviço:* ${sessionData.service}
-• *Valor:* R$ ${sessionData.value}
-• *Prazo:* ${sessionData.deadline}
-
-🔗 *Link da proposta:* ${proposalUrl}
-
-*O que você gostaria de fazer agora?*`;
-
-        const keyboard = {
-          inline_keyboard: [
-            [{ text: '📧 Enviar por E-mail', callback_data: `send_email_${proposal.id}` }],
-            [{ text: '📋 Nova Proposta', callback_data: 'new_proposal' }],
-            [{ text: '❌ Finalizar', callback_data: 'finish' }]
-          ]
-        };
-
-        await sendMessage(chatId, successMessage, keyboard);
-        
-        // Limpar sessão mas manter para ações pós-criação
-        await supabase
-          .from('telegram_sessions')
-          .update({
-            step: 'proposal_actions',
-            session_data: { ...sessionData, proposal_id: proposal.id }
-          })
-          .eq('chat_id', chatId);
-
-      } catch (error) {
-        console.error('Error in handleCreateProposal:', error);
-        await sendMessage(chatId, 'Erro interno ao criar proposta. Tente novamente.');
-      }
-    }
-
-    // Lógica principal da conversa
-    if (session.step === 'start') {
-      if (!text) {
-        await sendMessage(chatId, 'Por favor, digite o nome do cliente.');
-        return new Response('OK');
-      }
-
-      const clientName = text;
-      if (!await updateSession({ step: 'service', session_data: { client: clientName } })) {
-        return new Response('Error updating session');
-      }
-
-      await sendMessage(chatId, `Ok, qual o serviço que você vai oferecer para ${clientName}?`);
-    } else if (session.step === 'service') {
-      if (!text) {
-        await sendMessage(chatId, 'Por favor, digite o nome do serviço.');
-        return new Response('OK');
-      }
-
-      const serviceName = text;
-      if (!await updateSession({ step: 'value', session_data: { ...session.session_data, service: serviceName } })) {
-        return new Response('Error updating session');
-      }
-
-      await sendMessage(chatId, `Certo, qual o valor total desse serviço? (Ex: 1000,00)`);
-    } else if (session.step === 'value') {
-      if (!text || !isValidValue(text)) {
-        await sendMessage(chatId, 'Por favor, digite um valor válido (Ex: 1000,00).');
-        return new Response('OK');
-      }
-
-      const serviceValue = text;
-      if (!await updateSession({ step: 'deadline', session_data: { ...session.session_data, value: serviceValue } })) {
-        return new Response('Error updating session');
-      }
-
-      await sendMessage(chatId, `Qual o prazo de entrega desse serviço?`);
-    } else if (session.step === 'deadline') {
-      if (!text) {
-        await sendMessage(chatId, 'Por favor, digite o prazo de entrega.');
-        return new Response('OK');
-      }
-
-      const deadline = text;
-      if (!await updateSession({ step: 'confirm', session_data: { ...session.session_data, deadline: deadline } })) {
-        return new Response('Error updating session');
-      }
-
-      const confirmMessage = `Confirme os dados da proposta:
-
-Cliente: ${session.session_data.client}
-Serviço: ${session.session_data.service}
-Valor: R$ ${session.session_data.value}
-Prazo: ${deadline}
-
-Tudo certo? (sim/não)`;
-
-      await sendMessage(chatId, confirmMessage);
-    } else if (session.step === 'confirm') {
-      if (text?.toLowerCase() === 'sim') {
-        await handleCreateProposal(chatId, session.session_data);
-      } else {
-        await sendMessage(chatId, 'Ok, vamos recomeçar! Qual o nome do seu cliente?');
-        await updateSession({ step: 'start', session_data: {} });
-      }
-    } else if (session.step === 'proposal_actions') {
-      console.log('Handling proposal actions');
-      return new Response('OK');
-    }
-
-    return new Response('OK');
   } catch (error) {
-    console.error('Error in Telegram webhook:', error);
-    return new Response('Error processing Telegram webhook');
+    console.error('=== ERRO NO WEBHOOK ===');
+    console.error('Erro:', error);
+    console.error('Stack:', error.stack);
+
+    return new Response(JSON.stringify({
+      error: error.message,
+      stack: error.stack
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
