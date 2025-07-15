@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home,
   FileText,
@@ -19,7 +19,11 @@ import { Button } from '@/components/ui/button';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { toast } from 'sonner';
 
-const Layout = () => {
+interface LayoutProps {
+  children: React.ReactNode;
+}
+
+const Layout = ({ children }: LayoutProps) => {
   const { signOut, user } = useAuth();
   const { profile } = useProfiles();
   const { isAdmin, canCreateProposal } = useUserPermissions();
@@ -47,13 +51,13 @@ const Layout = () => {
   };
 
   const menuItems = [
-    { path: '/', icon: Home, label: 'Dashboard' },
+    { path: '/dashboard', icon: Home, label: 'Dashboard' },
     { path: '/propostas', icon: FileText, label: 'Propostas' },
-    ...(canCreateProposal ? [{ path: '/nova-proposta', icon: PlusCircle, label: 'Nova Proposta' }] : []),
+    ...(canCreateProposal ? [{ path: '/propostas/nova', icon: PlusCircle, label: 'Nova Proposta' }] : []),
     { path: '/clientes', icon: Users, label: 'Clientes' },
     { path: '/analytics', icon: BarChart3, label: 'Analytics' },
     { path: '/templates-personalizados', icon: Palette, label: 'Templates' },
-    { path: '/chat-proposta', icon: MessageSquare, label: 'Chat Proposta' },
+    { path: '/propostas/chat', icon: MessageSquare, label: 'Chat Proposta' },
     { path: '/configuracoes', icon: Settings, label: 'Configurações' },
   ];
 
@@ -126,7 +130,7 @@ const Layout = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <main className="flex-1 overflow-y-auto">
-          <Outlet />
+          {children}
         </main>
       </div>
     </div>
