@@ -8,7 +8,7 @@ import { useTrialStatus } from './useTrialStatus';
 export const useProposalSending = () => {
   const [isSending, setIsSending] = useState(false);
   const { subscribed, subscription_tier } = useSubscription();
-  const { trialStatus } = useTrialStatus();
+  const { isInTrial } = useTrialStatus();
 
   const checkProposalLimits = async () => {
     try {
@@ -37,7 +37,7 @@ export const useProposalSending = () => {
           _month: currentMonth
         });
 
-        const limit = trialStatus.isActive ? 20 : 10;
+        const limit = isInTrial ? 20 : 10;
         return { 
           canCreate: false, 
           remaining: 0,
@@ -53,7 +53,7 @@ export const useProposalSending = () => {
         _month: currentMonth
       });
 
-      const limit = trialStatus.isActive ? 20 : 10;
+      const limit = isInTrial ? 20 : 10;
       const remaining = limit - (monthlyCount || 0);
 
       return { 
