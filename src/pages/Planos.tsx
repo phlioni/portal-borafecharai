@@ -1,245 +1,165 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+import React from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Check, Sparkles, MessageCircle, BarChart3, Bot, Crown } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useSubscription } from '@/hooks/useSubscription';
+import { ArrowLeft, Check, X } from 'lucide-react';
+import SubscriptionPlanCard from '@/components/SubscriptionPlanCard';
 import { useStripePrices } from '@/hooks/useStripePrices';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { ModernLoader } from '@/components/ModernLoader';
 
 const Planos = () => {
-  const { user } = useAuth();
-  const { subscribed, subscription_tier, loading: subscriptionLoading } = useSubscription();
-  const { prices, loading: pricesLoading } = useStripePrices();
-  const navigate = useNavigate();
-  const [isCreatingCheckout, setIsCreatingCheckout] = useState<string | null>(null);
+  const { prices, loading, error } = useStripePrices();
 
-  const handleSubscribe = async (priceId: string, planName: string) => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
+  const getPlansWithRealPrices = () => {
+    const basePlans = [
+      {
+        title: 'Essencial',
+        description: 'Ideal para freelancers e pequenos projetos',
+        price: 'R$ 39,90',
+        productId: 'prod_SfuTlv2mX4TfJe',
+        planTier: 'basico' as const,
+        features: [
+          { text: 'Até 10 propostas por mês', included: true },
+          { text: 'Templates básicos', included: true },
+          { text: 'Gestão de clientes', included: true },
+          { text: 'Suporte por email', included: true },
+          { text: 'Analytics básico', included: false },
+          { text: 'Templates premium', included: false },
+          { text: 'Suporte prioritário', included: false },
+        ],
+      },
+      {
+        title: 'Professional',
+        description: 'Para empresas que precisam de mais recursos',
+        price: 'R$ 79,90',
+        productId: 'prod_SfuTErakRcHMsq',
+        planTier: 'profissional' as const,
+        popular: true,
+        features: [
+          { text: 'Propostas ilimitadas', included: true },
+          { text: 'Templates básicos', included: true },
+          { text: 'Templates premium', included: true },
+          { text: 'Gestão avançada de clientes', included: true },
+          { text: 'Analytics completo', included: true },
+          { text: 'Suporte prioritário', included: true },
+          { text: 'Colaboração em equipe', included: false },
+        ],
+      },
+    ];
 
-    setIsCreatingCheckout(priceId);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { priceId }
-      });
-
-      if (error) throw error;
-
-      if (data?.url) {
-        window.location.href = data.url;
-      }
-    } catch (error) {
-      console.error('Erro ao criar checkout:', error);
-      toast.error('Erro ao processar pagamento. Tente novamente.');
-    } finally {
-      setIsCreatingCheckout(null);
-    }
+    // Adicionar os price IDs reais se disponíveis
+    return basePlans.map(plan => ({
+      ...plan,
+      priceId: prices[plan.planTier]?.priceId || 'loading...'
+    }));
   };
 
-  const plans = [
-    {
-      name: 'Essencial',
-      description: 'Permite uso do chat com IA e do bot do Telegram com limite de 20 propostas/mês',
-      priceId: prices?.basico?.priceId,
-      features: [
-        'Chat com IA para criação de propostas',
-        'Bot do Telegram integrado',
-        'Até 20 propostas por mês',
-        'Templates profissionais',
-        'Suporte por email'
-      ],
-      icon: <Sparkles className="h-6 w-6" />,
-      gradient: 'from-blue-500 to-cyan-500',
-      popular: false
-    },
-    {
-      name: 'Professional',
-      description: 'Inclui tudo do Essencial, com número ilimitado de propostas, acesso ao Analytics e uso do chat com IA e do bot do Telegram',
-      priceId: prices?.profissional?.priceId,
-      features: [
-        'Tudo do plano Essencial',
-        'Propostas ilimitadas',
-        'Analytics avançado',
-        'Chat com IA avançado',
-        'Bot do Telegram premium',
-        'Suporte prioritário',
-        'Relatórios detalhados'
-      ],
-      icon: <Crown className="h-6 w-6" />,
-      gradient: 'from-purple-500 to-pink-500',
-      popular: true
-    }
-  ];
-
-  if (subscriptionLoading || pricesLoading) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 flex items-center justify-center">
+        <ModernLoader />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Carregando planos...</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Erro ao carregar planos</h2>
+          <p className="text-gray-600">{error}</p>
         </div>
       </div>
     );
   }
 
+  const plans = getPlansWithRealPrices();
+
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-6xl mx-auto px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100">
+      <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
+          <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Voltar ao início
+          </Link>
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Escolha o plano ideal para seu negócio
+            Escolha o Plano Ideal
           </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Crie propostas profissionais com inteligência artificial e feche mais negócios
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Selecione o plano que melhor se adapta às suas necessidades e comece a criar propostas profissionais hoje mesmo.
           </p>
         </div>
 
-        {/* Status atual */}
-        {user && (
-          <div className="text-center mb-8">
-            <Badge variant={subscribed ? "default" : "secondary"} className="text-sm">
-              {subscribed 
-                ? `Plano ativo: ${subscription_tier === 'basico' ? 'Essencial' : 'Professional'}`
-                : 'Período de teste ativo'
-              }
-            </Badge>
-          </div>
-        )}
-
-        {/* Planos */}
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          {plans.map((plan) => (
-            <Card 
-              key={plan.name} 
-              className={`relative shadow-lg transition-all duration-300 hover:shadow-xl ${
-                plan.popular ? 'ring-2 ring-purple-500 scale-105' : ''
-              }`}
-            >
-              {plan.popular && (
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
-                    Mais Popular
-                  </Badge>
-                </div>
-              )}
-
-              <CardHeader className="text-center pb-4">
-                <div className={`mx-auto w-12 h-12 rounded-lg bg-gradient-to-r ${plan.gradient} flex items-center justify-center text-white mb-4`}>
-                  {plan.icon}
-                </div>
-                
-                <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
-                <CardDescription className="text-gray-600">
-                  {plan.description}
-                </CardDescription>
-                
-                <div className="text-center py-4">
-                  {plan.priceId ? (
-                    <div>
-                      <span className="text-3xl font-bold">
-                        R$ {plan.name === 'Essencial' ? '29' : '79'}
-                      </span>
-                      <span className="text-gray-600">/mês</span>
-                    </div>
-                  ) : (
-                    <div className="text-gray-500">Carregando preço...</div>
-                  )}
-                </div>
-              </CardHeader>
-
-              <CardContent className="space-y-4">
-                <ul className="space-y-3">
-                  {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-start gap-3">
-                      <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                      <span className="text-gray-700">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="pt-4">
-                  {subscribed && subscription_tier === (plan.name === 'Essencial' ? 'basico' : 'profissional') ? (
-                    <Button className="w-full" disabled>
-                      Plano Atual
-                    </Button>
-                  ) : (
-                    <Button
-                      className={`w-full ${plan.popular ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600' : ''}`}
-                      onClick={() => plan.priceId && handleSubscribe(plan.priceId, plan.name)}
-                      disabled={!plan.priceId || isCreatingCheckout === plan.priceId}
-                    >
-                      {isCreatingCheckout === plan.priceId ? (
-                        'Processando...'
-                      ) : subscribed ? (
-                        'Fazer Upgrade'
-                      ) : (
-                        'Começar Agora'
-                      )}
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+        {/* Pricing Cards */}
+        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-12">
+          {plans.map((plan, index) => (
+            <SubscriptionPlanCard
+              key={index}
+              title={plan.title}
+              description={plan.description}
+              price={plan.price}
+              priceId={plan.priceId}
+              productId={plan.productId}
+              planTier={plan.planTier}
+              features={plan.features}
+              popular={plan.popular}
+            />
           ))}
         </div>
 
-        {/* Recursos destacados */}
-        <div className="mt-16 bg-white rounded-xl shadow-lg p-8">
-          <h2 className="text-2xl font-bold text-center text-gray-900 mb-8">
-            Recursos que fazem a diferença
-          </h2>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MessageCircle className="h-8 w-8 text-blue-600" />
-              </div>
-              <h3 className="font-semibold mb-2">Chat com IA</h3>
-              <p className="text-gray-600 text-sm">
-                Converse com nossa IA e crie propostas profissionais em minutos
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Bot className="h-8 w-8 text-green-600" />
-              </div>
-              <h3 className="font-semibold mb-2">Bot do Telegram</h3>
-              <p className="text-gray-600 text-sm">
-                Crie propostas direto do Telegram e receba notificações em tempo real
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <BarChart3 className="h-8 w-8 text-purple-600" />
-              </div>
-              <h3 className="font-semibold mb-2">Analytics</h3>
-              <p className="text-gray-600 text-sm">
-                Acompanhe o desempenho das suas propostas com relatórios detalhados
-              </p>
-            </div>
+        {/* Trial Info */}
+        <div className="max-w-4xl mx-auto mb-12">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+            <h3 className="text-lg font-semibold text-green-900 mb-2">
+              🎉 Teste Gratuito de 15 Dias
+            </h3>
+            <p className="text-green-700">
+              Experimente todos os recursos premium gratuitamente por 15 dias com até 20 propostas incluídas!
+            </p>
           </div>
         </div>
 
-        {/* CTA */}
-        <div className="text-center mt-12">
-          <p className="text-gray-600 mb-4">
-            Ainda tem dúvidas? Entre em contato conosco!
-          </p>
-          <Button variant="outline" asChild>
-            <a href="mailto:contato@borafecharai.com">
-              Falar com Suporte
-            </a>
-          </Button>
+        {/* FAQ Section */}
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-2xl font-bold text-center text-gray-900 mb-8">
+            Perguntas Frequentes
+          </h2>
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg p-6 shadow-sm border">
+              <h3 className="font-semibold text-gray-900 mb-2">
+                Posso cancelar minha assinatura a qualquer momento?
+              </h3>
+              <p className="text-gray-600">
+                Sim, você pode cancelar sua assinatura a qualquer momento através do portal do cliente. Você continuará tendo acesso aos recursos premium até o final do período pago.
+              </p>
+            </div>
+            <div className="bg-white rounded-lg p-6 shadow-sm border">
+              <h3 className="font-semibold text-gray-900 mb-2">
+                Existe período de teste gratuito?
+              </h3>
+              <p className="text-gray-600">
+                Sim, oferecemos 15 dias de teste gratuito para todos os planos pagos com até 20 propostas incluídas. Você pode experimentar todos os recursos premium sem compromisso.
+              </p>
+            </div>
+            <div className="bg-white rounded-lg p-6 shadow-sm border">
+              <h3 className="font-semibold text-gray-900 mb-2">
+                Posso alterar meu plano depois?
+              </h3>
+              <p className="text-gray-600">
+                Claro! Você pode fazer upgrade ou downgrade do seu plano a qualquer momento. As alterações serão aplicadas no próximo ciclo de cobrança.
+              </p>
+            </div>
+            <div className="bg-white rounded-lg p-6 shadow-sm border">
+              <h3 className="font-semibold text-gray-900 mb-2">
+                Qual a diferença entre os planos?
+              </h3>
+              <p className="text-gray-600">
+                O plano Essencial é ideal para freelancers com até 10 propostas mensais. O Professional oferece propostas ilimitadas, templates premium e analytics completo.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

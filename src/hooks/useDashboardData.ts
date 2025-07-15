@@ -3,8 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
-interface DashboardStats {
-  totalProposals: number;
+interface DashboardData {
   totalProposalsSent: number;
   totalProposalsValue: number;
   totalClients: number;
@@ -20,44 +19,21 @@ interface DashboardStats {
   }>;
 }
 
-interface RecentProposal {
-  id: string;
-  title: string;
-  status: string | null;
-  created_at: string;
-  companies: {
-    name: string;
-  } | null;
-}
-
-interface DashboardData {
-  stats: DashboardStats;
-  recentProposals: RecentProposal[];
-  loading: boolean;
-}
-
 export const useDashboardData = () => {
   const { user } = useAuth();
 
-  const { data, isLoading, error } = useQuery({
+  return useQuery({
     queryKey: ['dashboard-data', user?.id],
-    queryFn: async (): Promise<Omit<DashboardData, 'loading'>> => {
+    queryFn: async (): Promise<DashboardData> => {
       if (!user?.id) {
         throw new Error('Usuário não autenticado');
       }
-
-      // Get total proposals
-      const { count: totalProposals } = await supabase
-        .from('proposals')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
 
       // Get total proposals sent
       const { count: totalProposalsSent } = await supabase
         .from('proposals')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('status', 'enviada');
+        .eq('user_id', user.id);
 
       // Get total proposals value
       const { data: proposalsData } = await supabase
@@ -110,24 +86,7 @@ export const useDashboardData = () => {
         .order('validity_date', { ascending: true })
         .limit(5);
 
-      // Get recent proposals
-      const { data: recentProposals } = await supabase
-        .from('proposals')
-        .select(`
-          id,
-          title,
-          status,
-          created_at,
-          companies:company_id (
-            name
-          )
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      const stats: DashboardStats = {
-        totalProposals: totalProposals || 0,
+      return {
         totalProposalsSent: totalProposalsSent || 0,
         totalProposalsValue,
         totalClients: totalClients || 0,
@@ -135,26 +94,7 @@ export const useDashboardData = () => {
         lastProposalSentAt: lastProposal?.[0]?.created_at || null,
         proposalsExpiringSoon: proposalsExpiringSoon || [],
       };
-
-      return {
-        stats,
-        recentProposals: recentProposals || []
-      };
     },
     enabled: !!user?.id,
   });
-
-  return {
-    stats: data?.stats || {
-      totalProposals: 0,
-      totalProposalsSent: 0,
-      totalProposalsValue: 0,
-      totalClients: 0,
-      totalProposalsApproved: 0,
-      lastProposalSentAt: null,
-      proposalsExpiringSoon: []
-    },
-    recentProposals: data?.recentProposals || [],
-    loading: isLoading
-  };
 };
