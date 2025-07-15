@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -104,7 +103,6 @@ const ChatPropostaPage = () => {
       }
 
       if (data?.content) {
-        // Verificar se a IA sugeriu gerar a proposta com a frase específica
         const showGenerateButton = data.content.includes('Parece que já temos as informações principais! Quer que eu gere a proposta para você revisar?');
         
         const assistantMessage = { 
@@ -121,7 +119,6 @@ const ChatPropostaPage = () => {
       console.error('Erro no chat:', error);
       toast.error('Erro ao enviar mensagem. Tente novamente.');
       
-      // Adicionar uma resposta de fallback
       setMessages([...newMessages, { 
         role: 'assistant', 
         content: 'Desculpe, houve um erro. Pode repetir sua pergunta? Estou aqui para ajudar com sua proposta.' 
@@ -135,9 +132,8 @@ const ChatPropostaPage = () => {
     setIsGenerating(true);
     
     try {
-      console.log('=== INICIANDO GERAÇÃO DE PROPOSTA ===');
+      console.log('=== GERANDO PREVIEW (NÃO CONTA PROPOSTA) ===');
       console.log('Mensagens para análise:', messages);
-      console.log('Total de mensagens:', messages.length);
       
       const { data, error } = await supabase.functions.invoke('chat-proposal', {
         body: { 
@@ -157,10 +153,8 @@ const ChatPropostaPage = () => {
         try {
           console.log('Conteúdo bruto recebido da IA:', data.content);
           
-          // Tentar extrair JSON da resposta (às vezes a IA adiciona texto extra)
           let jsonContent = data.content;
           
-          // Procurar por JSON válido na resposta
           const jsonMatch = data.content.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
             jsonContent = jsonMatch[0];
@@ -171,7 +165,6 @@ const ChatPropostaPage = () => {
           const parsedData = JSON.parse(jsonContent);
           console.log('Dados parseados com sucesso:', parsedData);
           
-          // Validar se temos dados mínimos
           if (!parsedData.cliente || !parsedData.servico) {
             console.warn('Dados incompletos detectados:', parsedData);
             toast.warning('Alguns dados importantes podem estar faltando. Revise o preview.');
@@ -179,7 +172,7 @@ const ChatPropostaPage = () => {
           
           setProposalData(parsedData);
           setShowPreview(true);
-          toast.success('Proposta gerada! Revise as informações antes de confirmar.');
+          toast.success('Preview gerado! Revise as informações antes de confirmar.');
         } catch (parseError) {
           console.error('Erro ao processar dados:', parseError);
           console.log('Conteúdo que falhou no parse:', data.content);
@@ -190,8 +183,8 @@ const ChatPropostaPage = () => {
         throw new Error('Resposta vazia da função de geração');
       }
     } catch (error) {
-      console.error('Erro ao gerar proposta:', error);
-      toast.error('Erro ao gerar proposta. Tente novamente ou continue a conversa.');
+      console.error('Erro ao gerar preview:', error);
+      toast.error('Erro ao gerar preview. Tente novamente ou continue a conversa.');
     } finally {
       setIsGenerating(false);
     }
@@ -203,7 +196,9 @@ const ChatPropostaPage = () => {
       return;
     }
     
-    // Verificar se pode criar propostas APENAS aqui, quando vai efetivamente criar
+    console.log('=== CRIANDO PROPOSTA FINAL (AQUI CONTA) ===');
+    console.log('Verificando permissões antes de criar...');
+    
     if (!canCreateProposal) {
       toast.error('Você atingiu o limite de propostas do seu plano. Faça upgrade para o plano Professional.');
       return;
@@ -226,6 +221,7 @@ const ChatPropostaPage = () => {
         parseFloat(proposalData.valor.toString().replace(/[^\d,]/g, '').replace(',', '.')) : 
         null;
 
+      console.log('Criando proposta no banco de dados...');
       await createProposal.mutateAsync({
         user_id: user.id,
         company_id: companyId,
@@ -239,6 +235,7 @@ const ChatPropostaPage = () => {
         status: 'rascunho'
       });
 
+      console.log('Proposta criada com sucesso!');
       toast.success('Proposta criada com sucesso!');
       navigate('/propostas');
     } catch (error) {
@@ -261,7 +258,6 @@ const ChatPropostaPage = () => {
     setProposalData(null);
   };
 
-  // Se ainda está carregando as permissões, mostrar loading
   if (permissionsLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -332,12 +328,12 @@ const ChatPropostaPage = () => {
                                {isGenerating ? (
                                  <>
                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2"></div>
-                                   Gerando Proposta...
+                                   Gerando Preview...
                                  </>
                                ) : (
                                  <>
                                    <Wand2 className="h-3 w-3 mr-2" />
-                                   ✨ Gerar Proposta Agora
+                                   ✨ Gerar Preview da Proposta
                                  </>
                                )}
                              </Button>
@@ -438,7 +434,7 @@ const ChatPropostaPage = () => {
                   {isGenerating ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Gerando...
+                      Gerando Preview...
                     </>
                   ) : (
                     <>
@@ -454,7 +450,7 @@ const ChatPropostaPage = () => {
                 )}
                 {messages.length >= 3 && (
                   <p className="text-xs text-green-700 mt-2 font-medium">
-                    ✅ Pronto para gerar proposta!
+                    ✅ Pronto para gerar preview!
                   </p>
                 )}
               </CardContent>
@@ -512,12 +508,12 @@ const ChatPropostaPage = () => {
                     {isGenerating ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Criando...
+                        Criando Proposta...
                       </>
                     ) : (
                       <>
                         <Wand2 className="h-4 w-4 mr-2" />
-                        Confirmar e Criar Proposta
+                        ✅ Confirmar e Criar Proposta Final
                       </>
                     )}
                   </Button>
