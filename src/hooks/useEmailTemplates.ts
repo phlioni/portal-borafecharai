@@ -184,6 +184,18 @@ export const useEmailTemplates = () => {
       processed = processed.replace(regex, safeValue);
       console.log(`Substituindo [${key}] por "${safeValue}"`);
     });
+
+    // Limpar linhas vazias que contêm apenas emojis sem texto
+    const lines = processed.split('\n');
+    const cleanedLines = lines.filter(line => {
+      const trimmed = line.trim();
+      // Remove linhas que são apenas emojis sem conteúdo
+      if (trimmed === '📧' || trimmed === '📱') return false;
+      if (trimmed.match(/^📧\s*$/) || trimmed.match(/^📱\s*$/)) return false;
+      return true;
+    });
+    
+    processed = cleanedLines.join('\n');
     
     console.log('Template processado final:', processed);
     return processed;

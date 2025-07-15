@@ -72,7 +72,22 @@ const SendProposalModal = ({
       // Processar templates com as variáveis
       const processedSubject = processTemplate(template.email_subject_template || '', variables);
       const processedMessage = processTemplate(template.email_message_template || '', variables);
-      const processedSignature = processTemplate(template.email_signature || '', variables);
+      
+      // Processar assinatura com validação de campos vazios
+      let processedSignature = processTemplate(template.email_signature || '', variables);
+      
+      // Remover linhas vazias da assinatura quando campos estão vazios
+      if (processedSignature) {
+        const signatureLines = processedSignature.split('\n').filter(line => {
+          const trimmedLine = line.trim();
+          // Remove linhas que contêm apenas emojis seguidos de espaços vazios
+          if (trimmedLine === '📧' || trimmedLine === '📱') return false;
+          if (trimmedLine.startsWith('📧 ') && trimmedLine.length <= 3) return false;
+          if (trimmedLine.startsWith('📱 ') && trimmedLine.length <= 3) return false;
+          return trimmedLine.length > 0;
+        });
+        processedSignature = signatureLines.join('\n');
+      }
       
       console.log('Subject processado:', processedSubject);
       console.log('Message processada:', processedMessage);
