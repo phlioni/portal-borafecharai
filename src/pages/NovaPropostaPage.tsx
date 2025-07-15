@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,14 +11,17 @@ import { useCreateProposal } from '@/hooks/useProposals';
 import { useCompanies } from '@/hooks/useCompanies';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import ProposalPreviewModal from '@/components/ProposalPreviewModal';
+import ProposalCreatePreviewModal from '@/components/ProposalCreatePreviewModal';
+import SendProposalModal from '@/components/SendProposalModal';
 import BudgetItemsManager from '@/components/BudgetItemsManager';
+import { useProposalSending } from '@/hooks/useProposalSending';
 
 const NovaPropostaPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const createProposal = useCreateProposal();
   const { data: companies } = useCompanies();
+  const { sendProposal, isSending } = useProposalSending();
 
   const [formData, setFormData] = useState({
     title: '',
@@ -32,9 +34,9 @@ const NovaPropostaPage = () => {
   });
 
   const [showPreview, setShowPreview] = useState(false);
+  const [showSendModal, setShowSendModal] = useState(false);
   const [previewProposal, setPreviewProposal] = useState(null);
   const [companyLogo, setCompanyLogo] = useState('');
-  const [tempProposalId, setTempProposalId] = useState<string | null>(null);
   const [budgetItems, setBudgetItems] = useState<any[]>([]);
 
   const handleInputChange = (field: string, value: string) => {
@@ -48,6 +50,37 @@ const NovaPropostaPage = () => {
     setBudgetItems(items);
   };
 
+  const prepareProposalForPreview = () => {
+    // Buscar logo da empresa se selecionada
+    let logoUrl = '';
+    let selectedCompany = null;
+    
+    if (formData.company_id && formData.company_id !== 'none' && companies) {
+      selectedCompany = companies.find(c => c.id === formData.company_id);
+      logoUrl = selectedCompany?.logo_url || '';
+    }
+
+    // Calcular valor total baseado nos itens do orçamento
+    const totalValue = budgetItems.reduce((total, item) => {
+      return total + (item.quantity * item.unit_price);
+    }, 0);
+
+    const proposalForPreview = {
+      id: 'temp-id',
+      ...formData,
+      value: totalValue,
+      companies: selectedCompany,
+      created_at: new Date().toISOString(),
+      user_id: user?.id,
+      proposal_budget_items: budgetItems.map(item => ({
+        ...item,
+        total_price: item.quantity * item.unit_price
+      }))
+    };
+
+    return { proposalForPreview, logoUrl };
+  };
+
   const handlePreview = async () => {
     if (!formData.title) {
       toast.error('Título é obrigatório para visualizar');
@@ -55,28 +88,7 @@ const NovaPropostaPage = () => {
     }
 
     try {
-      // Buscar logo da empresa se selecionada
-      let logoUrl = '';
-      if (formData.company_id && companies) {
-        const selectedCompany = companies.find(c => c.id === formData.company_id);
-        logoUrl = selectedCompany?.logo_url || '';
-      }
-
-      // Calcular valor total baseado nos itens do orçamento
-      const totalValue = budgetItems.reduce((total, item) => {
-        return total + (item.quantity * item.unit_price);
-      }, 0);
-
-      const proposalForPreview = {
-        id: 'temp-id',
-        ...formData,
-        value: totalValue,
-        companies: formData.company_id && companies ? 
-          companies.find(c => c.id === formData.company_id) : null,
-        created_at: new Date().toISOString(),
-        user_id: user?.id
-      };
-
+      const { proposalForPreview, logoUrl } = prepareProposalForPreview();
       setPreviewProposal(proposalForPreview);
       setCompanyLogo(logoUrl);
       setShowPreview(true);
@@ -86,21 +98,62 @@ const NovaPropostaPage = () => {
     }
   };
 
-  const handleSave = async () => {
+  const handleSaveAsDraft = async () => {
     if (!formData.title) {
       toast.error('Título é obrigatório');
       return;
     }
 
     try {
-      // Calcular valor total baseado nos itens do orçamento
       const totalValue = budgetItems.reduce((total, item) => {
         return total + (item.quantity * item.unit_price);
       }, 0);
 
       const proposalData = {
         title: formData.title,
-        company_id: formData.company_id || null,
+        company_id: formData.company_id && formData.company_id !== 'none' ? formData.company_id : null,
+        service_description: formData.service_description || null,
+        detailed_description: formData.detailed_description || null,
+        value: totalValue > 0 ? totalValue : null,
+        delivery_time: formData.delivery_time || null,
+        validity_date: formData.validity_date || null,
+        observations: formData.observations || null,
+        status: 'rascunho' as const,
+        user_id: user!.id
+      };
+
+      const newProposal = await createProposal.mutateAsync(proposalData);
+      
+      if (budgetItems.length > 0) {
+        sessionStorage.setItem('pendingBudgetItems', JSON.stringify(budgetItems));
+      }
+      
+      toast.success('Proposta salva como rascunho!');
+      setShowPreview(false);
+      navigate(`/propostas/visualizar/${newProposal.id}`);
+    } catch (error) {
+      console.error('Erro ao salvar rascunho:', error);
+      toast.error('Erro ao salvar rascunho');
+    }
+  };
+
+  const handleSendEmail = () => {
+    setShowPreview(false);
+    setShowSendModal(true);
+  };
+
+  const handleSendProposal = async (emailData: any) => {
+    if (!previewProposal) return;
+
+    try {
+      // Primeiro criar a proposta
+      const totalValue = budgetItems.reduce((total, item) => {
+        return total + (item.quantity * item.unit_price);
+      }, 0);
+
+      const proposalData = {
+        title: formData.title,
+        company_id: formData.company_id && formData.company_id !== 'none' ? formData.company_id : null,
         service_description: formData.service_description || null,
         detailed_description: formData.detailed_description || null,
         value: totalValue > 0 ? totalValue : null,
@@ -113,18 +166,20 @@ const NovaPropostaPage = () => {
 
       const newProposal = await createProposal.mutateAsync(proposalData);
       
-      // Se há itens no orçamento, salvá-los no sessionStorage para processamento posterior
       if (budgetItems.length > 0) {
         sessionStorage.setItem('pendingBudgetItems', JSON.stringify(budgetItems));
       }
-      
-      toast.success('Proposta criada com sucesso!');
-      
-      // Navegar para a página de visualização da proposta criada
-      navigate(`/propostas/visualizar/${newProposal.id}`);
+
+      // Enviar por email
+      const success = await sendProposal(newProposal, emailData);
+      if (success) {
+        setShowSendModal(false);
+        toast.success('Proposta criada e enviada com sucesso!');
+        navigate(`/propostas/visualizar/${newProposal.id}`);
+      }
     } catch (error) {
-      console.error('Erro ao criar proposta:', error);
-      toast.error('Erro ao criar proposta');
+      console.error('Erro ao criar e enviar proposta:', error);
+      toast.error('Erro ao criar e enviar proposta');
     }
   };
 
@@ -146,10 +201,6 @@ const NovaPropostaPage = () => {
           <Button variant="outline" onClick={handlePreview}>
             <Eye className="h-4 w-4 mr-2" />
             Visualizar
-          </Button>
-          <Button onClick={handleSave} disabled={createProposal.isPending}>
-            <Save className="h-4 w-4 mr-2" />
-            Salvar Proposta
           </Button>
         </div>
       </div>
@@ -248,7 +299,7 @@ const NovaPropostaPage = () => {
           </CardHeader>
           <CardContent>
             <BudgetItemsManager 
-              proposalId={tempProposalId || 'temp-proposal'} 
+              proposalId={'temp-proposal'} 
               isNewProposal={true}
               onItemsChange={handleBudgetItemsChange}
             />
@@ -258,12 +309,27 @@ const NovaPropostaPage = () => {
 
       {/* Preview Modal */}
       {showPreview && previewProposal && (
-        <ProposalPreviewModal
+        <ProposalCreatePreviewModal
           isOpen={showPreview}
           onClose={() => setShowPreview(false)}
-          onContinue={handleSave}
+          onSaveAsDraft={handleSaveAsDraft}
+          onSendEmail={handleSendEmail}
           proposal={previewProposal}
           companyLogo={companyLogo}
+          isLoading={createProposal.isPending}
+        />
+      )}
+
+      {/* Send Modal */}
+      {showSendModal && previewProposal && (
+        <SendProposalModal
+          isOpen={showSendModal}
+          onClose={() => setShowSendModal(false)}
+          onSend={handleSendProposal}
+          proposalTitle={previewProposal.title}
+          clientName={previewProposal.companies?.name}
+          clientEmail={previewProposal.companies?.email}
+          isLoading={isSending || createProposal.isPending}
         />
       )}
     </div>
