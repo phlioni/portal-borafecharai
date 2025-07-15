@@ -95,38 +95,20 @@ serve(async (req) => {
 
       case 'waiting_description':
         sessionData.description = text;
-        responseText = `✅ Descrição salva!\n\n5️⃣ Qual é o valor total do projeto? (exemplo: 5000)`;
-        newStep = 'waiting_value';
-        break;
-
-      case 'waiting_value':
-        sessionData.value = parseFloat(text?.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
-        responseText = `✅ Valor: R$ ${sessionData.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n\n6️⃣ Qual é o prazo de entrega? (exemplo: 30 dias)`;
+        responseText = `✅ Descrição salva!\n\n5️⃣ Qual é o prazo de entrega? (exemplo: 30 dias)`;
         newStep = 'waiting_delivery';
         break;
 
       case 'waiting_delivery':
         sessionData.delivery_time = text;
-        responseText = `✅ Prazo: ${text}\n\n7️⃣ Você gostaria de incluir um orçamento detalhado com materiais e mão de obra?\n\nResponda:\n• SIM - para incluir orçamento detalhado\n• NÃO - para pular esta etapa`;
-        newStep = 'waiting_budget_choice';
-        break;
-
-      case 'waiting_budget_choice':
-        if (text?.toUpperCase().includes('SIM')) {
-          sessionData.includeBudget = true;
-          sessionData.budgetItems = [];
-          responseText = `✅ Vamos incluir orçamento detalhado!\n\n📋 Agora me informe os itens do orçamento.\n\nPara cada item, envie no formato:\n**Tipo|Descrição|Quantidade|Valor**\n\nOnde:\n• Tipo: "material" ou "mao_de_obra"\n• Descrição: descrição do item\n• Quantidade: número\n• Valor: valor unitário\n\nExemplo:\nmaterial|Cabo de rede|10|15.50\n\nPara vários itens, separe com vírgula:\nmaterial|Cabo de rede|10|15.50,mao_de_obra|Instalação|1|200.00\n\nOu digite FINALIZAR quando terminar.`;
-          newStep = 'waiting_budget_items';
-        } else {
-          sessionData.includeBudget = false;
-          responseText = `✅ Orçamento detalhado não será incluído.\n\n8️⃣ Alguma observação especial? (ou digite PULAR)`;
-          newStep = 'waiting_observations';
-        }
+        sessionData.budgetItems = [];
+        responseText = `✅ Prazo: ${text}\n\n📋 Agora vamos criar o orçamento detalhado.\n\nPara cada item, envie no formato:\n**Tipo|Descrição|Quantidade|Valor**\n\nOnde:\n• Tipo: "material" ou "mao_de_obra"\n• Descrição: descrição do item\n• Quantidade: número\n• Valor: valor unitário\n\nExemplo:\nmaterial|Cabo de rede|10|15.50\n\nPara vários itens, separe com vírgula:\nmaterial|Cabo de rede|10|15.50,mao_de_obra|Instalação|1|200.00\n\nOu digite FINALIZAR quando terminar.`;
+        newStep = 'waiting_budget_items';
         break;
 
       case 'waiting_budget_items':
         if (text?.toUpperCase() === 'FINALIZAR') {
-          responseText = `✅ Itens do orçamento salvos!\n\n8️⃣ Alguma observação especial? (ou digite PULAR)`;
+          responseText = `✅ Itens do orçamento salvos!\n\n7️⃣ Alguma observação especial? (ou digite PULAR)`;
           newStep = 'waiting_observations';
         } else {
           // Processar itens do orçamento
@@ -158,7 +140,12 @@ serve(async (req) => {
         if (text?.toUpperCase() !== 'PULAR') {
           sessionData.observations = text;
         }
-        responseText = `🎉 Informações coletadas com sucesso!\n\n📋 **Resumo da Proposta:**\n\n👤 **Cliente:** ${sessionData.client}\n🏢 **Responsável:** ${sessionData.responsible}\n📋 **Título:** ${sessionData.title}\n💰 **Valor:** R$ ${sessionData.value?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n⏰ **Prazo:** ${sessionData.delivery_time}\n🔧 **Orçamento detalhado:** ${sessionData.includeBudget ? 'Sim' : 'Não'}\n\nDigite CONFIRMAR para criar a proposta ou CANCELAR para recomeçar.`;
+        
+        // Calcular total
+        const total = (sessionData.budgetItems || []).reduce((sum: number, item: any) => 
+          sum + (item.quantity * item.unit_price), 0);
+        
+        responseText = `🎉 Informações coletadas com sucesso!\n\n📋 **Resumo da Proposta:**\n\n👤 **Cliente:** ${sessionData.client}\n🏢 **Responsável:** ${sessionData.responsible}\n📋 **Título:** ${sessionData.title}\n💰 **Valor:** R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n⏰ **Prazo:** ${sessionData.delivery_time}\n🔧 **Itens:** ${(sessionData.budgetItems || []).length}\n\nDigite CONFIRMAR para criar a proposta ou CANCELAR para recomeçar.`;
         newStep = 'waiting_confirmation';
         break;
 
@@ -178,6 +165,10 @@ serve(async (req) => {
           }
 
           if (userId) {
+            // Calcular valor total
+            const totalValue = (sessionData.budgetItems || []).reduce((sum: number, item: any) => 
+              sum + (item.quantity * item.unit_price), 0);
+
             // Criar proposta no banco
             const { data: proposal, error: proposalError } = await supabase
               .from('proposals')
@@ -185,10 +176,10 @@ serve(async (req) => {
                 title: sessionData.title,
                 service_description: sessionData.title,
                 detailed_description: sessionData.description,
-                value: sessionData.value,
+                value: totalValue,
                 delivery_time: sessionData.delivery_time,
                 observations: sessionData.observations || null,
-                template_id: 'moderno',
+                template_id: 'standard',
                 user_id: userId,
                 status: 'enviada'
               })

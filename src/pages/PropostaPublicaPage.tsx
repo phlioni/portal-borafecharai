@@ -6,7 +6,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import ProposalTemplateRenderer from '@/components/ProposalTemplateRenderer';
-import BudgetItemsManager from '@/components/BudgetItemsManager';
 import { Check, X, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -270,11 +269,6 @@ const PropostaPublicaPage = () => {
       {/* Conteúdo da Proposta */}
       <div className="pt-24 sm:pt-20 pb-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          {/* Budget Items in Read-Only Mode */}
-          <div className="mb-6">
-            <BudgetItemsManager proposalId={proposal.id} isReadOnly={true} />
-          </div>
-          
           <div className="bg-white rounded-lg shadow-sm">
             <ProposalTemplateRenderer 
               proposal={proposal} 

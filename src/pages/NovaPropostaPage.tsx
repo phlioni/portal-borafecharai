@@ -35,11 +35,9 @@ const NovaPropostaPage = () => {
     company_id: '',
     service_description: '',
     detailed_description: '',
-    value: '',
     delivery_time: '',
     validity_date: '',
-    observations: '',
-    template_id: 'moderno'
+    observations: ''
   });
 
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
@@ -116,7 +114,7 @@ const NovaPropostaPage = () => {
         status: 'rascunho',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        value: formData.value ? parseFloat(formData.value.replace(/[^\d,]/g, '').replace(',', '.')) : null,
+        value: calculateBudgetTotal(), // Usar o total calculado dos itens
         companies: formData.company_id && companies ? 
           companies.find(c => c.id === formData.company_id) : null,
         proposal_budget_items: budgetItems.map(item => ({
@@ -150,11 +148,11 @@ const NovaPropostaPage = () => {
         company_id: formData.company_id || null,
         service_description: formData.service_description || null,
         detailed_description: formData.detailed_description || null,
-        value: formData.value ? parseFloat(formData.value.replace(/[^\d,]/g, '').replace(',', '.')) : null,
+        value: calculateBudgetTotal() || null, // Usar o total calculado
         delivery_time: formData.delivery_time || null,
         validity_date: formData.validity_date || null,
         observations: formData.observations || null,
-        template_id: formData.template_id,
+        template_id: 'standard', // Usar template padrão
         status: 'rascunho',
         user_id: user?.id || ''
       };
@@ -257,15 +255,6 @@ const NovaPropostaPage = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="value">Valor</Label>
-                <Input
-                  id="value"
-                  value={formData.value}
-                  onChange={(e) => handleInputChange('value', e.target.value)}
-                  placeholder="R$ 0,00"
-                />
-              </div>
-              <div>
                 <Label htmlFor="delivery_time">Prazo de Entrega</Label>
                 <Input
                   id="delivery_time"
@@ -274,28 +263,15 @@ const NovaPropostaPage = () => {
                   placeholder="Ex: 30 dias"
                 />
               </div>
-            </div>
-            <div>
-              <Label htmlFor="validity_date">Validade</Label>
-              <Input
-                id="validity_date"
-                type="date"
-                value={formData.validity_date}
-                onChange={(e) => handleInputChange('validity_date', e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="template_id">Modelo de Template</Label>
-              <Select value={formData.template_id} onValueChange={(value) => handleInputChange('template_id', value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="moderno">Moderno</SelectItem>
-                  <SelectItem value="executivo">Executivo</SelectItem>
-                  <SelectItem value="criativo">Criativo</SelectItem>
-                </SelectContent>
-              </Select>
+              <div>
+                <Label htmlFor="validity_date">Validade</Label>
+                <Input
+                  id="validity_date"
+                  type="date"
+                  value={formData.validity_date}
+                  onChange={(e) => handleInputChange('validity_date', e.target.value)}
+                />
+              </div>
             </div>
             <div>
               <Label htmlFor="observations">Observações</Label>
@@ -313,7 +289,7 @@ const NovaPropostaPage = () => {
         {/* Budget Items Manager */}
         <Card>
           <CardHeader>
-            <CardTitle>Orçamento Detalhado (Opcional)</CardTitle>
+            <CardTitle>Orçamento Detalhado</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Add new item form */}

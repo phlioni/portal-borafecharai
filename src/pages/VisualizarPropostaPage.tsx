@@ -8,7 +8,6 @@ import SendProposalModal from '@/components/SendProposalModal';
 import ProposalPreviewModal from '@/components/ProposalPreviewModal';
 import ProposalHeader from '@/components/ProposalHeader';
 import ProposalTemplateRenderer from '@/components/ProposalTemplateRenderer';
-import BudgetItemsManager from '@/components/BudgetItemsManager';
 import { useProposalSending } from '@/hooks/useProposalSending';
 import { useCreateBudgetItem } from '@/hooks/useBudgetItems';
 import { toast } from 'sonner';
@@ -95,14 +94,6 @@ const VisualizarPropostaPage = () => {
     }
   }, [id, createBudgetItem, isLoading, proposal, refetch]);
 
-  React.useEffect(() => {
-    // Carregar logo da empresa
-    const savedLogo = localStorage.getItem('company_logo');
-    if (savedLogo) {
-      setCompanyLogo(savedLogo);
-    }
-  }, []);
-
   const handleSendProposal = async (emailData: any) => {
     if (!proposal) return;
 
@@ -159,9 +150,6 @@ const VisualizarPropostaPage = () => {
           onEdit={() => navigate(`/propostas/editar/${proposal.id}`)}
           onSend={() => setShowPreviewModal(true)}
         />
-
-        {/* Budget Items in Read-Only Mode */}
-        <BudgetItemsManager proposalId={proposal.id} isReadOnly={true} />
 
         {/* Proposal Preview */}
         <div className="bg-white rounded-lg shadow-sm p-1">
