@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
@@ -74,10 +75,10 @@ const supabase = createClient(
 const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
 
 async function sendTelegramMessage(chatId: number, text: string, replyMarkup?: any) {
-  console.log(`Enviando mensagem para chat ${chatId}:`, text);
+  console.log(`📤 Enviando mensagem para chat ${chatId}:`, text);
 
   if (!botToken) {
-    console.error('TELEGRAM_BOT_TOKEN não configurado');
+    console.error('❌ TELEGRAM_BOT_TOKEN não configurado');
     return;
   }
 
@@ -98,13 +99,13 @@ async function sendTelegramMessage(chatId: number, text: string, replyMarkup?: a
     });
 
     const responseData = await response.json();
-    console.log('Resposta do Telegram:', responseData);
+    console.log('✅ Resposta do Telegram:', responseData);
 
     if (!response.ok) {
-      console.error('Erro ao enviar mensagem Telegram:', responseData);
+      console.error('❌ Erro ao enviar mensagem Telegram:', responseData);
     }
   } catch (error) {
-    console.error('Erro na requisição para Telegram:', error);
+    console.error('❌ Erro na requisição para Telegram:', error);
   }
 }
 
@@ -117,7 +118,7 @@ async function downloadTelegramFile(fileId: string): Promise<ArrayBuffer | null>
     const fileInfo = await fileInfoResponse.json();
 
     if (!fileInfo.ok) {
-      console.error('Erro ao obter informações do arquivo:', fileInfo);
+      console.error('❌ Erro ao obter informações do arquivo:', fileInfo);
       return null;
     }
 
@@ -125,7 +126,7 @@ async function downloadTelegramFile(fileId: string): Promise<ArrayBuffer | null>
     const fileResponse = await fetch(`https://api.telegram.org/file/bot${botToken}/${fileInfo.result.file_path}`);
     return await fileResponse.arrayBuffer();
   } catch (error) {
-    console.error('Erro ao baixar arquivo do Telegram:', error);
+    console.error('❌ Erro ao baixar arquivo do Telegram:', error);
     return null;
   }
 }
@@ -146,14 +147,14 @@ async function transcribeAudio(audioBuffer: ArrayBuffer): Promise<string | null>
     });
 
     if (!response.ok) {
-      console.error('Erro na transcrição:', await response.text());
+      console.error('❌ Erro na transcrição:', await response.text());
       return null;
     }
 
     const result = await response.json();
     return result.text;
   } catch (error) {
-    console.error('Erro ao transcrever áudio:', error);
+    console.error('❌ Erro ao transcrever áudio:', error);
     return null;
   }
 }
@@ -209,7 +210,7 @@ Para missingFields, inclua apenas os campos essenciais que não foram identifica
     });
 
     if (!response.ok) {
-      console.error('Erro na API OpenAI:', await response.text());
+      console.error('❌ Erro na API OpenAI:', await response.text());
       return { processedData: {}, missingFields: [] };
     }
 
@@ -223,18 +224,18 @@ Para missingFields, inclua apenas os campos essenciais que não foram identifica
         missingFields: parsed.missingFields || []
       };
     } catch (parseError) {
-      console.error('Erro ao parsear resposta da IA:', parseError);
+      console.error('❌ Erro ao parsear resposta da IA:', parseError);
       return { processedData: {}, missingFields: [] };
     }
   } catch (error) {
-    console.error('Erro ao processar com IA:', error);
+    console.error('❌ Erro ao processar com IA:', error);
     return { processedData: {}, missingFields: [] };
   }
 }
 
 // Função para carregar sessão do banco de dados
 async function loadSession(telegramUserId: number, chatId: number): Promise<UserSession> {
-  console.log(`Carregando sessão para usuário ${telegramUserId}, chat ${chatId}`);
+  console.log(`🔍 Carregando sessão para usuário ${telegramUserId}, chat ${chatId}`);
 
   try {
     const { data: sessionData, error } = await supabase
@@ -245,23 +246,25 @@ async function loadSession(telegramUserId: number, chatId: number): Promise<User
       .single();
 
     if (error && error.code !== 'PGRST116') {
-      console.error('Erro ao carregar sessão:', error);
+      console.error('❌ Erro ao carregar sessão:', error);
     }
 
     if (sessionData) {
-      console.log('Sessão encontrada:', sessionData);
+      console.log('✅ Sessão encontrada:', sessionData);
 
       // Verificar se a sessão não expirou
       if (new Date(sessionData.expires_at) > new Date()) {
-        return {
+        const loadedSession = {
           step: sessionData.step,
           data: sessionData.session_data || {},
           phone: sessionData.phone,
           userId: sessionData.user_id,
           userProfile: sessionData.user_profile || {}
         };
+        console.log('💾 Sessão carregada com sucesso:', loadedSession);
+        return loadedSession;
       } else {
-        console.log('Sessão expirada, removendo...');
+        console.log('⏰ Sessão expirada, removendo...');
         await supabase
           .from('telegram_sessions')
           .delete()
@@ -270,15 +273,17 @@ async function loadSession(telegramUserId: number, chatId: number): Promise<User
       }
     }
   } catch (error) {
-    console.error('Erro ao carregar sessão:', error);
+    console.error('❌ Erro ao carregar sessão:', error);
   }
 
-  return { step: 'start', data: {} };
+  const newSession = { step: 'start', data: {} };
+  console.log('🆕 Nova sessão criada:', newSession);
+  return newSession;
 }
 
 // Função para salvar sessão no banco de dados
 async function saveSession(telegramUserId: number, chatId: number, session: UserSession) {
-  console.log(`Salvando sessão para usuário ${telegramUserId}, chat ${chatId}:`, session);
+  console.log(`💾 Salvando sessão para usuário ${telegramUserId}, chat ${chatId}:`, session);
 
   try {
     const { error } = await supabase
@@ -297,18 +302,35 @@ async function saveSession(telegramUserId: number, chatId: number, session: User
       });
 
     if (error) {
-      console.error('Erro ao salvar sessão:', error);
+      console.error('❌ Erro ao salvar sessão:', error);
       throw error;
     }
 
-    console.log('Sessão salva com sucesso');
+    console.log('✅ Sessão salva com sucesso');
   } catch (error) {
-    console.error('Erro ao salvar sessão:', error);
+    console.error('❌ Erro ao salvar sessão:', error);
+  }
+}
+
+// Função para limpar sessão
+async function clearSession(telegramUserId: number, chatId: number) {
+  console.log(`🧹 Limpando sessão para usuário ${telegramUserId}, chat ${chatId}`);
+
+  try {
+    await supabase
+      .from('telegram_sessions')
+      .delete()
+      .eq('telegram_user_id', telegramUserId)
+      .eq('chat_id', chatId);
+
+    console.log('✅ Sessão limpa com sucesso');
+  } catch (error) {
+    console.error('❌ Erro ao limpar sessão:', error);
   }
 }
 
 async function findUserByPhone(phone: string) {
-  console.log('Buscando usuário pelo telefone:', phone);
+  console.log('🔍 Buscando usuário pelo telefone:', phone);
 
   const cleanPhone = phone.replace(/\D/g, '');
 
@@ -320,11 +342,11 @@ async function findUserByPhone(phone: string) {
     .limit(1);
 
   if (error) {
-    console.error('Erro ao buscar na tabela profiles:', error);
+    console.error('❌ Erro ao buscar na tabela profiles:', error);
   }
 
   if (profiles && profiles.length > 0) {
-    console.log('Usuário encontrado na tabela profiles:', profiles[0]);
+    console.log('✅ Usuário encontrado na tabela profiles:', profiles[0]);
     return profiles[0];
   }
 
@@ -336,11 +358,11 @@ async function findUserByPhone(phone: string) {
     .limit(1);
 
   if (companiesError) {
-    console.error('Erro ao buscar na tabela companies:', companiesError);
+    console.error('❌ Erro ao buscar na tabela companies:', companiesError);
   }
 
   if (companies && companies.length > 0) {
-    console.log('Usuário encontrado na tabela companies:', companies[0]);
+    console.log('✅ Usuário encontrado na tabela companies:', companies[0]);
     return companies[0];
   }
 
@@ -356,13 +378,13 @@ async function getUserProfile(userId: string) {
       .single();
 
     if (error) {
-      console.error('Erro ao buscar perfil:', error);
+      console.error('❌ Erro ao buscar perfil:', error);
       return null;
     }
 
     return profile;
   } catch (error) {
-    console.error('Erro ao buscar perfil:', error);
+    console.error('❌ Erro ao buscar perfil:', error);
     return null;
   }
 }
@@ -372,63 +394,15 @@ async function getUserEmail(userId: string) {
     const { data: userData, error } = await supabase.auth.admin.getUserById(userId);
 
     if (error) {
-      console.error('Erro ao buscar email do usuário:', error);
+      console.error('❌ Erro ao buscar email do usuário:', error);
       return null;
     }
 
     return userData.user?.email || null;
   } catch (error) {
-    console.error('Erro ao buscar email do usuário:', error);
+    console.error('❌ Erro ao buscar email do usuário:', error);
     return null;
   }
-}
-
-// NOVA FUNÇÃO: Recuperar sessão do usuário baseada no telefone
-async function recoverUserSession(session: UserSession): Promise<UserSession> {
-  console.log('Tentando recuperar sessão do usuário com telefone:', session.phone);
-
-  if (!session.phone) {
-    return session;
-  }
-
-  try {
-    const user = await findUserByPhone(session.phone);
-
-    if (user) {
-      console.log('Usuário recuperado:', user);
-      session.userId = user.user_id;
-      session.userProfile = await getUserProfile(user.user_id);
-
-      const userEmail = await getUserEmail(user.user_id);
-      if (userEmail) {
-        session.userProfile = session.userProfile || {};
-        session.userProfile.email = userEmail;
-      }
-
-      console.log('Sessão recuperada com sucesso:', session);
-    }
-  } catch (error) {
-    console.error('Erro ao recuperar sessão:', error);
-  }
-
-  return session;
-}
-
-// NOVA FUNÇÃO: Verificar se o usuário está autenticado
-async function ensureUserAuthenticated(session: UserSession): Promise<UserSession> {
-  // Se já tem userId, está autenticado
-  if (session.userId) {
-    return session;
-  }
-
-  // Se tem telefone mas não tem userId, tentar recuperar
-  if (session.phone) {
-    console.log('Usuário sem userId mas com telefone, tentando recuperar...');
-    return await recoverUserSession(session);
-  }
-
-  // Não está autenticado
-  return session;
 }
 
 async function sendProposalEmail(proposalId: string, recipientEmail: string, recipientName: string) {
@@ -442,19 +416,19 @@ async function sendProposalEmail(proposalId: string, recipientEmail: string, rec
     });
 
     if (error) {
-      console.error('Erro ao enviar email:', error);
+      console.error('❌ Erro ao enviar email:', error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Erro ao enviar email:', error);
+    console.error('❌ Erro ao enviar email:', error);
     return false;
   }
 }
 
 async function createProposalForUser(session: UserSession) {
-  console.log('Criando proposta para usuário:', session.userId);
+  console.log('🏗️ Criando proposta para usuário:', session.userId);
 
   if (!session.userId) {
     throw new Error('Usuário não identificado');
@@ -507,7 +481,7 @@ async function createProposalForUser(session: UserSession) {
 }
 
 async function handleMessage(update: TelegramUpdate) {
-  console.log('=== PROCESSANDO MENSAGEM ===');
+  console.log('🎯 === PROCESSANDO MENSAGEM ===');
   console.log('Update recebido:', JSON.stringify(update, null, 2));
 
   const message = update.message;
@@ -518,30 +492,27 @@ async function handleMessage(update: TelegramUpdate) {
   const text = message.text || '';
   const voice = message.voice;
 
-  console.log(`Processando mensagem do usuário ${telegramUserId} no chat ${chatId}`);
+  console.log(`📱 Processando mensagem do usuário ${telegramUserId} no chat ${chatId}`);
 
   let session = await loadSession(telegramUserId, chatId);
-  console.log('Sessão carregada:', session);
+  console.log('📋 Sessão carregada:', session);
 
   // Comando /start sempre reseta a sessão
   if (text === '/start') {
-    console.log('Comando /start recebido - resetando sessão');
-    await supabase
-      .from('telegram_sessions')
-      .delete()
-      .eq('telegram_user_id', telegramUserId)
-      .eq('chat_id', chatId);
+    console.log('🔄 Comando /start recebido, reiniciando conversa');
+    await clearSession(telegramUserId, chatId);
     session = { step: 'start', data: {} };
+    console.log('🆕 Nova sessão criada após /start:', session);
   }
 
   // Processar compartilhamento de contato
   if (message.contact) {
-    console.log('Contato compartilhado:', message.contact);
+    console.log('📞 Contato compartilhado:', message.contact);
     session.phone = message.contact.phone_number;
     const user = await findUserByPhone(session.phone);
 
     if (user) {
-      console.log('Usuário encontrado:', user);
+      console.log('👤 Usuário encontrado:', user);
       session.userId = user.user_id;
       session.userProfile = await getUserProfile(user.user_id);
 
@@ -579,7 +550,12 @@ async function handleMessage(update: TelegramUpdate) {
         `🚀 O que você gostaria de fazer?`,
         keyboard
       );
+      
       session.step = 'main_menu';
+      // CRÍTICO: Salvar sessão IMEDIATAMENTE após autenticação
+      await saveSession(telegramUserId, chatId, session);
+      console.log('✅ Sessão salva após autenticação bem-sucedida');
+      return;
     } else {
       await sendTelegramMessage(chatId,
         `❌ *Telefone não encontrado na nossa base de dados.*\n\n` +
@@ -592,9 +568,6 @@ async function handleMessage(update: TelegramUpdate) {
       await saveSession(telegramUserId, chatId, session);
       return;
     }
-
-    await saveSession(telegramUserId, chatId, session);
-    return;
   }
 
   // Processar mensagens baseadas no estado da sessão
@@ -624,49 +597,31 @@ async function handleMessage(update: TelegramUpdate) {
       break;
 
     case 'main_menu':
-      // CORREÇÃO PRINCIPAL: Verificar autenticação de forma mais robusta
-      session = await ensureUserAuthenticated(session);
-
+      // Verificar se usuário ainda está autenticado
       if (!session.userId) {
-        console.log('Usuário não autenticado após tentativa de recuperação');
+        console.log('❌ Usuário não autenticado no main_menu');
+        session.step = 'start';
+        await saveSession(telegramUserId, chatId, session);
 
-        // Só resetar se realmente não tiver dados de autenticação
-        if (!session.phone) {
-          console.log('Sem telefone na sessão, redirecionando para início');
-          session.step = 'start';
-          await saveSession(telegramUserId, chatId, session);
+        const keyboard = {
+          keyboard: [[{
+            text: "📱 Compartilhar Telefone",
+            request_contact: true
+          }]],
+          one_time_keyboard: true,
+          resize_keyboard: true
+        };
 
-          const keyboard = {
-            keyboard: [[{
-              text: "📱 Compartilhar Telefone",
-              request_contact: true
-            }]],
-            one_time_keyboard: true,
-            resize_keyboard: true
-          };
-
-          await sendTelegramMessage(chatId,
-            `🔐 *Sessão expirada ou inválida*\n\n` +
-            `Para continuar, preciso que você compartilhe seu telefone novamente.\n\n` +
-            `👇 *Clique no botão abaixo:*`,
-            keyboard
-          );
-          return;
-        } else {
-          // Tem telefone mas não conseguiu recuperar o usuário
-          await sendTelegramMessage(chatId,
-            `❌ *Erro ao recuperar seus dados*\n\n` +
-            `Telefone: ${session.phone}\n\n` +
-            `Possíveis causas:\n` +
-            `• Telefone não cadastrado no sistema\n` +
-            `• Problemas temporários no banco de dados\n\n` +
-            `Digite /start para tentar novamente.`
-          );
-          return;
-        }
+        await sendTelegramMessage(chatId,
+          `🔐 *Sessão expirada ou inválida*\n\n` +
+          `Para continuar, preciso que você compartilhe seu telefone novamente.\n\n` +
+          `👇 *Clique no botão abaixo:*`,
+          keyboard
+        );
+        return;
       }
 
-      // Usuário autenticado, processar comandos do menu
+      // Processar comandos do menu
       if (text === '🆕 Criar Nova Proposta') {
         session.step = 'ai_input';
         session.data = {};
@@ -749,10 +704,12 @@ async function handleMessage(update: TelegramUpdate) {
             await sendTelegramMessage(chatId, `🎙️ *Áudio transcrito:*\n\n"${transcription}"\n\n🤖 *Processando com IA...*`);
           } else {
             await sendTelegramMessage(chatId, `❌ *Erro ao transcrever áudio.*\n\nTente novamente com texto ou outro áudio.`);
+            await saveSession(telegramUserId, chatId, session);
             return;
           }
         } else {
           await sendTelegramMessage(chatId, `❌ *Erro ao baixar áudio.*\n\nTente novamente.`);
+          await saveSession(telegramUserId, chatId, session);
           return;
         }
       } else if (text) {
@@ -1038,11 +995,13 @@ async function handleMessage(update: TelegramUpdate) {
       break;
   }
 
+  // CRÍTICO: Salvar sessão após TODA interação
   await saveSession(telegramUserId, chatId, session);
+  console.log('💾 Sessão salva após interação:', session);
 }
 
 serve(async (req) => {
-  console.log('=== WEBHOOK TELEGRAM CHAMADO ===');
+  console.log('🚀 === WEBHOOK TELEGRAM CHAMADO ===');
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -1065,7 +1024,7 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('=== ERRO NO WEBHOOK ===', error);
+    console.error('🔥 === ERRO NO WEBHOOK ===', error);
 
     return new Response(JSON.stringify({
       error: error.message,
@@ -1076,4 +1035,3 @@ serve(async (req) => {
     });
   }
 });
-
