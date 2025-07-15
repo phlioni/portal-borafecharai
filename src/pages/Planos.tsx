@@ -20,12 +20,12 @@ const Planos = () => {
         planTier: 'basico' as const,
         features: [
           { text: 'Até 10 propostas por mês', included: true },
-          { text: 'Templates básicos', included: true },
+          { text: 'Chat com IA para criação de propostas', included: true },
+          { text: 'Bot do Telegram para consultas', included: true },
           { text: 'Gestão de clientes', included: true },
           { text: 'Suporte por email', included: true },
-          { text: 'Analytics básico', included: false },
-          { text: 'Templates premium', included: false },
-          { text: 'Suporte prioritário', included: false },
+          { text: 'Analytics completo', included: false },
+          { text: 'Propostas ilimitadas', included: false },
         ],
       },
       {
@@ -37,8 +37,8 @@ const Planos = () => {
         popular: true,
         features: [
           { text: 'Propostas ilimitadas', included: true },
-          { text: 'Templates básicos', included: true },
-          { text: 'Templates premium', included: true },
+          { text: 'Chat com IA para criação avançada', included: true },
+          { text: 'Bot do Telegram com recursos completos', included: true },
           { text: 'Gestão avançada de clientes', included: true },
           { text: 'Analytics completo', included: true },
           { text: 'Suporte prioritário', included: true },
@@ -156,7 +156,7 @@ const Planos = () => {
                 Qual a diferença entre os planos?
               </h3>
               <p className="text-gray-600">
-                O plano Essencial é ideal para freelancers com até 10 propostas mensais. O Professional oferece propostas ilimitadas, templates premium e analytics completo.
+                O plano Essencial oferece até 10 propostas mensais, acesso ao chat com IA e bot do Telegram. O Professional inclui propostas ilimitadas, chat com IA avançado, analytics completo e suporte prioritário.
               </p>
             </div>
           </div>
