@@ -46,6 +46,8 @@ interface UserSession {
     value?: string;
     deliveryTime?: string;
     observations?: string;
+    proposalId?: string; // Adicionado para armazenar o ID da proposta criada
+    proposalPublicUrl?: string; // Adicionado para armazenar a URL pública da proposta
   };
   phone?: string;
   userId?: string;
@@ -57,6 +59,7 @@ const supabase = createClient(
 );
 
 const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
+const sendEmailFunctionUrl = Deno.env.get('SEND_EMAIL_FUNCTION_URL'); // URL da função send-proposal-email
 
 async function sendTelegramMessage(chatId: number, text: string, replyMarkup?: any) {
   console.log(`Enviando mensagem para chat ${chatId}:`, text);
@@ -547,7 +550,10 @@ async function handleMessage(update: TelegramUpdate) {
       console.log('Coletando email do cliente:', text);
       if (text.toLowerCase().trim() !== 'pular') {
         // Validar email básico
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const emailRegex = /^[^
+        @]+@[^
+          @] +\.[^
+            @] + $ /;
         if (!emailRegex.test(text.trim())) {
           await sendTelegramMessage(chatId,
             `❌ *E-mail inválido.* Por favor, digite um e-mail válido ou "pular" para pular:`
@@ -656,6 +662,13 @@ async function handleMessage(update: TelegramUpdate) {
 
         console.log('Proposta criada com sucesso:', proposal);
 
+        // Armazenar proposalId e publicUrl na sessão
+        session.data.proposalId = proposal.id;
+        // Assumindo que a URL pública da proposta pode ser construída ou retornada pela função createProposalForUser
+        // Por enquanto, vamos usar um placeholder ou construir uma URL base
+        // Você precisará ajustar isso para a URL real da proposta gerada
+        session.data.proposalPublicUrl = `https://www.borafecharai.com/proposta/${proposal.public_hash || proposal.id}`;
+
         // Resumo da proposta criada
         let summary = `🎉 *Proposta criada com sucesso!*\n\n`;
         summary += `📝 *Título:* ${session.data.projectTitle}\n`;
@@ -677,6 +690,7 @@ async function handleMessage(update: TelegramUpdate) {
 
         const keyboard = {
           keyboard: [
+            [{ text: "📧 Enviar Proposta por E-mail" }],
             [{ text: "🆕 Criar Nova Proposta" }],
             [{ text: "📊 Ver Status das Propostas" }]
           ],
@@ -686,9 +700,8 @@ async function handleMessage(update: TelegramUpdate) {
 
         await sendTelegramMessage(chatId, summary, keyboard);
 
-        // Voltar ao menu principal
-        session.step = 'main_menu';
-        session.data = {};
+        // Mudar para um novo passo para lidar com o envio de e-mail ou voltar ao menu principal
+        session.step = 'proposal_created_menu';
 
       } catch (error) {
         console.error('Erro ao criar proposta:', error);
@@ -701,6 +714,152 @@ async function handleMessage(update: TelegramUpdate) {
         await clearSession(telegramUserId);
         return;
       }
+      break;
+
+    case 'proposal_created_menu':
+      if (text === '📧 Enviar Proposta por E-mail') {
+        if (!session.data.proposalId) {
+          await sendTelegramMessage(chatId, '❌ *Nenhuma proposta recente encontrada para enviar.* Por favor, crie uma proposta primeiro.');
+          session.step = 'main_menu'; // Volta para o menu principal
+          break;
+        }
+        session.step = 'send_email_recipient_name';
+        await sendTelegramMessage(chatId,
+          `📧 *Enviar Proposta por E-mail*\n\n*Para quem você gostaria de enviar a proposta?*\n` +
+          `Digite o nome do destinatário:`
+        );
+      } else if (text === '🆕 Criar Nova Proposta') {
+        session.step = 'client_name';
+        session.data = {}; // Reset proposal data
+        await sendTelegramMessage(chatId,
+          `🆕 *Vamos criar uma nova proposta!*\n\n*Para qual cliente você quer criar uma proposta?*\n` +
+          `Digite o nome da empresa ou cliente:`
+        );
+      } else if (text === '📊 Ver Status das Propostas') {
+        const proposals = await getRecentProposals(session.userId!);
+
+        if (proposals.length === 0) {
+          await sendTelegramMessage(chatId,
+            `📊 *Status das Propostas*\n\n` +
+            `❌ Você ainda não tem propostas cadastradas.\n\n` +
+            `💡 Que tal criar sua primeira proposta?`
+          );
+        } else {
+          let statusMessage = `📊 *Suas últimas ${proposals.length} propostas:*\n\n`;
+
+          proposals.forEach((proposal, index) => {
+            const statusEmoji = {
+              'rascunho': '📝',
+              'enviada': '📤',
+              'visualizada': '👁️',
+              'aceita': '✅',
+              'rejeitada': '❌'
+            };
+
+            const value = proposal.value ? `R$ ${proposal.value.toLocaleString('pt-BR')}` : 'Valor não definido';
+            const client = proposal.companies?.name || 'Cliente não informado';
+            const status = proposal.status || 'rascunho';
+
+            statusMessage += `${index + 1}. *${proposal.title}*\n`;
+            statusMessage += `   👤 Cliente: ${client}\n`;
+            statusMessage += `   💰 Valor: ${value}\n`;
+            statusMessage += `   ${statusEmoji[status]} Status: ${status.charAt(0).toUpperCase() + status.slice(1)}\n\n`;
+          });
+
+          await sendTelegramMessage(chatId, statusMessage);
+        }
+      } else {
+        await sendTelegramMessage(chatId,
+          `❓ *Não entendi sua mensagem.*\n\n` +
+          `🤖 Use os botões do menu ou digite /start para começar novamente.`
+        );
+      }
+      break;
+
+    case 'send_email_recipient_name':
+      if (!text.trim()) {
+        await sendTelegramMessage(chatId, '❌ *Nome do destinatário não pode estar vazio.* Por favor, digite o nome:');
+        return;
+      }
+      session.data.recipientName = text.trim();
+      session.step = 'send_email_recipient_email';
+      await sendTelegramMessage(chatId,
+        `✅ Destinatário: *${text}*\n\n*Qual o e-mail do destinatário?*`
+      );
+      break;
+
+    case 'send_email_recipient_email':
+      const emailRegex = /^[^
+      @]+@[^
+        @] +\.[^
+          @] + $ /;
+      if (!emailRegex.test(text.trim())) {
+        await sendTelegramMessage(chatId, '❌ *E-mail inválido.* Por favor, digite um e-mail válido:');
+        return;
+      }
+      session.data.recipientEmail = text.trim();
+      session.step = 'send_email_subject';
+      await sendTelegramMessage(chatId,
+        `✅ E-mail: *${text}*\n\n*Qual o assunto do e-mail?*\n(opcional - digite "pular" para usar o padrão)`
+      );
+      break;
+
+    case 'send_email_subject':
+      if (text.toLowerCase().trim() !== 'pular') {
+        session.data.emailSubject = text.trim();
+      }
+      session.step = 'send_email_message';
+      await sendTelegramMessage(chatId,
+        `${text.toLowerCase().trim() !== 'pular' ? '✅ Assunto: *' + text + '*' : '⏭️ Assunto padrão'}\n\n*Digite uma mensagem para o corpo do e-mail:*\n(opcional - digite "pular" para usar o padrão. Use [LINK_DA_PROPOSTA] para incluir o link da proposta.)`
+      );
+      break;
+
+    case 'send_email_message':
+      if (text.toLowerCase().trim() !== 'pular') {
+        session.data.emailMessage = text.trim();
+      }
+
+      try {
+        await sendTelegramMessage(chatId, '🚀 *Enviando e-mail...*\n\n⏳ Por favor aguarde...');
+
+        if (!sendEmailFunctionUrl) {
+          throw new Error('SEND_EMAIL_FUNCTION_URL não configurada.');
+        }
+
+        const emailPayload = {
+          proposalId: session.data.proposalId,
+          recipientEmail: session.data.recipientEmail,
+          recipientName: session.data.recipientName,
+          emailSubject: session.data.emailSubject,
+          emailMessage: session.data.emailMessage,
+          publicUrl: session.data.proposalPublicUrl // Passa a URL pública da proposta
+        };
+
+        console.log('Payload para send-proposal-email:', emailPayload);
+
+        const response = await fetch(sendEmailFunctionUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` // Pode ser necessário para autenticação da Edge Function
+          },
+          body: JSON.stringify(emailPayload),
+        });
+
+        const responseData = await response.json();
+        console.log('Resposta da função send-proposal-email:', responseData);
+
+        if (response.ok) {
+          await sendTelegramMessage(chatId, '✅ *E-mail enviado com sucesso!*');
+        } else {
+          await sendTelegramMessage(chatId, `❌ *Erro ao enviar e-mail:* ${responseData.error || 'Erro desconhecido'}`);
+        }
+      } catch (error) {
+        console.error('Erro ao chamar função de envio de e-mail:', error);
+        await sendTelegramMessage(chatId, `❌ *Erro interno ao enviar e-mail:* ${error.message}`);
+      }
+      session.step = 'main_menu'; // Volta para o menu principal
+      session.data = {}; // Limpa dados da sessão
       break;
 
     default:
@@ -765,4 +924,6 @@ serve(async (req) => {
     });
   }
 });
+
+
 
