@@ -10,6 +10,9 @@ import { useCreateBudgetItem } from '@/hooks/useBudgetItems';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate, Link } from 'react-router-dom';
+import ProposalCreatePreviewModal from '@/components/ProposalCreatePreviewModal';
+import SendProposalModal from '@/components/SendProposalModal';
+import { useProposalSending } from '@/hooks/useProposalSending';
 
 interface Message {
   id: string;
@@ -22,6 +25,7 @@ const ChatPropostaPage = () => {
   const navigate = useNavigate();
   const createProposal = useCreateProposal();
   const createBudgetItem = useCreateBudgetItem();
+  const { sendProposal, isSending } = useProposalSending();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -32,6 +36,10 @@ const ChatPropostaPage = () => {
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showGenerateButton, setShowGenerateButton] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [previewProposal, setPreviewProposal] = useState(null);
+  const [companyLogo, setCompanyLogo] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -115,11 +123,9 @@ const ChatPropostaPage = () => {
 
       let proposalData;
       try {
-        // Tentar fazer parse do JSON, com tratamento para possíveis problemas
         const jsonString = data.content.trim();
         console.log('JSON string recebido:', jsonString);
         
-        // Remover possíveis caracteres inválidos no início/fim
         const cleanJson = jsonString.replace(/^[^{]*({.*})[^}]*$/s, '$1');
         console.log('JSON limpo:', cleanJson);
         
@@ -132,13 +138,11 @@ const ChatPropostaPage = () => {
         return;
       }
 
-      // Validar dados obrigatórios
       if (!proposalData.titulo) {
         toast.error('Título da proposta é obrigatório');
         return;
       }
 
-      // Calcular valor total baseado nos itens do orçamento
       let totalValue = 0;
       if (proposalData.budget_items && Array.isArray(proposalData.budget_items)) {
         totalValue = proposalData.budget_items.reduce((total: number, item: any) => {
@@ -150,7 +154,113 @@ const ChatPropostaPage = () => {
 
       console.log('Valor total calculado:', totalValue);
 
-      // Criar a proposta
+      // Preparar proposta para preview
+      const proposalForPreview = {
+        id: 'temp-id',
+        title: proposalData.titulo,
+        service_description: proposalData.servico || '',
+        detailed_description: proposalData.descricao || '',
+        value: totalValue > 0 ? totalValue : null,
+        delivery_time: proposalData.prazo || '',
+        observations: proposalData.observacoes || '',
+        companies: proposalData.cliente ? { name: proposalData.cliente } : null,
+        created_at: new Date().toISOString(),
+        user_id: user.id,
+        proposal_budget_items: proposalData.budget_items ? proposalData.budget_items.map((item: any) => ({
+          ...item,
+          total_price: (parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0)
+        })) : []
+      };
+
+      // Buscar logo da empresa
+      const { data: userCompany } = await supabase
+        .from('companies')
+        .select('logo_url')
+        .eq('user_id', user.id)
+        .single();
+
+      setPreviewProposal(proposalForPreview);
+      setCompanyLogo(userCompany?.logo_url || '');
+      
+      // Salvar dados temporários para usar depois
+      sessionStorage.setItem('tempProposalData', JSON.stringify({
+        proposalData,
+        budgetItems: proposalData.budget_items || []
+      }));
+      
+      setShowPreview(true);
+
+    } catch (error) {
+      console.error('Erro ao gerar proposta:', error);
+      toast.error('Erro ao gerar proposta. Tente novamente.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveAsDraft = async () => {
+    const tempData = sessionStorage.getItem('tempProposalData');
+    if (!tempData || !user) return;
+
+    const { proposalData, budgetItems } = JSON.parse(tempData);
+
+    try {
+      const totalValue = budgetItems.reduce((total: number, item: any) => {
+        return total + ((parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0));
+      }, 0);
+
+      const newProposal = await createProposal.mutateAsync({
+        title: proposalData.titulo,
+        service_description: proposalData.servico || '',
+        detailed_description: proposalData.descricao || '',
+        value: totalValue > 0 ? totalValue : null,
+        delivery_time: proposalData.prazo || '',
+        observations: proposalData.observacoes || '',
+        template_id: 'standard',
+        user_id: user.id,
+        status: 'rascunho'
+      });
+
+      if (budgetItems.length > 0) {
+        for (const item of budgetItems) {
+          if (item.description && item.quantity && item.unit_price) {
+            await createBudgetItem.mutateAsync({
+              proposal_id: newProposal.id,
+              type: item.type === 'labor' ? 'labor' : 'material',
+              description: item.description,
+              quantity: parseFloat(item.quantity) || 1,
+              unit_price: parseFloat(item.unit_price) || 0
+            });
+          }
+        }
+      }
+
+      sessionStorage.removeItem('tempProposalData');
+      toast.success('Proposta salva como rascunho!');
+      setShowPreview(false);
+      navigate(`/propostas/visualizar/${newProposal.id}`);
+    } catch (error) {
+      console.error('Erro ao salvar rascunho:', error);
+      toast.error('Erro ao salvar rascunho');
+    }
+  };
+
+  const handleSendEmail = () => {
+    setShowPreview(false);
+    setShowSendModal(true);
+  };
+
+  const handleSendProposal = async (emailData: any) => {
+    const tempData = sessionStorage.getItem('tempProposalData');
+    if (!tempData || !user) return;
+
+    const { proposalData, budgetItems } = JSON.parse(tempData);
+
+    try {
+      const totalValue = budgetItems.reduce((total: number, item: any) => {
+        return total + ((parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0));
+      }, 0);
+
       const newProposal = await createProposal.mutateAsync({
         title: proposalData.titulo,
         service_description: proposalData.servico || '',
@@ -163,34 +273,30 @@ const ChatPropostaPage = () => {
         status: 'enviada'
       });
 
-      console.log('Proposta criada:', newProposal);
-
-      // Criar itens de orçamento se existirem
-      if (proposalData.budget_items && Array.isArray(proposalData.budget_items) && proposalData.budget_items.length > 0) {
-        console.log('Criando itens de orçamento:', proposalData.budget_items);
-        
-        for (const item of proposalData.budget_items) {
+      if (budgetItems.length > 0) {
+        for (const item of budgetItems) {
           if (item.description && item.quantity && item.unit_price) {
-            const budgetItem = await createBudgetItem.mutateAsync({
+            await createBudgetItem.mutateAsync({
               proposal_id: newProposal.id,
               type: item.type === 'labor' ? 'labor' : 'material',
               description: item.description,
               quantity: parseFloat(item.quantity) || 1,
               unit_price: parseFloat(item.unit_price) || 0
             });
-            console.log('Item de orçamento criado:', budgetItem);
           }
         }
       }
 
-      toast.success('Proposta criada com sucesso!');
-      navigate(`/propostas/visualizar/${newProposal.id}`);
-
+      const success = await sendProposal(newProposal, emailData);
+      if (success) {
+        sessionStorage.removeItem('tempProposalData');
+        setShowSendModal(false);
+        toast.success('Proposta criada e enviada com sucesso!');
+        navigate(`/propostas/visualizar/${newProposal.id}`);
+      }
     } catch (error) {
-      console.error('Erro ao gerar proposta:', error);
-      toast.error('Erro ao gerar proposta. Tente novamente.');
-    } finally {
-      setIsLoading(false);
+      console.error('Erro ao criar e enviar proposta:', error);
+      toast.error('Erro ao criar e enviar proposta');
     }
   };
 
@@ -263,8 +369,8 @@ const ChatPropostaPage = () => {
             </CardHeader>
             
             <CardContent className="flex-1 flex flex-col">
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-2">
+              {/* Messages - área com scroll */}
+              <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-2 max-h-[400px]">
                 {messages.map((message) => (
                   <div
                     key={message.id}
@@ -359,6 +465,32 @@ const ChatPropostaPage = () => {
           </Card>
         </div>
       </div>
+
+      {/* Preview Modal */}
+      {showPreview && previewProposal && (
+        <ProposalCreatePreviewModal
+          isOpen={showPreview}
+          onClose={() => setShowPreview(false)}
+          onSaveAsDraft={handleSaveAsDraft}
+          onSendEmail={handleSendEmail}
+          proposal={previewProposal}
+          companyLogo={companyLogo}
+          isLoading={createProposal.isPending}
+        />
+      )}
+
+      {/* Send Modal */}
+      {showSendModal && previewProposal && (
+        <SendProposalModal
+          isOpen={showSendModal}
+          onClose={() => setShowSendModal(false)}
+          onSend={handleSendProposal}
+          proposalTitle={previewProposal.title}
+          clientName={previewProposal.companies?.name}
+          clientEmail={previewProposal.companies?.email}
+          isLoading={isSending || createProposal.isPending}
+        />
+      )}
     </div>
   );
 };

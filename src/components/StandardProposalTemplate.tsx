@@ -48,6 +48,24 @@ const StandardProposalTemplate = ({ proposal, className = "" }: StandardProposal
     enabled: !!user,
   });
 
+  // Buscar dados do perfil do usuário
+  const { data: userProfile } = useQuery({
+    queryKey: ['user-profile', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) return null;
+      return data;
+    },
+    enabled: !!user,
+  });
+
   const formatCurrency = (value?: number) => {
     if (!value && value !== 0) return 'R$ 0,00';
     return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
@@ -58,7 +76,6 @@ const StandardProposalTemplate = ({ proposal, className = "" }: StandardProposal
   };
 
   const getProposalNumber = () => {
-    // Criar número da proposta baseado no ID
     const shortId = proposal.id.slice(-6).toUpperCase();
     return `016-${shortId}`;
   };
@@ -77,17 +94,20 @@ const StandardProposalTemplate = ({ proposal, className = "" }: StandardProposal
       <div className="mb-8">
         <div className="flex justify-between items-start">
           <div>
+            {userCompany?.logo_url && (
+              <img 
+                src={userCompany.logo_url} 
+                alt="Logo da Empresa" 
+                className="h-16 w-auto object-contain mb-4" 
+              />
+            )}
             <h1 className="text-xl font-bold text-gray-900 mb-1">
               {userCompany?.name || 'NOME DA EMPRESA'}
             </h1>
             <div className="text-sm text-gray-600 space-y-1">
-              {userCompany?.address && <p>{userCompany.address}</p>}
-              {userCompany?.city && userCompany?.state && (
-                <p>{userCompany.city}, {userCompany.state}</p>
-              )}
-              {userCompany?.zip_code && <p>CEP {userCompany.zip_code}</p>}
-              {userCompany?.website && <p>🌐 {userCompany.website}</p>}
-              {userCompany?.phone && <p>📞 {userCompany.phone}</p>}
+              <p><strong>Responsável:</strong> {userProfile?.name || user?.email || 'Responsável'}</p>
+              <p><strong>E-mail:</strong> {user?.email || 'email@empresa.com'}</p>
+              <p><strong>Telefone:</strong> {userProfile?.phone || userCompany?.phone || 'Telefone não informado'}</p>
             </div>
           </div>
           <div className="text-right text-sm">
@@ -99,7 +119,6 @@ const StandardProposalTemplate = ({ proposal, className = "" }: StandardProposal
       {/* Número do Orçamento */}
       <div className="mb-6 bg-gray-100 p-4">
         <h2 className="text-lg font-bold">Orçamento {getProposalNumber()}</h2>
-        <p className="text-sm text-gray-600">Toledo MG</p>
       </div>
 
       {/* Cliente */}
@@ -192,12 +211,10 @@ const StandardProposalTemplate = ({ proposal, className = "" }: StandardProposal
 
       {/* Footer */}
       <div className="text-center pt-6 mt-8 border-t border-gray-300">
-        <p className="text-sm">{userCompany?.city || 'Cidade'}, {getCurrentDate()}</p>
         <div className="mt-8 pt-4 border-t border-gray-200">
           <p className="font-bold">{userCompany?.name || 'NOME DA EMPRESA'}</p>
-          <p className="text-sm">Responsável</p>
+          <p className="text-sm">{userProfile?.name || user?.email || 'Responsável'}</p>
         </div>
-        <p className="text-xs mt-4">Página 1/1</p>
       </div>
     </div>
   );
