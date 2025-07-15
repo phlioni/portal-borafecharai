@@ -7,6 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Mail, Send, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { useEmailTemplates } from '@/hooks/useEmailTemplates';
+import { useCompanies } from '@/hooks/useCompanies';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SendProposalModalProps {
   isOpen: boolean;
@@ -27,6 +30,10 @@ const SendProposalModal = ({
   clientEmail = '',
   isLoading = false 
 }: SendProposalModalProps) => {
+  const { user } = useAuth();
+  const { data: companies } = useCompanies();
+  const { getTemplate, processTemplate } = useEmailTemplates();
+  
   const [formData, setFormData] = useState({
     recipientEmail: '',
     recipientName: '',
@@ -36,13 +43,34 @@ const SendProposalModal = ({
 
   // Atualizar dados do formulário quando props mudarem
   useEffect(() => {
-    setFormData({
-      recipientEmail: clientEmail || '',
-      recipientName: clientName || '',
-      emailSubject: `Sua proposta para o projeto ${proposalTitle} está pronta`,
-      emailMessage: `Olá ${clientName || 'Cliente'},\n\nEspero que esteja bem!\n\nSua proposta para o projeto "${proposalTitle}" está finalizada e disponível para visualização.\n\nPreparamos esta proposta cuidadosamente para atender às suas necessidades específicas. Para acessar todos os detalhes, clique no link abaixo:\n\n[LINK_DA_PROPOSTA]\n\nResumo do que incluímos:\n• Análise detalhada do seu projeto\n• Cronograma personalizado\n• Investimento transparente\n• Suporte durante toda a execução\n\nFico à disposição para esclarecer qualquer dúvida e discutir os próximos passos.\n\nAguardo seu retorno!\n\nAtenciosamente,\n[SEU_NOME]\nBora Fechar AI`
-    });
-  }, [proposalTitle, clientName, clientEmail]);
+    if (isOpen) {
+      const template = getTemplate();
+      const company = companies?.[0];
+      
+      const variables = {
+        CLIENTE_NOME: clientName || 'Cliente',
+        PROJETO_NOME: proposalTitle,
+        SEU_NOME: user?.user_metadata?.name || company?.name || 'Equipe',
+        EMPRESA_NOME: company?.name || 'Sua Empresa',
+        EMPRESA_TELEFONE: company?.phone || '',
+        EMPRESA_EMAIL: company?.email || user?.email || '',
+        BOTAO_PROPOSTA: '[LINK_DA_PROPOSTA]'
+      };
+
+      const processedSubject = processTemplate(template.email_subject_template, variables);
+      const processedMessage = processTemplate(template.email_message_template, variables);
+      const processedSignature = processTemplate(template.email_signature, variables);
+      
+      const fullMessage = `${processedMessage}\n\n${processedSignature}`;
+
+      setFormData({
+        recipientEmail: clientEmail || '',
+        recipientName: clientName || '',
+        emailSubject: processedSubject,
+        emailMessage: fullMessage
+      });
+    }
+  }, [isOpen, proposalTitle, clientName, clientEmail, user, companies, getTemplate, processTemplate]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -68,6 +96,30 @@ const SendProposalModal = ({
   };
 
   const isFormValid = formData.recipientEmail.trim() && formData.recipientName.trim();
+
+  // Função para gerar preview do email com botão estilizado
+  const generatePreviewMessage = () => {
+    return formData.emailMessage.replace(
+      '[LINK_DA_PROPOSTA]',
+      `
+      <div style="text-align: center; margin: 20px 0;">
+        <a href="#" style="
+          display: inline-block;
+          background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+          color: white;
+          padding: 12px 24px;
+          text-decoration: none;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 16px;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        ">
+          📄 Visualizar Proposta
+        </a>
+      </div>
+      `
+    );
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -124,7 +176,7 @@ const SendProposalModal = ({
                 value={formData.emailMessage}
                 onChange={(e) => handleInputChange('emailMessage', e.target.value)}
                 placeholder="Mensagem personalizada"
-                rows={8}
+                rows={12}
                 className="resize-none"
                 disabled={isLoading}
               />
@@ -143,9 +195,12 @@ const SendProposalModal = ({
                 <p><strong>Assunto:</strong> {formData.emailSubject || 'Assunto do email'}</p>
               </div>
               <div className="max-h-48 overflow-y-auto">
-                <p className="whitespace-pre-line text-sm leading-relaxed">
-                  {formData.emailMessage || 'Mensagem do email aparecerá aqui...'}
-                </p>
+                <div 
+                  className="text-sm leading-relaxed"
+                  dangerouslySetInnerHTML={{ 
+                    __html: generatePreviewMessage().replace(/\n/g, '<br>') || 'Mensagem do email aparecerá aqui...' 
+                  }}
+                />
               </div>
             </div>
           </div>

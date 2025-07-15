@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Building, CreditCard, Users, MessageSquare, Crown, Check, User } from 'lucide-react';
+import { Building, CreditCard, Users, MessageSquare, Crown, Check, User, Mail } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -17,6 +16,7 @@ import GerenciamentoUsuariosPage from './GerenciamentoUsuariosPage';
 import TelegramBotUserGuide from '@/components/TelegramBotUserGuide';
 import TelegramBotPage from './TelegramBotPage';
 import ProfileTab from '@/components/ProfileTab';
+import EmailTemplateSettings from '@/components/EmailTemplateSettings';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const ConfiguracoesPage = () => {
@@ -182,6 +182,14 @@ const ConfiguracoesPage = () => {
           {/* Tabs secundárias */}
           <div className="grid grid-cols-2 gap-2">
             <Button
+              variant={activeTab === 'email' ? 'default' : 'outline'}
+              className="flex items-center justify-center gap-2 p-3"
+              onClick={() => setActiveTab('email')}
+            >
+              <Mail className="h-4 w-4" />
+              <span className="text-xs">Email</span>
+            </Button>
+            <Button
               variant={activeTab === 'planos' ? 'default' : 'outline'}
               className="flex items-center justify-center gap-2 p-3"
               onClick={() => setActiveTab('planos')}
@@ -189,6 +197,9 @@ const ConfiguracoesPage = () => {
               <CreditCard className="h-4 w-4" />
               <span className="text-xs">Planos</span>
             </Button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
             <Button
               variant={activeTab === 'telegram' ? 'default' : 'outline'}
               className="flex items-center justify-center gap-2 p-3"
@@ -197,19 +208,17 @@ const ConfiguracoesPage = () => {
               <MessageSquare className="h-4 w-4" />
               <span className="text-xs">Bot Telegram</span>
             </Button>
+            {isAdmin && (
+              <Button
+                variant={activeTab === 'admin' ? 'default' : 'outline'}
+                className="flex items-center justify-center gap-2 p-3"
+                onClick={() => setActiveTab('admin')}
+              >
+                <Users className="h-4 w-4" />
+                <span className="text-xs">Admin</span>
+              </Button>
+            )}
           </div>
-
-          {/* Tab admin se necessário */}
-          {isAdmin && (
-            <Button
-              variant={activeTab === 'admin' ? 'default' : 'outline'}
-              className="w-full flex items-center justify-center gap-2 p-3"
-              onClick={() => setActiveTab('admin')}
-            >
-              <Users className="h-4 w-4" />
-              <span className="text-xs">Admin</span>
-            </Button>
-          )}
 
           <TabsContent value="perfil" className="mt-4">
             <ProfileTab />
@@ -319,6 +328,10 @@ const ConfiguracoesPage = () => {
             </Card>
           </TabsContent>
 
+          <TabsContent value="email" className="mt-4">
+            <EmailTemplateSettings />
+          </TabsContent>
+
           <TabsContent value="planos" className="mt-4">
             <div className="space-y-6">
               <div>
@@ -426,7 +439,7 @@ const ConfiguracoesPage = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-5' : 'grid-cols-4'}`}>
+        <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-6' : 'grid-cols-5'}`}>
           <TabsTrigger value="perfil" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Perfil
@@ -434,6 +447,10 @@ const ConfiguracoesPage = () => {
           <TabsTrigger value="negocio" className="flex items-center gap-2">
             <Building className="h-4 w-4" />
             Meu Negócio
+          </TabsTrigger>
+          <TabsTrigger value="email" className="flex items-center gap-2">
+            <Mail className="h-4 w-4" />
+            Templates Email
           </TabsTrigger>
           <TabsTrigger value="planos" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
@@ -557,6 +574,10 @@ const ConfiguracoesPage = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="email">
+          <EmailTemplateSettings />
         </TabsContent>
 
         <TabsContent value="planos">
