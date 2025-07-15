@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +19,62 @@ interface ProposalTemplatesProps {
 
 // Template components for rendering proposals
 export const ModernoTemplate: React.FC<{ proposal: any; companyLogo: string }> = ({ proposal, companyLogo }) => {
+  const renderContent = () => {
+    // Se tem detailed_description com HTML do modelo oficial, renderizar diretamente
+    if (proposal.detailed_description && proposal.detailed_description.includes('<h1>Proposta Comercial para')) {
+      return (
+        <div 
+          className="prose max-w-none"
+          dangerouslySetInnerHTML={{ __html: proposal.detailed_description }} 
+        />
+      );
+    }
+
+    // Fallback para estrutura antiga
+    return (
+      <div className="space-y-6">
+        {proposal.service_description && (
+          <div>
+            <h2 className="text-xl font-semibold mb-2">Serviço</h2>
+            <p className="text-gray-700">{proposal.service_description}</p>
+          </div>
+        )}
+        
+        {proposal.detailed_description && (
+          <div>
+            <h2 className="text-xl font-semibold mb-2">Descrição Detalhada</h2>
+            <p className="text-gray-700 whitespace-pre-wrap">{proposal.detailed_description}</p>
+          </div>
+        )}
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {proposal.value && (
+            <div>
+              <h3 className="font-semibold mb-1">Valor Total</h3>
+              <p className="text-2xl font-bold text-blue-600">
+                R$ {proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </p>
+            </div>
+          )}
+          
+          {proposal.delivery_time && (
+            <div>
+              <h3 className="font-semibold mb-1">Prazo de Entrega</h3>
+              <p className="text-gray-700">{proposal.delivery_time}</p>
+            </div>
+          )}
+        </div>
+        
+        {proposal.observations && (
+          <div>
+            <h2 className="text-xl font-semibold mb-2">Observações</h2>
+            <p className="text-gray-700 whitespace-pre-wrap">{proposal.observations}</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="p-8 bg-white">
       <div className="max-w-4xl mx-auto">
@@ -29,26 +84,49 @@ export const ModernoTemplate: React.FC<{ proposal: any; companyLogo: string }> =
           <p className="text-gray-600 mt-2">Proposta para: {proposal.companies?.name}</p>
         </div>
         
-        <div className="space-y-6">
-          {proposal.service_description && (
-            <div>
-              <h2 className="text-xl font-semibold mb-2">Serviço</h2>
-              <p className="text-gray-700">{proposal.service_description}</p>
-            </div>
-          )}
-          
-          {proposal.detailed_description && (
-            <div>
-              <h2 className="text-xl font-semibold mb-2">Descrição Detalhada</h2>
+        {renderContent()}
+      </div>
+    </div>
+  );
+};
+
+export const ExecutivoTemplate: React.FC<{ proposal: any; companyLogo: string }> = ({ proposal, companyLogo }) => {
+  const renderContent = () => {
+    // Se tem detailed_description com HTML do modelo oficial, renderizar diretamente
+    if (proposal.detailed_description && proposal.detailed_description.includes('<h1>Proposta Comercial para')) {
+      return (
+        <div 
+          className="prose max-w-none prose-headings:text-gray-800 prose-p:text-gray-700"
+          dangerouslySetInnerHTML={{ __html: proposal.detailed_description }} 
+        />
+      );
+    }
+
+    // Fallback para estrutura antiga
+    return (
+      <div className="space-y-8">
+        {proposal.service_description && (
+          <div>
+            <h2 className="text-xl font-bold text-gray-800 mb-3">Serviço Proposto</h2>
+            <p className="text-gray-700">{proposal.service_description}</p>
+          </div>
+        )}
+        
+        {proposal.detailed_description && (
+          <div>
+            <h2 className="text-xl font-bold text-gray-800 mb-3">Especificações</h2>
+            <div className="bg-gray-50 p-4 rounded">
               <p className="text-gray-700 whitespace-pre-wrap">{proposal.detailed_description}</p>
             </div>
-          )}
-          
+          </div>
+        )}
+        
+        <div className="bg-gray-800 text-white p-6 rounded">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {proposal.value && (
               <div>
-                <h3 className="font-semibold mb-1">Valor Total</h3>
-                <p className="text-2xl font-bold text-blue-600">
+                <h3 className="font-semibold mb-2">Investimento</h3>
+                <p className="text-3xl font-bold">
                   R$ {proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
@@ -56,25 +134,23 @@ export const ModernoTemplate: React.FC<{ proposal: any; companyLogo: string }> =
             
             {proposal.delivery_time && (
               <div>
-                <h3 className="font-semibold mb-1">Prazo de Entrega</h3>
-                <p className="text-gray-700">{proposal.delivery_time}</p>
+                <h3 className="font-semibold mb-2">Prazo</h3>
+                <p className="text-xl">{proposal.delivery_time}</p>
               </div>
             )}
           </div>
-          
-          {proposal.observations && (
-            <div>
-              <h2 className="text-xl font-semibold mb-2">Observações</h2>
-              <p className="text-gray-700 whitespace-pre-wrap">{proposal.observations}</p>
-            </div>
-          )}
         </div>
+        
+        {proposal.observations && (
+          <div>
+            <h2 className="text-xl font-bold text-gray-800 mb-3">Termos e Condições</h2>
+            <p className="text-gray-700 whitespace-pre-wrap">{proposal.observations}</p>
+          </div>
+        )}
       </div>
-    </div>
-  );
-};
+    );
+  };
 
-export const ExecutivoTemplate: React.FC<{ proposal: any; companyLogo: string }> = ({ proposal, companyLogo }) => {
   return (
     <div className="p-8 bg-gray-50">
       <div className="max-w-4xl mx-auto bg-white shadow-lg">
@@ -88,54 +164,13 @@ export const ExecutivoTemplate: React.FC<{ proposal: any; companyLogo: string }>
           </div>
         </div>
         
-        <div className="p-8 space-y-8">
-          <div className="border-l-4 border-gray-800 pl-4">
+        <div className="p-8">
+          <div className="border-l-4 border-gray-800 pl-4 mb-8">
             <h2 className="text-lg font-semibold text-gray-800">Cliente</h2>
             <p className="text-gray-600">{proposal.companies?.name}</p>
           </div>
           
-          {proposal.service_description && (
-            <div>
-              <h2 className="text-xl font-bold text-gray-800 mb-3">Serviço Proposto</h2>
-              <p className="text-gray-700">{proposal.service_description}</p>
-            </div>
-          )}
-          
-          {proposal.detailed_description && (
-            <div>
-              <h2 className="text-xl font-bold text-gray-800 mb-3">Especificações</h2>
-              <div className="bg-gray-50 p-4 rounded">
-                <p className="text-gray-700 whitespace-pre-wrap">{proposal.detailed_description}</p>
-              </div>
-            </div>
-          )}
-          
-          <div className="bg-gray-800 text-white p-6 rounded">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {proposal.value && (
-                <div>
-                  <h3 className="font-semibold mb-2">Investimento</h3>
-                  <p className="text-3xl font-bold">
-                    R$ {proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </p>
-                </div>
-              )}
-              
-              {proposal.delivery_time && (
-                <div>
-                  <h3 className="font-semibold mb-2">Prazo</h3>
-                  <p className="text-xl">{proposal.delivery_time}</p>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          {proposal.observations && (
-            <div>
-              <h2 className="text-xl font-bold text-gray-800 mb-3">Termos e Condições</h2>
-              <p className="text-gray-700 whitespace-pre-wrap">{proposal.observations}</p>
-            </div>
-          )}
+          {renderContent()}
         </div>
       </div>
     </div>
@@ -143,6 +178,73 @@ export const ExecutivoTemplate: React.FC<{ proposal: any; companyLogo: string }>
 };
 
 export const CriativoTemplate: React.FC<{ proposal: any; companyLogo: string }> = ({ proposal, companyLogo }) => {
+  const renderContent = () => {
+    // Se tem detailed_description com HTML do modelo oficial, renderizar diretamente
+    if (proposal.detailed_description && proposal.detailed_description.includes('<h1>Proposta Comercial para')) {
+      return (
+        <div 
+          className="prose max-w-none prose-headings:bg-gradient-to-r prose-headings:from-purple-600 prose-headings:to-blue-600 prose-headings:bg-clip-text prose-headings:text-transparent prose-p:text-gray-700"
+          dangerouslySetInnerHTML={{ __html: proposal.detailed_description }} 
+        />
+      );
+    }
+
+    // Fallback para estrutura antiga
+    return (
+      <div className="space-y-8">
+        {proposal.service_description && (
+          <div className="bg-white rounded-xl p-6 shadow-lg">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+              <span className="w-2 h-8 bg-gradient-to-b from-purple-500 to-blue-500 rounded mr-3"></span>
+              O que vamos criar
+            </h2>
+            <p className="text-gray-700 text-lg">{proposal.service_description}</p>
+          </div>
+        )}
+        
+        {proposal.detailed_description && (
+          <div className="bg-white rounded-xl p-6 shadow-lg">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+              <span className="w-2 h-8 bg-gradient-to-b from-purple-500 to-blue-500 rounded mr-3"></span>
+              Detalhes do Projeto
+            </h2>
+            <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{proposal.detailed_description}</p>
+          </div>
+        )}
+        
+        <div className="bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl p-6 text-white">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {proposal.value && (
+              <div>
+                <h3 className="font-semibold mb-2 opacity-90">Investimento Total</h3>
+                <p className="text-4xl font-bold">
+                  R$ {proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+            )}
+            
+            {proposal.delivery_time && (
+              <div>
+                <h3 className="font-semibold mb-2 opacity-90">Tempo de Entrega</h3>
+                <p className="text-2xl font-semibold">{proposal.delivery_time}</p>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {proposal.observations && (
+          <div className="bg-white rounded-xl p-6 shadow-lg">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+              <span className="w-2 h-8 bg-gradient-to-b from-purple-500 to-blue-500 rounded mr-3"></span>
+              Informações Importantes
+            </h2>
+            <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{proposal.observations}</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="p-8 bg-gradient-to-br from-purple-50 to-blue-50">
       <div className="max-w-4xl mx-auto">
@@ -157,57 +259,7 @@ export const CriativoTemplate: React.FC<{ proposal: any; companyLogo: string }> 
           </div>
         </div>
         
-        <div className="space-y-8">
-          {proposal.service_description && (
-            <div className="bg-white rounded-xl p-6 shadow-lg">
-              <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-                <span className="w-2 h-8 bg-gradient-to-b from-purple-500 to-blue-500 rounded mr-3"></span>
-                O que vamos criar
-              </h2>
-              <p className="text-gray-700 text-lg">{proposal.service_description}</p>
-            </div>
-          )}
-          
-          {proposal.detailed_description && (
-            <div className="bg-white rounded-xl p-6 shadow-lg">
-              <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-                <span className="w-2 h-8 bg-gradient-to-b from-purple-500 to-blue-500 rounded mr-3"></span>
-                Detalhes do Projeto
-              </h2>
-              <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{proposal.detailed_description}</p>
-            </div>
-          )}
-          
-          <div className="bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl p-6 text-white">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {proposal.value && (
-                <div>
-                  <h3 className="font-semibold mb-2 opacity-90">Investimento Total</h3>
-                  <p className="text-4xl font-bold">
-                    R$ {proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </p>
-                </div>
-              )}
-              
-              {proposal.delivery_time && (
-                <div>
-                  <h3 className="font-semibold mb-2 opacity-90">Tempo de Entrega</h3>
-                  <p className="text-2xl font-semibold">{proposal.delivery_time}</p>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          {proposal.observations && (
-            <div className="bg-white rounded-xl p-6 shadow-lg">
-              <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-                <span className="w-2 h-8 bg-gradient-to-b from-purple-500 to-blue-500 rounded mr-3"></span>
-                Informações Importantes
-              </h2>
-              <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{proposal.observations}</p>
-            </div>
-          )}
-        </div>
+        {renderContent()}
       </div>
     </div>
   );
