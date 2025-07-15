@@ -135,7 +135,7 @@ const TelegramBotUserGuide = () => {
           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
             <h4 className="font-medium text-gray-900 mb-2">💡 Dicas importantes:</h4>
             <ul className="text-sm text-gray-700 space-y-1">
-              <li>• Certifique-se de que seu telefone está cadastrado em "Configurações > Meu Negócio"</li>
+              <li>• Certifique-se de que seu telefone está cadastrado em "Configurações {'>'}  Meu Negócio"</li>
               <li>• O bot funciona 24/7 - você pode criar propostas a qualquer hora</li>
               <li>• Todas as propostas criadas pelo bot são salvas automaticamente no sistema</li>
               <li>• Você pode acompanhar e editar as propostas também pelo painel web</li>
