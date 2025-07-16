@@ -30,8 +30,8 @@ serve(async (req) => {
 
     const resend = new Resend(resendApiKey);
 
-    // URL de confirmação com melhor handling
-    const confirmationUrl = `${supabaseUrl}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${encodeURIComponent(redirect_to || 'https://www.borafecharai.com/dashboard')}`;
+    // URL de confirmação corrigida - usando o token correto e redirect para dashboard
+    const confirmationUrl = `${supabaseUrl}/auth/v1/verify?token=${token_hash}&type=signup&redirect_to=${encodeURIComponent('https://www.borafecharai.com/dashboard')}`;
 
     console.log('URL de confirmação:', confirmationUrl);
 

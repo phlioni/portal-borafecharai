@@ -110,7 +110,7 @@ const Login = () => {
         if (error.message.includes('Invalid login credentials')) {
           setError('Email ou senha incorretos. Verifique suas credenciais.');
         } else if (error.message.includes('Email not confirmed')) {
-          setError('📧 Seu email ainda não foi confirmado. Verifique sua caixa de entrada (incluindo spam) e clique no link de confirmação que enviamos.');
+          setError('📧 Seu email ainda não foi confirmado. Verifique sua caixa de entrada (incluindo spam) e clique no link de confirmação. Se não encontrar o email, tente criar uma nova conta.');
         } else if (error.message.includes('too_many_requests')) {
           setError('Muitas tentativas de login. Aguarde alguns minutos e tente novamente.');
         } else {
@@ -167,7 +167,7 @@ const Login = () => {
       if (error) {
         console.error('Signup error:', error);
         if (error.message.includes('User already registered')) {
-          setError('Este email já está cadastrado. Tente fazer login ou recuperar sua senha.');
+          setError('Este email já está cadastrado. Tente fazer login ou, se ainda não confirmou seu email, verifique sua caixa de entrada (incluindo spam).');
         } else if (error.message.includes('Password should be at least 6 characters')) {
           setError('A senha deve ter pelo menos 6 caracteres.');
         } else if (error.message.includes('rate limit') || error.message.includes('429')) {
@@ -180,7 +180,7 @@ const Login = () => {
       } else {
         console.log('Signup successful', data);
         if (data.user && !data.user.email_confirmed_at) {
-          setSuccess('🎉 Conta criada com sucesso! Enviamos um email de confirmação para você. Verifique sua caixa de entrada (e a pasta de spam também) e clique no link para ativar sua conta. O email pode levar alguns minutos para chegar.');
+          setSuccess('🎉 Conta criada com sucesso! 📧 Enviamos um email de confirmação para você. Verifique sua caixa de entrada (e a pasta de spam também) e clique no link para ativar sua conta. ⚡ Importante: Sem a confirmação do email, você não conseguirá acessar o sistema.');
         } else {
           setSuccess('Conta criada com sucesso! Você já pode fazer login.');
         }

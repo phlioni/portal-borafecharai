@@ -99,6 +99,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }, 1000);
           }
         }
+
+        // Handle email confirmation success
+        if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
+          console.log('Email confirmed successfully, user signed in');
+          setSession(session);
+          setUser(session?.user ?? null);
+          setLoading(false);
+        }
       }
     );
 

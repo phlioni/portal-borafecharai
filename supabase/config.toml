@@ -60,7 +60,7 @@ double_confirm_changes = true
 enable_confirmations = true
 
 [auth.email.template.confirmation]
-subject = "🚀 Confirme seu cadastro e comece a criar propostas que vendem!"
+subject = "🚀 Confirme seu cadastro - BoraFecharAI"
 content_path = "./supabase/templates/confirmation.html"
 
 [functions.send-proposal-email]
