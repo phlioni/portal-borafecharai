@@ -47,13 +47,20 @@ const StandardProposalTemplate = ({ proposal, className = "", companyLogo }: Sta
     queryFn: async () => {
       if (!user) return null;
       
+      console.log('Buscando empresa do usuário:', user.id);
+      
       const { data, error } = await supabase
         .from('companies')
         .select('*')
         .eq('user_id', user.id)
         .single();
 
-      if (error) return null;
+      if (error) {
+        console.error('Erro ao buscar empresa:', error);
+        return null;
+      }
+      
+      console.log('Empresa encontrada:', data);
       return data;
     },
     enabled: !!user,
@@ -71,7 +78,12 @@ const StandardProposalTemplate = ({ proposal, className = "", companyLogo }: Sta
         .eq('user_id', user.id)
         .single();
 
-      if (error) return null;
+      if (error) {
+        console.error('Erro ao buscar perfil:', error);
+        return null;
+      }
+      
+      console.log('Perfil encontrado:', data);
       return data;
     },
     enabled: !!user,
@@ -102,6 +114,12 @@ const StandardProposalTemplate = ({ proposal, className = "", companyLogo }: Sta
   // Usar logo passada como prop ou da empresa
   const logoToUse = companyLogo || userCompany?.logo_url;
 
+  console.log('Dados da empresa na proposta:', {
+    userCompany,
+    logoToUse,
+    companyName: userCompany?.name
+  });
+
   return (
     <div className={`bg-white p-8 max-w-4xl mx-auto font-sans text-gray-800 ${className}`}>
       {/* Cabeçalho da Empresa */}
@@ -120,8 +138,8 @@ const StandardProposalTemplate = ({ proposal, className = "", companyLogo }: Sta
             </h1>
             <div className="text-sm text-gray-600 space-y-1">
               <p><strong>Responsável:</strong> {userProfile?.name || user?.email || 'Responsável'}</p>
-              <p><strong>E-mail:</strong> {user?.email || 'email@empresa.com'}</p>
-              <p><strong>Telefone:</strong> {userProfile?.phone || userCompany?.phone || 'Telefone não informado'}</p>
+              <p><strong>E-mail:</strong> {userCompany?.email || user?.email || 'email@empresa.com'}</p>
+              <p><strong>Telefone:</strong> {userCompany?.phone || userProfile?.phone || 'Telefone não informado'}</p>
             </div>
           </div>
           <div className="text-right text-sm">
