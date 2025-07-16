@@ -33,7 +33,6 @@ export const useUserPermissions = () => {
           .eq('user_id', user.id);
 
         const adminRole = userRoles?.some(role => role.role === 'admin') || false;
-        const guestRole = userRoles?.some(role => role.role === 'guest') || false;
         setIsAdmin(adminRole);
 
         // Get monthly proposal count
@@ -71,11 +70,6 @@ export const useUserPermissions = () => {
           proposalLimit = null; // Unlimited for admin
           setCanAccessAnalytics(true);
           setCanAccessPremiumTemplates(true);
-        } else if (guestRole) {
-          // Guest tem todos os recursos liberados exceto administrar usuários
-          proposalLimit = null; // Unlimited for guest
-          setCanAccessAnalytics(true);
-          setCanAccessPremiumTemplates(true);
         } else if (subscribed) {
           if (subscription_tier === 'basico') {
             proposalLimit = 10;
@@ -106,7 +100,6 @@ export const useUserPermissions = () => {
           monthlyProposalLimit: proposalLimit,
           monthlyProposalCount: monthlyCount,
           isAdmin: adminRole,
-          isGuest: guestRole,
           subscribed,
           subscription_tier
         });

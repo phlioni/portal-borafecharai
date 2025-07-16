@@ -36,15 +36,6 @@ export const useTrialStatus = () => {
     try {
       console.log('useTrialStatus - Checking trial status for user:', user.id);
       
-      // Verificar role do usuário
-      const { data: userRole } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .single();
-
-      const isUserRole = userRole?.role === 'user';
-      
       const { data: subscriberData, error } = await supabase
         .from('subscribers')
         .select('*')
@@ -69,12 +60,8 @@ export const useTrialStatus = () => {
       const trialStartDate = subscriberData.trial_start_date ? new Date(subscriberData.trial_start_date) : null;
       const trialEndDate = subscriberData.trial_end_date ? new Date(subscriberData.trial_end_date) : null;
       
-      // Para usuários com role 'user', sempre deve estar em trial se não tem assinatura ativa
-      const hasActiveSubscription = subscriberData.subscribed && subscriberData.subscription_tier;
-      
-      // Usuário está em trial se:
-      // 1. É role 'user' E não tem assinatura ativa E tem data de fim do trial válida E ainda não expirou
-      const isInTrial = isUserRole && !hasActiveSubscription && trialEndDate && trialEndDate >= now;
+      // Usuário está em trial se tem data de fim do trial, ainda não expirou e não tem assinatura
+      const isInTrial = trialEndDate && trialEndDate >= now && !subscriberData.subscribed;
       
       // Calcular dias usados desde o início do trial
       let daysUsed = 0;
@@ -84,21 +71,16 @@ export const useTrialStatus = () => {
         daysUsed = Math.min(15, Math.max(0, daysPassed));
       }
 
-      // USAR O VALOR REAL DO BANCO
       const proposalsUsed = subscriberData.trial_proposals_used || 0;
       const proposalsRemaining = Math.max(0, 20 - proposalsUsed);
 
       console.log('useTrialStatus - Calculated status:', {
         isInTrial: !!isInTrial,
-        isUserRole,
-        hasActiveSubscription,
         daysUsed,
         proposalsUsed,
         proposalsRemaining,
         trialStartDate,
-        trialEndDate,
-        now: now.toISOString(),
-        trialEndDateString: trialEndDate?.toISOString()
+        trialEndDate
       });
 
       setTrialStatus({
