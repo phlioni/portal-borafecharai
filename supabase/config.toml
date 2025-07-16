@@ -48,11 +48,20 @@ image_transformation = { enabled = true }
 
 [auth]
 enabled = true
-additional_redirect_urls = ["https://pakrraqbjbkkbdnwkkbt.supabase.co", "https://www.borafecharai.com", "https://www.borafecharai.com/dashboard"]
+additional_redirect_urls = ["https://pakrraqbjbkkbdnwkkbt.supabase.co", "https://www.borafecharai.com", "https://www.borafecharai.com/dashboard", "https://www.borafecharai.com/login"]
 jwt_expiry = 3600
 enable_anonymous_sign_ins = false
 enable_signup = true
 enable_confirmations = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+
+[auth.email.template.confirmation]
+subject = "🚀 Confirme seu cadastro e comece a criar propostas que vendem!"
+content_path = "./supabase/templates/confirmation.html"
 
 [functions.send-proposal-email]
 verify_jwt = false
@@ -86,3 +95,7 @@ verify_jwt = false
 
 [functions.telegram-notifications]
 verify_jwt = false
+
+[auth.hook.send_email]
+enabled = true
+uri = "{{SUPABASE_URL}}/functions/v1/send-confirmation-email"

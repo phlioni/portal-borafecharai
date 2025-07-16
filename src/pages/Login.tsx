@@ -110,7 +110,7 @@ const Login = () => {
         if (error.message.includes('Invalid login credentials')) {
           setError('Email ou senha incorretos. Verifique suas credenciais.');
         } else if (error.message.includes('Email not confirmed')) {
-          setError('Por favor, confirme seu email antes de fazer login. Verifique sua caixa de entrada.');
+          setError('📧 Seu email ainda não foi confirmado. Verifique sua caixa de entrada (incluindo spam) e clique no link de confirmação que enviamos.');
         } else if (error.message.includes('too_many_requests')) {
           setError('Muitas tentativas de login. Aguarde alguns minutos e tente novamente.');
         } else {
@@ -180,7 +180,7 @@ const Login = () => {
       } else {
         console.log('Signup successful', data);
         if (data.user && !data.user.email_confirmed_at) {
-          setSuccess('✅ Conta criada com sucesso! Verifique seu email para confirmar o cadastro e fazer login.');
+          setSuccess('🎉 Conta criada com sucesso! Enviamos um email de confirmação para você. Verifique sua caixa de entrada (e a pasta de spam também) e clique no link para ativar sua conta. O email pode levar alguns minutos para chegar.');
         } else {
           setSuccess('Conta criada com sucesso! Você já pode fazer login.');
         }
