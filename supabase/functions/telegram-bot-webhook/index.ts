@@ -46,6 +46,7 @@ interface UserSession {
     value?: string;
     deliveryTime?: string;
     observations?: string;
+    proposalId?: string;
   };
   phone?: string;
   userId?: string;
@@ -153,6 +154,7 @@ async function saveSession(telegramUserId: number, chatId: number, session: User
         session_data: session.data,
         phone: session.phone,
         user_id: session.userId,
+        client_email: session.data.clientEmail,
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 horas
       }, {
         onConflict: 'telegram_user_id'
@@ -358,6 +360,30 @@ async function storeUserChatId(userId: string, chatId: number) {
   }
 }
 
+async function sendProposalByEmail(proposalId: string, clientEmail: string) {
+  console.log(`Enviando proposta ${proposalId} por e-mail para ${clientEmail}`);
+
+  try {
+    const { data, error } = await supabase.functions.invoke('send-proposal-email', {
+      body: {
+        proposal_id: proposalId,
+        recipient_email: clientEmail
+      }
+    });
+
+    if (error) {
+      console.error('Erro ao enviar e-mail:', error);
+      throw error;
+    }
+
+    console.log('E-mail enviado com sucesso:', data);
+    return data;
+  } catch (error) {
+    console.error('Erro ao enviar proposta por e-mail:', error);
+    throw error;
+  }
+}
+
 async function handleMessage(update: TelegramUpdate) {
   console.log('=== PROCESSANDO MENSAGEM ===');
   console.log('Update recebido:', JSON.stringify(update, null, 2));
@@ -374,16 +400,11 @@ async function handleMessage(update: TelegramUpdate) {
 
   console.log(`Mensagem recebida de ${telegramUserId} (chat: ${chatId}): ${text}`);
 
-  // Carregar sessão do banco de dados
   let session = await loadSession(telegramUserId, chatId);
 
-  // Verificar se é comando /start
   if (text === '/start') {
     console.log('Comando /start recebido, reiniciando conversa');
-    // Limpar sessão anterior
     await clearSession(telegramUserId);
-
-    // Criar nova sessão
     session = {
       step: 'start',
       data: {}
@@ -401,7 +422,6 @@ async function handleMessage(update: TelegramUpdate) {
       session.userId = user.user_id;
       console.log('Usuário encontrado:', user);
 
-      // Armazenar chat_id para notificações futuras
       await storeUserChatId(user.user_id, chatId);
 
       const { data: companyData } = await supabase
@@ -448,7 +468,6 @@ async function handleMessage(update: TelegramUpdate) {
       return;
     }
 
-    // Salvar sessão após autenticação
     await saveSession(telegramUserId, chatId, session);
     return;
   }
@@ -481,7 +500,7 @@ async function handleMessage(update: TelegramUpdate) {
     case 'main_menu':
       if (text === '🆕 Criar Nova Proposta') {
         session.step = 'client_name';
-        session.data = {}; // Reset proposal data
+        session.data = {};
         await sendTelegramMessage(chatId,
           `🆕 *Vamos criar uma nova proposta!*\n\n*Para qual cliente você quer criar uma proposta?*\n` +
           `Digite o nome da empresa ou cliente:`
@@ -546,7 +565,6 @@ async function handleMessage(update: TelegramUpdate) {
     case 'client_email':
       console.log('Coletando email do cliente:', text);
       if (text.toLowerCase().trim() !== 'pular') {
-        // Validar email básico
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(text.trim())) {
           await sendTelegramMessage(chatId,
@@ -613,7 +631,6 @@ async function handleMessage(update: TelegramUpdate) {
     case 'value':
       console.log('Coletando valor:', text);
       if (text.toLowerCase().trim() !== 'pular') {
-        // Validar se é um número válido
         const numericValue = text.replace(/[^\d,]/g, '').replace(',', '.');
         if (!numericValue || isNaN(parseFloat(numericValue))) {
           await sendTelegramMessage(chatId,
@@ -653,10 +670,10 @@ async function handleMessage(update: TelegramUpdate) {
         );
 
         const proposal = await createProposalForUser(session);
+        session.data.proposalId = proposal.id;
 
         console.log('Proposta criada com sucesso:', proposal);
 
-        // Resumo da proposta criada
         let summary = `🎉 *Proposta criada com sucesso!*\n\n`;
         summary += `📝 *Título:* ${session.data.projectTitle}\n`;
         summary += `👤 *Cliente:* ${session.data.clientName}\n`;
@@ -670,25 +687,44 @@ async function handleMessage(update: TelegramUpdate) {
           summary += `⏰ *Prazo:* ${session.data.deliveryTime}\n`;
         }
         summary += `\n✅ A proposta foi salva como rascunho na sua conta.\n\n`;
-        summary += `🌐 *Próximos passos:*\n`;
-        summary += `1. Acesse o sistema para revisar\n`;
-        summary += `2. Envie a proposta para o cliente\n`;
-        summary += `3. Acompanhe o status aqui no Telegram\n\n`;
 
-        const keyboard = {
-          keyboard: [
-            [{ text: "🆕 Criar Nova Proposta" }],
-            [{ text: "📊 Ver Status das Propostas" }]
-          ],
-          one_time_keyboard: false,
-          resize_keyboard: true
-        };
+        // Mostrar opções baseadas na disponibilidade de e-mail
+        if (session.data.clientEmail) {
+          const keyboard = {
+            keyboard: [
+              [{ text: "📧 Enviar por E-mail" }],
+              [{ text: "🆕 Criar Nova Proposta" }, { text: "📊 Ver Status das Propostas" }]
+            ],
+            one_time_keyboard: false,
+            resize_keyboard: true
+          };
 
-        await sendTelegramMessage(chatId, summary, keyboard);
+          summary += `📬 *Próximos passos:*\n`;
+          summary += `• Clique em "Enviar por E-mail" para enviar ao cliente\n`;
+          summary += `• Acesse o sistema para revisar e personalizar\n`;
+          summary += `• Acompanhe o status aqui no Telegram`;
 
-        // Voltar ao menu principal
-        session.step = 'main_menu';
-        session.data = {};
+          await sendTelegramMessage(chatId, summary, keyboard);
+          session.step = 'proposal_created_with_email';
+        } else {
+          const keyboard = {
+            keyboard: [
+              [{ text: "🆕 Criar Nova Proposta" }],
+              [{ text: "📊 Ver Status das Propostas" }]
+            ],
+            one_time_keyboard: false,
+            resize_keyboard: true
+          };
+
+          summary += `🌐 *Próximos passos:*\n`;
+          summary += `1. Acesse o sistema para revisar\n`;
+          summary += `2. Envie a proposta para o cliente\n`;
+          summary += `3. Acompanhe o status aqui no Telegram`;
+
+          await sendTelegramMessage(chatId, summary, keyboard);
+          session.step = 'main_menu';
+          session.data = {};
+        }
 
       } catch (error) {
         console.error('Erro ao criar proposta:', error);
@@ -700,6 +736,93 @@ async function handleMessage(update: TelegramUpdate) {
         );
         await clearSession(telegramUserId);
         return;
+      }
+      break;
+
+    case 'proposal_created_with_email':
+      if (text === '📧 Enviar por E-mail') {
+        try {
+          await sendTelegramMessage(chatId,
+            `📧 *Enviando proposta por e-mail...*\n\n⏳ Por favor aguarde...`
+          );
+
+          await sendProposalByEmail(session.data.proposalId!, session.data.clientEmail!);
+
+          const keyboard = {
+            keyboard: [
+              [{ text: "🆕 Criar Nova Proposta" }],
+              [{ text: "📊 Ver Status das Propostas" }]
+            ],
+            one_time_keyboard: false,
+            resize_keyboard: true
+          };
+
+          await sendTelegramMessage(chatId,
+            `✅ *E-mail enviado com sucesso!*\n\n` +
+            `📧 A proposta foi enviada para: *${session.data.clientEmail}*\n\n` +
+            `🔔 Você receberá uma notificação aqui quando o cliente visualizar ou responder à proposta.\n\n` +
+            `🚀 O que você gostaria de fazer agora?`,
+            keyboard
+          );
+
+          session.step = 'main_menu';
+          session.data = {};
+
+        } catch (error) {
+          console.error('Erro ao enviar e-mail:', error);
+          await sendTelegramMessage(chatId,
+            `❌ *Erro ao enviar e-mail*\n\n` +
+            `Não foi possível enviar a proposta por e-mail. ` +
+            `A proposta foi salva e você pode enviá-la pelo sistema web.\n\n` +
+            `💬 Erro: ${error.message}`
+          );
+        }
+      } else if (text === '🆕 Criar Nova Proposta') {
+        session.step = 'client_name';
+        session.data = {};
+        await sendTelegramMessage(chatId,
+          `🆕 *Vamos criar uma nova proposta!*\n\n*Para qual cliente você quer criar uma proposta?*\n` +
+          `Digite o nome da empresa ou cliente:`
+        );
+      } else if (text === '📊 Ver Status das Propostas') {
+        const proposals = await getRecentProposals(session.userId!);
+
+        if (proposals.length === 0) {
+          await sendTelegramMessage(chatId,
+            `📊 *Status das Propostas*\n\n` +
+            `❌ Você ainda não tem propostas cadastradas.\n\n` +
+            `💡 Que tal criar sua primeira proposta?`
+          );
+        } else {
+          let statusMessage = `📊 *Suas últimas ${proposals.length} propostas:*\n\n`;
+
+          proposals.forEach((proposal, index) => {
+            const statusEmoji = {
+              'rascunho': '📝',
+              'enviada': '📤',
+              'visualizada': '👁️',
+              'aceita': '✅',
+              'rejeitada': '❌'
+            };
+
+            const value = proposal.value ? `R$ ${proposal.value.toLocaleString('pt-BR')}` : 'Valor não definido';
+            const client = proposal.companies?.name || 'Cliente não informado';
+            const status = proposal.status || 'rascunho';
+
+            statusMessage += `${index + 1}. *${proposal.title}*\n`;
+            statusMessage += `   👤 Cliente: ${client}\n`;
+            statusMessage += `   💰 Valor: ${value}\n`;
+            statusMessage += `   ${statusEmoji[status]} Status: ${status.charAt(0).toUpperCase() + status.slice(1)}\n\n`;
+          });
+
+          await sendTelegramMessage(chatId, statusMessage);
+        }
+        session.step = 'main_menu';
+      } else {
+        await sendTelegramMessage(chatId,
+          `❓ *Não entendi sua mensagem.*\n\n` +
+          `🤖 Use os botões do menu ou escolha uma das opções disponíveis.`
+        );
       }
       break;
 
@@ -715,7 +838,6 @@ async function handleMessage(update: TelegramUpdate) {
       break;
   }
 
-  // Salvar sessão após cada interação
   await saveSession(telegramUserId, chatId, session);
   console.log('Sessão salva:', session);
 }
