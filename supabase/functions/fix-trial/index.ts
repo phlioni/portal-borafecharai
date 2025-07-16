@@ -60,6 +60,15 @@ serve(async (req) => {
 
     console.log('Resetando trial para usuário:', targetUserId)
 
+    // Verificar role do usuário antes de aplicar regras
+    const { data: userRole } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', targetUserId)
+      .single()
+
+    console.log('Role do usuário:', userRole?.role)
+
     const now = new Date()
     const trialStartDate = now.toISOString()
     const trialEndDate = new Date(now.getTime() + (15 * 24 * 60 * 60 * 1000)).toISOString()
@@ -70,43 +79,74 @@ serve(async (req) => {
     // Verificar se o subscriber já existe
     const { data: existingSubscriber } = await supabase
       .from('subscribers')
-      .select('id')
+      .select('*')
       .eq('user_id', targetUserId)
       .single()
+
+    console.log('Subscriber existente:', existingSubscriber)
 
     let data, error
 
     if (existingSubscriber) {
-      // Atualizar subscriber existente
-      const { data: updateData, error: updateError } = await supabase
-        .from('subscribers')
-        .update({
-          trial_start_date: trialStartDate,
-          trial_end_date: trialEndDate,
-          trial_proposals_used: 0,
-          subscribed: false,
-          subscription_tier: null,
-          updated_at: now.toISOString()
-        })
-        .eq('user_id', targetUserId)
-        .select()
+      // Para usuários com role 'user', sempre aplicar regras de trial se não tem assinatura ativa
+      const shouldApplyTrialRules = userRole?.role === 'user' && (!existingSubscriber.subscribed || !existingSubscriber.subscription_tier)
+      
+      if (shouldApplyTrialRules) {
+        console.log('Aplicando regras de trial para usuário com role user')
+        
+        // Atualizar subscriber existente com trial
+        const { data: updateData, error: updateError } = await supabase
+          .from('subscribers')
+          .update({
+            trial_start_date: trialStartDate,
+            trial_end_date: trialEndDate,
+            trial_proposals_used: 0,
+            subscribed: false,
+            subscription_tier: null,
+            updated_at: now.toISOString()
+          })
+          .eq('user_id', targetUserId)
+          .select()
 
-      data = updateData
-      error = updateError
+        data = updateData
+        error = updateError
+      } else {
+        // Para outros casos (admin, guest, ou usuários com assinatura), apenas resetar propostas se solicitado
+        const { data: updateData, error: updateError } = await supabase
+          .from('subscribers')
+          .update({
+            trial_proposals_used: 0,
+            updated_at: now.toISOString()
+          })
+          .eq('user_id', targetUserId)
+          .select()
+
+        data = updateData
+        error = updateError
+      }
     } else {
       // Criar novo subscriber
+      const subscriberData = {
+        user_id: targetUserId,
+        email: currentUser.email,
+        trial_proposals_used: 0,
+        subscribed: false,
+        subscription_tier: null,
+        updated_at: now.toISOString()
+      }
+
+      // Para usuários com role 'user', sempre incluir dados de trial
+      if (userRole?.role === 'user') {
+        subscriberData.trial_start_date = trialStartDate
+        subscriberData.trial_end_date = trialEndDate
+        console.log('Criando subscriber com trial para usuário role user')
+      } else {
+        console.log('Criando subscriber sem trial para usuário não-user')
+      }
+
       const { data: insertData, error: insertError } = await supabase
         .from('subscribers')
-        .insert({
-          user_id: targetUserId,
-          email: currentUser.email,
-          trial_start_date: trialStartDate,
-          trial_end_date: trialEndDate,
-          trial_proposals_used: 0,
-          subscribed: false,
-          subscription_tier: null,
-          updated_at: now.toISOString()
-        })
+        .insert(subscriberData)
         .select()
 
       data = insertData
@@ -126,8 +166,8 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       success: true, 
       message: 'Trial resetado com sucesso',
-      trialStartDate: trialStartDate,
-      trialEndDate: trialEndDate,
+      trialStartDate: userRole?.role === 'user' ? trialStartDate : null,
+      trialEndDate: userRole?.role === 'user' ? trialEndDate : null,
       data: data
     }), {
       status: 200,
