@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Shield, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Shield, Clock, CheckCircle, XCircle, Calendar } from 'lucide-react';
 
 interface UserStatusBadgesProps {
   user: {
@@ -22,6 +22,12 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
   const trialProposalsUsed = user.subscriber?.trial_proposals_used || 0;
   const trialProposalsRemaining = Math.max(0, 20 - trialProposalsUsed);
 
+  // Formattar data de término do trial
+  const formatTrialEndDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR');
+  };
+
   return (
     <div className="flex flex-wrap gap-1">
       {user.role && (
@@ -37,10 +43,18 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
           {user.subscriber.subscription_tier || 'Assinante'}
         </Badge>
       ) : isTrialActive ? (
-        <Badge variant="outline" className="text-xs">
-          <Clock className="h-3 w-3 mr-1" />
-          Trial ({trialProposalsRemaining} restantes)
-        </Badge>
+        <>
+          <Badge variant="outline" className="text-xs">
+            <Clock className="h-3 w-3 mr-1" />
+            Trial ({trialProposalsRemaining} restantes)
+          </Badge>
+          {user.subscriber?.trial_end_date && (
+            <Badge variant="outline" className="text-xs">
+              <Calendar className="h-3 w-3 mr-1" />
+              Até {formatTrialEndDate(user.subscriber.trial_end_date)}
+            </Badge>
+          )}
+        </>
       ) : (
         <Badge variant="destructive" className="text-xs">
           <XCircle className="h-3 w-3 mr-1" />

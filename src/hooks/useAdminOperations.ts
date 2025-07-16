@@ -141,10 +141,10 @@ export const useAdminOperations = () => {
 
       toast.success('Dados do usuário resetados com sucesso!');
       
-      // Aguardar um momento para garantir que as mudanças foram aplicadas
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Aguardar mais tempo para garantir que as mudanças foram aplicadas
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Recarregar lista para atualizar o status
+      // Forçar atualização dos dados do usuário específico
       await loadUsers();
       return true;
     } catch (error) {

@@ -43,7 +43,7 @@ serve(async (req) => {
       })
     }
 
-    // Verificar se é admin (só admin pode corrigir trial de outros usuários)
+    // Verificar se é admin
     const isAdminEmail = currentUser.email === 'admin@borafecharai.com'
     const { data: adminRole } = await supabase
       .from('user_roles')
@@ -57,74 +57,41 @@ serve(async (req) => {
     // Obter parâmetros do body para usuário específico (se admin) ou usar o usuário atual
     const body = req.method === 'POST' ? await req.json() : {}
     const targetUserId = (isAdmin && body.userId) ? body.userId : currentUser.id
-    const targetUserEmail = (isAdmin && body.userEmail) ? body.userEmail : currentUser.email
 
-    console.log('Iniciando/corrigindo trial para usuário:', targetUserId, targetUserEmail)
-
-    // Verificar se o subscriber já existe
-    const { data: existingSubscriber } = await supabase
-      .from('subscribers')
-      .select('*')
-      .eq('user_id', targetUserId)
-      .single()
+    console.log('Resetando trial para usuário:', targetUserId)
 
     const now = new Date()
     const trialStartDate = now.toISOString()
-    const trialEndDate = new Date(now.getTime() + (15 * 24 * 60 * 60 * 1000)) // 15 dias
-    
-    if (existingSubscriber) {
-      // Atualizar subscriber existente com trial
-      const { data, error } = await supabase
-        .from('subscribers')
-        .update({
-          trial_start_date: trialStartDate,
-          trial_end_date: trialEndDate.toISOString(),
-          trial_proposals_used: 0,
-          updated_at: now.toISOString()
-        })
-        .eq('user_id', targetUserId)
-        .select()
+    const trialEndDate = new Date(now.getTime() + (15 * 24 * 60 * 60 * 1000)).toISOString() // 15 dias
 
-      if (error) {
-        console.error('Erro ao atualizar trial:', error)
-        return new Response(JSON.stringify({ error: 'Failed to update trial' }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        })
-      }
+    // Sempre fazer UPDATE para garantir que os dados sejam atualizados
+    const { data, error } = await supabase
+      .from('subscribers')
+      .update({
+        trial_start_date: trialStartDate,
+        trial_end_date: trialEndDate,
+        trial_proposals_used: 0,
+        subscribed: false,
+        updated_at: now.toISOString()
+      })
+      .eq('user_id', targetUserId)
+      .select()
 
-      console.log('Trial atualizado:', data)
-    } else {
-      // Criar novo subscriber com trial
-      const { data, error } = await supabase
-        .from('subscribers')
-        .insert({
-          user_id: targetUserId,
-          email: targetUserEmail!,
-          trial_start_date: trialStartDate,
-          trial_end_date: trialEndDate.toISOString(),
-          trial_proposals_used: 0,
-          subscribed: false,
-          subscription_tier: null,
-        })
-        .select()
-
-      if (error) {
-        console.error('Erro ao criar trial:', error)
-        return new Response(JSON.stringify({ error: 'Failed to create trial' }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        })
-      }
-
-      console.log('Trial criado:', data)
+    if (error) {
+      console.error('Erro ao resetar trial:', error)
+      return new Response(JSON.stringify({ error: 'Failed to reset trial' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
     }
+
+    console.log('Trial resetado com sucesso:', data)
 
     return new Response(JSON.stringify({ 
       success: true, 
-      message: 'Trial iniciado/corrigido com sucesso',
+      message: 'Trial resetado com sucesso',
       trialStartDate: trialStartDate,
-      trialEndDate: trialEndDate.toISOString()
+      trialEndDate: trialEndDate
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
