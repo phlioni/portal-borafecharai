@@ -25,7 +25,8 @@ export const useBusinessSegments = () => {
     queryFn: async () => {
       console.log('Fetching business segments...');
       
-      const { data, error } = await supabase.rpc('get_business_segments');
+      // Use type assertion to bypass TypeScript checking for the new RPC function
+      const { data, error } = await (supabase as any).rpc('get_business_segments');
 
       if (error) {
         console.error('Error fetching business segments:', error);
@@ -49,7 +50,8 @@ export const useBusinessTypes = (segmentId?: string) => {
 
       console.log('Fetching business types for segment:', segmentId);
 
-      const { data, error } = await supabase.rpc('get_business_types', { 
+      // Use type assertion to bypass TypeScript checking for the new RPC function
+      const { data, error } = await (supabase as any).rpc('get_business_types', { 
         segment_id_param: segmentId 
       });
 
