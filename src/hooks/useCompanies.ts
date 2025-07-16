@@ -36,6 +36,8 @@ export const useCompanies = () => {
             user_id: user.id,
             name: 'Minha Empresa',
             email: user.email || '',
+            business_segment: null,
+            business_type_detail: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           }])

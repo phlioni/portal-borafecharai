@@ -5,11 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Building, CreditCard, Users, MessageSquare, Crown, Check, User, Mail } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useCompanies, useUpdateCompany, useCreateCompany } from '@/hooks/useCompanies';
+import { useBusinessSegments, useBusinessTypes } from '@/hooks/useBusinessSegments';
 import CompanyLogoUpload from '@/components/CompanyLogoUpload';
 import { toast } from 'sonner';
 import GerenciamentoUsuariosPage from './GerenciamentoUsuariosPage';
@@ -26,6 +28,7 @@ const ConfiguracoesPage = () => {
   const { data: companies, isLoading: companiesLoading } = useCompanies();
   const updateCompanyMutation = useUpdateCompany();
   const createCompanyMutation = useCreateCompany();
+  const { data: businessSegments } = useBusinessSegments();
   const isMobile = useIsMobile();
 
   const [activeTab, setActiveTab] = useState('perfil');
@@ -41,8 +44,13 @@ const ConfiguracoesPage = () => {
     website: '',
     description: '',
     logo_url: '',
-    country_code: '+55'
+    country_code: '+55',
+    business_segment: '',
+    business_type_detail: ''
   });
+
+  const [selectedSegmentId, setSelectedSegmentId] = useState<string>('');
+  const { data: businessTypes } = useBusinessTypes(selectedSegmentId);
 
   const company = companies?.[0];
   const isProfessional = subscription.subscription_tier === 'professional' || isAdmin;
@@ -52,6 +60,9 @@ const ConfiguracoesPage = () => {
     console.log('ConfiguracoesPage - company:', company);
 
     if (company) {
+      const segmentId = businessSegments?.find(s => s.segment_name === company.business_segment)?.id || '';
+      setSelectedSegmentId(segmentId);
+      
       setCompanyData({
         name: company.name || '',
         email: company.email || '',
@@ -64,7 +75,9 @@ const ConfiguracoesPage = () => {
         website: company.website || '',
         description: company.description || '',
         logo_url: company.logo_url || '',
-        country_code: company.country_code || '+55'
+        country_code: company.country_code || '+55',
+        business_segment: company.business_segment || '',
+        business_type_detail: company.business_type_detail || ''
       });
     } else if (user && !companiesLoading) {
       setCompanyData(prev => ({
@@ -73,10 +86,17 @@ const ConfiguracoesPage = () => {
         name: 'Minha Empresa'
       }));
     }
-  }, [company, user, companiesLoading]);
+  }, [company, user, companiesLoading, businessSegments]);
 
   const handleInputChange = (field: string, value: string) => {
     setCompanyData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSegmentChange = (segmentName: string) => {
+    const segment = businessSegments?.find(s => s.segment_name === segmentName);
+    setSelectedSegmentId(segment?.id || '');
+    handleInputChange('business_segment', segmentName);
+    handleInputChange('business_type_detail', ''); // Reset type when segment changes
   };
 
   const handleSave = async () => {
@@ -108,7 +128,6 @@ const ConfiguracoesPage = () => {
     }
   };
 
-  // Planos atualizados para ficar igual à página /planos
   const plans = [
     {
       name: 'Essencial',
@@ -167,7 +186,6 @@ const ConfiguracoesPage = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          {/* Tabs principais sempre visíveis */}
           <TabsList className="grid w-full grid-cols-2 h-auto p-1">
             <TabsTrigger 
               value="perfil" 
@@ -185,7 +203,6 @@ const ConfiguracoesPage = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* Tabs secundárias */}
           <div className="grid grid-cols-2 gap-2">
             <Button
               variant={activeTab === 'email' ? 'default' : 'outline'}
@@ -271,6 +288,40 @@ const ConfiguracoesPage = () => {
                         onChange={(e) => handleInputChange('phone', e.target.value)}
                         placeholder="55+DDD+Número (ex: 5511999999999)"
                       />
+                    </div>
+                    <div>
+                      <Label htmlFor="business_segment">Segmento de Atuação</Label>
+                      <Select value={companyData.business_segment} onValueChange={handleSegmentChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o segmento" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {businessSegments?.map((segment) => (
+                            <SelectItem key={segment.id} value={segment.segment_name}>
+                              {segment.segment_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="business_type_detail">Tipo</Label>
+                      <Select 
+                        value={companyData.business_type_detail} 
+                        onValueChange={(value) => handleInputChange('business_type_detail', value)}
+                        disabled={!selectedSegmentId}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={selectedSegmentId ? "Selecione o tipo" : "Primeiro selecione um segmento"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {businessTypes?.map((type) => (
+                            <SelectItem key={type.id} value={type.type_name}>
+                              {type.type_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <Label htmlFor="cnpj">CNPJ</Label>
@@ -391,7 +442,6 @@ const ConfiguracoesPage = () => {
                 ))}
               </div>
 
-              {/* Trial Info */}
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
                 <h3 className="text-lg font-semibold text-green-900 mb-2">
                   🎉 Teste Gratuito de 15 Dias
@@ -447,7 +497,6 @@ const ConfiguracoesPage = () => {
     );
   }
 
-  // Versão desktop original
   return (
     <div className="p-6 space-y-6">
       <div>
@@ -530,6 +579,40 @@ const ConfiguracoesPage = () => {
                       onChange={(e) => handleInputChange('phone', e.target.value)}
                       placeholder="55+DDD+Número (ex: 5511999999999)"
                     />
+                  </div>
+                  <div>
+                    <Label htmlFor="business_segment">Segmento de Atuação</Label>
+                    <Select value={companyData.business_segment} onValueChange={handleSegmentChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o segmento" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {businessSegments?.map((segment) => (
+                          <SelectItem key={segment.id} value={segment.segment_name}>
+                            {segment.segment_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="business_type_detail">Tipo</Label>
+                    <Select 
+                      value={companyData.business_type_detail} 
+                      onValueChange={(value) => handleInputChange('business_type_detail', value)}
+                      disabled={!selectedSegmentId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={selectedSegmentId ? "Selecione o tipo" : "Primeiro selecione um segmento"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {businessTypes?.map((type) => (
+                          <SelectItem key={type.id} value={type.type_name}>
+                            {type.type_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <Label htmlFor="cnpj">CNPJ</Label>
@@ -650,7 +733,6 @@ const ConfiguracoesPage = () => {
               ))}
             </div>
 
-            {/* Trial Info */}
             <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
               <h3 className="text-lg font-semibold text-green-900 mb-2">
                 🎉 Teste Gratuito de 15 Dias
