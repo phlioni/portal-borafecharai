@@ -1,327 +1,245 @@
 
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trash2, Plus } from 'lucide-react';
-import { toast } from 'sonner';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Plus, Trash2 } from 'lucide-react';
 import { useBudgetItems, useCreateBudgetItem, useUpdateBudgetItem, useDeleteBudgetItem } from '@/hooks/useBudgetItems';
-
-interface BudgetItem {
-  id?: string;
-  type: 'material' | 'labor';
-  description: string;
-  quantity: number;
-  unit_price: number;
-  total_price?: number;
-}
+import { toast } from 'sonner';
 
 interface BudgetItemsManagerProps {
   proposalId: string;
+  isReadOnly?: boolean;
   isNewProposal?: boolean;
-  onItemsChange?: (items: BudgetItem[]) => void;
+  onItemsChange?: (items: any[]) => void;
 }
 
-const BudgetItemsManager = ({ proposalId, isNewProposal = false, onItemsChange }: BudgetItemsManagerProps) => {
-  const [localItems, setLocalItems] = useState<BudgetItem[]>([]);
-  const [newItem, setNewItem] = useState<BudgetItem>({
-    type: 'labor',
+const BudgetItemsManager = ({ proposalId, isReadOnly = false, isNewProposal = false, onItemsChange }: BudgetItemsManagerProps) => {
+  const [newItem, setNewItem] = useState({
+    type: 'material' as 'material' | 'labor',
     description: '',
     quantity: 1,
     unit_price: 0
   });
 
-  // Hooks para operações no banco (só usados quando não é nova proposta)
-  const { data: dbItems = [], refetch } = useBudgetItems(isNewProposal ? '' : proposalId);
-  const createItem = useCreateBudgetItem();
-  const updateItem = useUpdateBudgetItem();
-  const deleteItem = useDeleteBudgetItem();
+  const [localItems, setLocalItems] = useState<any[]>([]);
 
-  // Sincronizar com o banco quando não é nova proposta
+  const { data: budgetItems = [], isLoading } = useBudgetItems(proposalId);
+  const createBudgetItem = useCreateBudgetItem();
+  const updateBudgetItem = useUpdateBudgetItem();
+  const deleteBudgetItem = useDeleteBudgetItem();
+
+  // Para novas propostas, use estado local em vez de dados do banco
+  const effectiveItems = isNewProposal ? localItems : budgetItems;
+
   useEffect(() => {
-    if (!isNewProposal && dbItems) {
-      setLocalItems(dbItems);
+    if (!isNewProposal && budgetItems.length > 0) {
+      setLocalItems(budgetItems);
     }
-  }, [dbItems, isNewProposal]);
+  }, [budgetItems, isNewProposal]);
 
-  // Notificar mudanças para componente pai
+  // Notificar mudanças nos itens para componentes pai
   useEffect(() => {
     if (onItemsChange) {
-      onItemsChange(localItems);
+      onItemsChange(effectiveItems);
     }
-  }, [localItems, onItemsChange]);
-
-  const calculateTotal = (quantity: number, unitPrice: number) => {
-    return quantity * unitPrice;
-  };
+  }, [effectiveItems, onItemsChange]);
 
   const handleAddItem = async () => {
-    if (!newItem.description.trim()) {
+    if (!newItem.description) {
       toast.error('Descrição é obrigatória');
       return;
     }
 
     const itemToAdd = {
-      ...newItem,
-      total_price: calculateTotal(newItem.quantity, newItem.unit_price)
+      id: `temp-${Date.now()}`,
+      proposal_id: proposalId,
+      type: newItem.type,
+      description: newItem.description,
+      quantity: newItem.quantity,
+      unit_price: newItem.unit_price,
+      total_price: newItem.quantity * newItem.unit_price,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
 
     if (isNewProposal) {
-      // Para nova proposta, apenas adiciona localmente
-      setLocalItems(prev => [...prev, { ...itemToAdd, id: Date.now().toString() }]);
+      // Para novas propostas, adicione ao estado local
+      setLocalItems(prev => [...prev, itemToAdd]);
+      toast.success('Item adicionado com sucesso!');
     } else {
-      // Para proposta existente, salva no banco
+      // Para propostas existentes, salve no banco
       try {
-        await createItem.mutateAsync({
+        await createBudgetItem.mutateAsync({
           proposal_id: proposalId,
-          type: itemToAdd.type,
-          description: itemToAdd.description,
-          quantity: itemToAdd.quantity,
-          unit_price: itemToAdd.unit_price
+          type: newItem.type,
+          description: newItem.description,
+          quantity: newItem.quantity,
+          unit_price: newItem.unit_price
         });
-        toast.success('Item adicionado com sucesso');
-        refetch();
+        toast.success('Item adicionado com sucesso!');
       } catch (error) {
-        console.error('Erro ao adicionar item:', error);
+        console.error('Error adding budget item:', error);
         toast.error('Erro ao adicionar item');
+        return;
       }
     }
 
-    // Limpar formulário
     setNewItem({
-      type: 'labor',
+      type: 'material',
       description: '',
       quantity: 1,
       unit_price: 0
     });
   };
 
-  const handleUpdateItem = async (id: string, updates: Partial<BudgetItem>) => {
-    if (isNewProposal) {
-      // Para nova proposta, atualiza localmente
-      setLocalItems(prev => prev.map(item => 
-        item.id === id 
-          ? { 
-              ...item, 
-              ...updates, 
-              total_price: calculateTotal(
-                updates.quantity ?? item.quantity, 
-                updates.unit_price ?? item.unit_price
-              )
-            }
-          : item
-      ));
-    } else {
-      // Para proposta existente, atualiza no banco
-      try {
-        const updatedData = {
-          ...updates,
-          total_price: calculateTotal(
-            updates.quantity ?? 1, 
-            updates.unit_price ?? 0
-          )
-        };
-        
-        await updateItem.mutateAsync({ id, updates: updatedData });
-        refetch();
-      } catch (error) {
-        console.error('Erro ao atualizar item:', error);
-        toast.error('Erro ao atualizar item');
-      }
-    }
-  };
-
   const handleDeleteItem = async (id: string) => {
     if (isNewProposal) {
-      // Para nova proposta, remove localmente
+      // Para novas propostas, remova do estado local
       setLocalItems(prev => prev.filter(item => item.id !== id));
+      toast.success('Item removido com sucesso!');
     } else {
-      // Para proposta existente, remove do banco
+      // Para propostas existentes, delete do banco
       try {
-        await deleteItem.mutateAsync({ id, proposalId });
-        toast.success('Item removido com sucesso');
-        refetch();
+        await deleteBudgetItem.mutateAsync({ id, proposalId });
+        toast.success('Item removido com sucesso!');
       } catch (error) {
-        console.error('Erro ao remover item:', error);
+        console.error('Error deleting budget item:', error);
         toast.error('Erro ao remover item');
       }
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+  const calculateTotal = () => {
+    return effectiveItems.reduce((total, item) => total + (item.total_price || 0), 0);
   };
 
-  const totalValue = localItems.reduce((total, item) => total + (item.total_price || 0), 0);
+  if (!isNewProposal && isLoading) {
+    return <div>Carregando itens do orçamento...</div>;
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Formulário para adicionar novo item */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Adicionar Item</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="space-y-4">
+      {!isReadOnly && (
+        <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+          <h4 className="font-medium">Adicionar Item</h4>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
-              <Label htmlFor="item-type">Tipo</Label>
-              <Select value={newItem.type} onValueChange={(value: 'material' | 'labor') => setNewItem(prev => ({ ...prev, type: value }))}>
+              <Label htmlFor="type">Tipo</Label>
+              <Select
+                value={newItem.type}
+                onValueChange={(value) => setNewItem({ ...newItem, type: value as 'material' | 'labor' })}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="labor">Serviço</SelectItem>
                   <SelectItem value="material">Material</SelectItem>
+                  <SelectItem value="labor">Mão de Obra</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label htmlFor="item-description">Descrição</Label>
+              <Label htmlFor="description">Descrição</Label>
               <Input
-                id="item-description"
+                id="description"
                 value={newItem.description}
-                onChange={(e) => setNewItem(prev => ({ ...prev, description: e.target.value }))}
+                onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
                 placeholder="Descrição do item"
               />
             </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="item-quantity">Quantidade</Label>
+              <Label htmlFor="quantity">Quantidade</Label>
               <Input
-                id="item-quantity"
+                id="quantity"
                 type="number"
                 min="0"
                 step="0.01"
                 value={newItem.quantity}
-                onChange={(e) => setNewItem(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }))}
-                placeholder="0"
+                onChange={(e) => setNewItem({ ...newItem, quantity: parseFloat(e.target.value) || 0 })}
               />
             </div>
             <div>
-              <Label htmlFor="item-unit-price">Preço Unitário</Label>
+              <Label htmlFor="unit_price">Valor Unitário</Label>
               <Input
-                id="item-unit-price"
+                id="unit_price"
                 type="number"
                 min="0"
                 step="0.01"
                 value={newItem.unit_price}
-                onChange={(e) => setNewItem(prev => ({ ...prev, unit_price: parseFloat(e.target.value) || 0 }))}
-                placeholder="0,00"
+                onChange={(e) => setNewItem({ ...newItem, unit_price: parseFloat(e.target.value) || 0 })}
+                placeholder="R$ 0,00"
               />
             </div>
-            <div>
-              <Label>Total</Label>
-              <div className="h-10 px-3 py-2 bg-gray-50 border rounded-md flex items-center">
-                {formatCurrency(calculateTotal(newItem.quantity, newItem.unit_price))}
-              </div>
+            <div className="flex items-end">
+              <Button onClick={handleAddItem} disabled={createBudgetItem.isPending}>
+                <Plus className="h-4 w-4 mr-2" />
+                Adicionar
+              </Button>
             </div>
           </div>
-          
-          <Button onClick={handleAddItem} className="w-full">
-            <Plus className="h-4 w-4 mr-2" />
-            Adicionar Item
-          </Button>
-        </CardContent>
-      </Card>
+        </div>
+      )}
 
-      {/* Lista de itens */}
-      {localItems.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Itens do Orçamento</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {localItems.map((item, index) => (
-                <div key={item.id || index} className="border rounded-lg p-4 space-y-3">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label>Tipo</Label>
-                        <Select 
-                          value={item.type} 
-                          onValueChange={(value: 'material' | 'labor') => 
-                            handleUpdateItem(item.id!, { type: value })
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="labor">Serviço</SelectItem>
-                            <SelectItem value="material">Material</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Descrição</Label>
-                        <Input
-                          value={item.description}
-                          onChange={(e) => handleUpdateItem(item.id!, { description: e.target.value })}
-                          placeholder="Descrição do item"
-                        />
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteItem(item.id!)}
-                      className="text-red-600 hover:text-red-700 ml-2"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <Label>Quantidade</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.quantity}
-                        onChange={(e) => handleUpdateItem(item.id!, { quantity: parseFloat(e.target.value) || 0 })}
-                        placeholder="0"
-                      />
-                    </div>
-                    <div>
-                      <Label>Preço Unitário</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.unit_price}
-                        onChange={(e) => handleUpdateItem(item.id!, { unit_price: parseFloat(e.target.value) || 0 })}
-                        placeholder="0,00"
-                      />
-                    </div>
-                    <div>
-                      <Label>Total</Label>
-                      <div className="h-10 px-3 py-2 bg-gray-50 border rounded-md flex items-center font-medium">
-                        {formatCurrency(item.total_price || 0)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+      {effectiveItems.length > 0 && (
+        <div className="space-y-4">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Descrição</TableHead>
+                <TableHead>Quantidade</TableHead>
+                <TableHead>Valor Unitário</TableHead>
+                <TableHead>Total</TableHead>
+                {!isReadOnly && <TableHead>Ações</TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {effectiveItems.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell>
+                    {item.type === 'material' ? 'Material' : 'Mão de Obra'}
+                  </TableCell>
+                  <TableCell>{item.description}</TableCell>
+                  <TableCell>{item.quantity}</TableCell>
+                  <TableCell>
+                    R$ {item.unit_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </TableCell>
+                  <TableCell>
+                    R$ {item.total_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </TableCell>
+                  {!isReadOnly && (
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteItem(item.id)}
+                        disabled={deleteBudgetItem.isPending}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  )}
+                </TableRow>
               ))}
+            </TableBody>
+          </Table>
+          
+          <div className="flex justify-end">
+            <div className="text-lg font-semibold">
+              Total Geral: R$ {calculateTotal().toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
-            
-            {/* Total geral */}
-            <div className="mt-6 pt-4 border-t">
-              <div className="flex justify-end">
-                <div className="text-right">
-                  <div className="text-lg font-bold">
-                    Total Geral: {formatCurrency(totalValue)}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+      )}
+
+      {effectiveItems.length === 0 && (
+        <div className="text-center py-8 text-gray-500">
+          Nenhum item de orçamento adicionado
+        </div>
       )}
     </div>
   );
