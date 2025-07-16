@@ -116,7 +116,7 @@ const StandardProposalTemplate = ({ proposal, className = "", companyLogo }: Sta
               />
             )}
             <h1 className="text-xl font-bold text-gray-900 mb-1">
-              {userCompany?.name || 'NOME DA EMPRESA'}
+              {userCompany?.name || 'Nome da Empresa'}
             </h1>
             <div className="text-sm text-gray-600 space-y-1">
               <p><strong>Responsável:</strong> {userProfile?.name || user?.email || 'Responsável'}</p>
@@ -226,7 +226,7 @@ const StandardProposalTemplate = ({ proposal, className = "", companyLogo }: Sta
       {/* Footer */}
       <div className="text-center pt-6 mt-8 border-t border-gray-300">
         <div className="mt-8 pt-4 border-t border-gray-200">
-          <p className="font-bold">{userCompany?.name || 'NOME DA EMPRESA'}</p>
+          <p className="font-bold">{userCompany?.name || 'Nome da Empresa'}</p>
           <p className="text-sm">{userProfile?.name || user?.email || 'Responsável'}</p>
         </div>
       </div>
