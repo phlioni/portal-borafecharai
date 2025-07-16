@@ -38,6 +38,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     subscription_end: null as string | null,
   });
 
+  const clearAuthState = () => {
+    console.log('Clearing auth state...');
+    setUser(null);
+    setSession(null);
+    setSubscription({
+      subscribed: false,
+      subscription_tier: null,
+      subscription_end: null,
+    });
+  };
+
   const refreshSubscription = async () => {
     if (!session) return;
 
@@ -67,25 +78,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-
-        // Refresh subscription data when user logs in
-        if (session?.user && event === 'SIGNED_IN') {
-          setTimeout(() => {
-            refreshSubscription();
-          }, 1000);
+        
+        if (event === 'SIGNED_OUT' || !session) {
+          console.log('User signed out or session is null, clearing all state');
+          clearAuthState();
+          setLoading(false);
+          return;
         }
 
-        // Clear subscription data when user logs out
-        if (event === 'SIGNED_OUT') {
-          console.log('User signed out, clearing subscription data');
-          setSubscription({
-            subscribed: false,
-            subscription_tier: null,
-            subscription_end: null,
-          });
+        if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+          console.log('Setting session and user:', session?.user?.email);
+          setSession(session);
+          setUser(session?.user ?? null);
+          setLoading(false);
+
+          // Refresh subscription data when user logs in
+          if (session?.user && event === 'SIGNED_IN') {
+            setTimeout(() => {
+              refreshSubscription();
+            }, 1000);
+          }
         }
       }
     );
@@ -96,20 +108,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
           console.error('Error getting session:', error);
-        } else {
-          console.log('Initial session:', session?.user?.email);
+          clearAuthState();
+        } else if (session) {
+          console.log('Initial session found:', session?.user?.email);
           setSession(session);
           setUser(session?.user ?? null);
           
           // Refresh subscription for initial session
-          if (session?.user) {
-            setTimeout(() => {
-              refreshSubscription();
-            }, 1000);
-          }
+          setTimeout(() => {
+            refreshSubscription();
+          }, 1000);
+        } else {
+          console.log('No initial session found');
+          clearAuthState();
         }
       } catch (error) {
         console.error('Error in getInitialSession:', error);
+        clearAuthState();
       } finally {
         setLoading(false);
       }
@@ -184,17 +199,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     console.log('Starting sign out process...');
     try {
-      // Clear local state immediately
-      setUser(null);
-      setSession(null);
-      setSubscription({
-        subscribed: false,
-        subscription_tier: null,
-        subscription_end: null,
-      });
+      // Clear local state first
+      clearAuthState();
+
+      // Clear localStorage completely
+      localStorage.clear();
+      
+      // Clear sessionStorage as well
+      sessionStorage.clear();
 
       // Sign out from Supabase
-      const { error } = await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut({
+        scope: 'global' // This ensures all sessions are terminated
+      });
       
       if (error) {
         console.error('Error signing out:', error);
@@ -202,8 +219,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         console.log('Signed out successfully');
       }
+
+      // Force a hard refresh to ensure no cached data remains
+      window.location.href = '/login';
     } catch (err) {
       console.error('Unexpected error during sign out:', err);
+      // Even if there's an error, clear everything and redirect
+      clearAuthState();
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = '/login';
       throw err;
     }
   };
