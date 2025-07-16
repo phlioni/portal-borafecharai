@@ -90,14 +90,14 @@ serve(async (req) => {
     console.log('Payload do email preparado');
 
     const emailPayload = {
-      from: `${companyName} <onboarding@resend.dev>`,
+      from: `Propostas <proposta@borafecharai.com>`,
       to: [recipientEmail],
       subject: emailSubject,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
-            ${companyLogo ? `<img src="${companyLogo}" alt="${companyName}" style="max-height: 80px; margin-bottom: 20px;">` : ''}
-            <h1 style="color: #333; margin: 0;">${companyName}</h1>
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px; text-align: center; color: white;">
+            <h1 style="margin: 0; font-size: 32px; font-weight: bold;">${proposal.title}</h1>
+            <p style="margin: 10px 0 0 0; font-size: 18px; opacity: 0.9;">Proposta Comercial</p>
           </div>
           
           <div style="padding: 30px 20px;">
