@@ -6,6 +6,8 @@ export interface BusinessSegment {
   id: string;
   segment_name: string;
   segment_order: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface BusinessType {
@@ -13,6 +15,8 @@ export interface BusinessType {
   segment_id: string;
   type_name: string;
   type_order: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export const useBusinessSegments = () => {
@@ -21,7 +25,6 @@ export const useBusinessSegments = () => {
     queryFn: async () => {
       console.log('Fetching business segments...');
       
-      // Use direct query with type casting to bypass TypeScript restrictions
       const { data, error } = await (supabase as any)
         .from('business_segments')
         .select('*')
@@ -49,7 +52,6 @@ export const useBusinessTypes = (segmentId?: string) => {
 
       console.log('Fetching business types for segment:', segmentId);
 
-      // Use direct query with type casting to bypass TypeScript restrictions
       const { data, error } = await (supabase as any)
         .from('business_types')
         .select('*')
