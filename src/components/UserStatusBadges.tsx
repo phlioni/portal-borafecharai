@@ -2,8 +2,6 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Shield, Clock, CheckCircle, XCircle } from 'lucide-react';
-import { useTrialStatus } from '@/hooks/useTrialStatus';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface UserStatusBadgesProps {
   user: {
@@ -20,20 +18,6 @@ interface UserStatusBadgesProps {
 }
 
 const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
-  const { user: currentUser } = useAuth();
-  
-  // Para usuários que não são o atual, usar os dados do subscriber diretamente
-  // Para o usuário atual, usar o hook que busca dados atualizados
-  const { 
-    proposalsUsed: currentUserProposalsUsed, 
-    proposalsRemaining: currentUserProposalsRemaining,
-    isInTrial: currentUserIsInTrial,
-    trialEndDate: currentUserTrialEndDate,
-    loading: trialStatusLoading
-  } = useTrialStatus();
-  
-  const isCurrentUser = currentUser?.id === user.id;
-  
   console.log('UserStatusBadges - user data:', user);
   
   const now = new Date();
@@ -52,19 +36,10 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
   // 2. OU se é role 'user' sem assinatura (mesmo sem dados de trial configurados)
   const isTrialActive = shouldBeInTrial && (!trialEndDate || trialEndDate > now);
   
-  // Para o usuário atual, usar dados do hook que busca informações atualizadas
-  // Para outros usuários, usar dados do banco vindos do admin
-  let trialProposalsUsed, trialProposalsRemaining;
-  
-  if (isCurrentUser && !trialStatusLoading) {
-    trialProposalsUsed = Math.min(currentUserProposalsUsed, 20);
-    trialProposalsRemaining = Math.max(0, 20 - trialProposalsUsed);
-  } else {
-    // Para outros usuários no painel admin, usar dados vindos do subscriber
-    const rawProposalsUsed = user.subscriber?.trial_proposals_used || 0;
-    trialProposalsUsed = Math.min(rawProposalsUsed, 20);
-    trialProposalsRemaining = Math.max(0, 20 - trialProposalsUsed);
-  }
+  // Usar dados do banco vindos do admin
+  const rawProposalsUsed = user.subscriber?.trial_proposals_used || 0;
+  const trialProposalsUsed = Math.min(rawProposalsUsed, 20);
+  const trialProposalsRemaining = Math.max(0, 20 - trialProposalsUsed);
 
   console.log('UserStatusBadges - calculated values:', {
     isTrialActive,
@@ -73,7 +48,6 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
     hasActiveSubscription,
     trialProposalsUsed,
     trialProposalsRemaining,
-    isCurrentUser,
     subscribed: user.subscriber?.subscribed,
     subscription_tier: user.subscriber?.subscription_tier,
     trial_end_date: user.subscriber?.trial_end_date,
