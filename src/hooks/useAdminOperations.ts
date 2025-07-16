@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -16,6 +15,7 @@ interface AdminUser {
     subscription_tier?: string;
     trial_end_date?: string;
     trial_proposals_used?: number;
+    trial_start_date?: string;
   };
   role?: string;
 }
@@ -71,6 +71,7 @@ export const useAdminOperations = () => {
         
         console.log(`useAdminOperations - Usuário ${authUser.email}:`, {
           subscriber: subscriber ? 'encontrado' : 'não encontrado',
+          subscriberData: subscriber,
           role: userRole?.role || 'sem role'
         });
         
@@ -183,9 +184,9 @@ export const useAdminOperations = () => {
 
       toast.success('Dados do usuário resetados com sucesso!');
       
-      // Aguardar um tempo para garantir que as mudanças foram aplicadas no banco
+      // Aguardar um tempo menor e recarregar os dados
       console.log('useAdminOperations - Aguardando antes de recarregar...');
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Recarregar dados dos usuários
       console.log('useAdminOperations - Recarregando dados dos usuários...');

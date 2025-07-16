@@ -75,20 +75,26 @@ const UserActionsDropdown = ({ user }: UserActionsDropdownProps) => {
   const handleRoleChange = async (newRole: 'admin' | 'user' | 'guest') => {
     setIsUpdatingRole(true);
     try {
+      console.log(`Alterando role de ${user.email} para ${newRole}`);
+      
       // Primeiro, remover role existente
       if (user.role) {
-        await supabase
+        const { error: deleteError } = await supabase
           .from('user_roles')
           .delete()
           .eq('user_id', user.id);
+
+        if (deleteError) {
+          console.error('Erro ao remover role existente:', deleteError);
+        }
       }
 
-      // Inserir nova role - agora com o tipo correto
+      // Inserir nova role
       const { error } = await supabase
         .from('user_roles')
         .insert({
           user_id: user.id,
-          role: newRole as any // Temporariamente usar 'any' até os tipos serem regenerados
+          role: newRole
         });
 
       if (error) {
@@ -99,7 +105,8 @@ const UserActionsDropdown = ({ user }: UserActionsDropdownProps) => {
 
       toast.success(`Role alterada para ${newRole} com sucesso!`);
       
-      // Recarregar dados dos usuários
+      // Aguardar um pouco e recarregar dados dos usuários
+      await new Promise(resolve => setTimeout(resolve, 500));
       await loadUsers();
     } catch (error) {
       console.error('Erro ao alterar role:', error);

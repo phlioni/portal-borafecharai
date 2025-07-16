@@ -11,6 +11,7 @@ interface UserStatusBadgesProps {
       subscription_tier?: string;
       trial_end_date?: string;
       trial_proposals_used?: number;
+      trial_start_date?: string;
     };
   };
 }
@@ -20,6 +21,12 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
   
   const now = new Date();
   const trialEndDate = user.subscriber?.trial_end_date ? new Date(user.subscriber.trial_end_date) : null;
+  const trialStartDate = user.subscriber?.trial_start_date ? new Date(user.subscriber.trial_start_date) : null;
+  
+  // Um usuário está em trial se:
+  // 1. Tem trial_end_date
+  // 2. trial_end_date é maior que agora
+  // 3. NÃO está subscrito
   const isTrialActive = trialEndDate && trialEndDate > now && !user.subscriber?.subscribed;
   
   const trialProposalsUsed = user.subscriber?.trial_proposals_used || 0;
@@ -37,7 +44,9 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
     trialProposalsRemaining,
     subscribed: user.subscriber?.subscribed,
     trial_end_date: user.subscriber?.trial_end_date,
+    trial_start_date: user.subscriber?.trial_start_date,
     trialEndDate: trialEndDate?.toISOString(),
+    trialStartDate: trialStartDate?.toISOString(),
     now: now.toISOString()
   });
 
@@ -64,12 +73,12 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
         </Badge>
       ) : isTrialActive ? (
         <>
-          <Badge variant="outline" className="text-xs">
+          <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
             <Clock className="h-3 w-3 mr-1" />
-            Trial ({trialProposalsRemaining} restantes)
+            Trial Ativo ({trialProposalsRemaining} restantes)
           </Badge>
           {user.subscriber?.trial_end_date && (
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
               <Calendar className="h-3 w-3 mr-1" />
               Até {formatTrialEndDate(user.subscriber.trial_end_date)}
             </Badge>
@@ -80,12 +89,17 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
           <XCircle className="h-3 w-3 mr-1" />
           Trial Expirado
         </Badge>
-      ) : user.subscriber ? (
+      ) : user.subscriber && user.subscriber.trial_start_date ? (
         <Badge variant="secondary" className="text-xs">
           <Clock className="h-3 w-3 mr-1" />
-          Sem Trial Ativo
+          Trial Inativo
         </Badge>
-      ) : null}
+      ) : (
+        <Badge variant="secondary" className="text-xs">
+          <Clock className="h-3 w-3 mr-1" />
+          Sem Trial
+        </Badge>
+      )}
     </div>
   );
 };
