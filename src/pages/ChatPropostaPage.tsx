@@ -1,45 +1,55 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MessageCircle, Send, Bot, User, FileText, ArrowLeft, Lightbulb } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useCreateProposal } from '@/hooks/useProposals';
-import { useCreateBudgetItem } from '@/hooks/useBudgetItems';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Send, Bot, User, FileText, Lightbulb } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { useNavigate, Link } from 'react-router-dom';
-import ProposalCreatePreviewModal from '@/components/ProposalCreatePreviewModal';
-import SendProposalModal from '@/components/SendProposalModal';
-import { useProposalSending } from '@/hooks/useProposalSending';
 
 interface Message {
-  id: string;
-  type: 'user' | 'assistant';
+  role: 'user' | 'assistant';
   content: string;
+  timestamp: Date;
+}
+
+interface ProposalData {
+  title: string;
+  company_name?: string;
+  service_description?: string;
+  detailed_description?: string;
+  value?: number;
+  delivery_time?: string;
+  validity_date?: string;
+  observations?: string;
+  client_name?: string;
+  client_email?: string;
+  client_phone?: string;
+  budget_items?: Array<{
+    type: 'material' | 'labor';
+    description: string;
+    quantity: number;
+    unit_price: number;
+  }>;
 }
 
 const ChatPropostaPage = () => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const createProposal = useCreateProposal();
-  const createBudgetItem = useCreateBudgetItem();
-  const { sendProposal, isSending } = useProposalSending();
   const [messages, setMessages] = useState<Message[]>([
     {
-      id: '1',
-      type: 'assistant',
-      content: 'Olá! Vou te ajudar a criar uma proposta comercial profissional. Para começar, me conte sobre o projeto ou serviço que você quer propor.'
+      role: 'assistant',
+      content: 'Olá! Sou seu assistente para criação de propostas comerciais. Vou te ajudar a criar uma proposta profissional. Para começar, me conte sobre o projeto ou serviço que você quer propor.',
+      timestamp: new Date()
     }
   ]);
-  const [inputMessage, setInputMessage] = useState('');
+  const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showGenerateButton, setShowGenerateButton] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
-  const [showSendModal, setShowSendModal] = useState(false);
-  const [previewProposal, setPreviewProposal] = useState(null);
-  const [companyLogo, setCompanyLogo] = useState('');
+  const [proposalData, setProposalData] = useState<ProposalData | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -49,466 +59,295 @@ const ChatPropostaPage = () => {
     scrollToBottom();
   }, [messages]);
 
-  const sendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
+  const handleSendMessage = async () => {
+    if (!input.trim()) return;
 
     const userMessage: Message = {
-      id: Date.now().toString(),
-      type: 'user',
-      content: inputMessage
+      role: 'user',
+      content: input.trim(),
+      timestamp: new Date()
     };
 
     setMessages(prev => [...prev, userMessage]);
-    setInputMessage('');
+    setInput('');
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('chat-proposal', {
+      const response = await supabase.functions.invoke('chat-proposal', {
         body: {
-          messages: [...messages, userMessage].map(msg => ({
-            role: msg.type === 'user' ? 'user' : 'assistant',
-            content: msg.content
-          })),
-          action: 'chat'
+          message: input.trim(),
+          conversation_history: messages
         }
       });
 
-      if (error) throw error;
+      if (response.error) {
+        throw response.error;
+      }
+
+      const { message, proposal_data, show_generate_button } = response.data;
 
       const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'assistant',
-        content: data.content
+        role: 'assistant',
+        content: message,
+        timestamp: new Date()
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-
-      // Verificar se deve mostrar o botão de gerar proposta
-      if (data.content.includes("Parece que já temos as informações principais! Quer que eu gere a proposta para você revisar?")) {
+      
+      if (proposal_data) {
+        setProposalData(proposal_data);
+      }
+      
+      if (show_generate_button) {
         setShowGenerateButton(true);
       }
 
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error);
-      toast.error('Erro ao processar mensagem');
+      toast.error('Erro ao processar mensagem. Tente novamente.');
+      
+      const errorMessage: Message = {
+        role: 'assistant',
+        content: 'Desculpe, ocorreu um erro. Pode repetir sua mensagem?',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const generateProposal = async () => {
-    if (!user) {
-      toast.error('Usuário não autenticado');
+  const handleGenerateProposal = async () => {
+    if (!proposalData) {
+      toast.error('Dados da proposta não encontrados');
       return;
     }
 
-    setIsLoading(true);
-    setShowGenerateButton(false);
-
     try {
-      const { data, error } = await supabase.functions.invoke('chat-proposal', {
-        body: {
-          messages: messages.map(msg => ({
-            role: msg.type === 'user' ? 'user' : 'assistant',
-            content: msg.content
-          })),
-          action: 'generate',
-          user_id: user.id
+      // Buscar cliente existente se houver informações
+      let companyId = null;
+      if (proposalData.client_name || proposalData.client_email || proposalData.client_phone) {
+        const { data: existingCompanies } = await supabase
+          .from('companies')
+          .select('*')
+          .eq('user_id', user!.id)
+          .or(`name.eq.${proposalData.client_name},email.eq.${proposalData.client_email},phone.eq.${proposalData.client_phone}`);
+
+        if (existingCompanies && existingCompanies.length > 0) {
+          companyId = existingCompanies[0].id;
+          toast.success(`Cliente "${existingCompanies[0].name}" encontrado e será usado na proposta`);
+        } else if (proposalData.client_name) {
+          // Criar novo cliente
+          const { data: newCompany, error: companyError } = await supabase
+            .from('companies')
+            .insert({
+              name: proposalData.client_name,
+              email: proposalData.client_email || null,
+              phone: proposalData.client_phone || null,
+              user_id: user!.id
+            })
+            .select()
+            .single();
+
+          if (companyError) throw companyError;
+          companyId = newCompany.id;
+          toast.success(`Novo cliente "${proposalData.client_name}" criado`);
         }
-      });
-
-      if (error) throw error;
-
-      console.log('Resposta da Edge Function:', data);
-
-      let proposalData;
-      try {
-        const jsonString = data.content.trim();
-        console.log('JSON string recebido:', jsonString);
-        
-        const cleanJson = jsonString.replace(/^[^{]*({.*})[^}]*$/s, '$1');
-        console.log('JSON limpo:', cleanJson);
-        
-        proposalData = JSON.parse(cleanJson);
-        console.log('Dados parseados:', proposalData);
-      } catch (parseError) {
-        console.error('Erro ao fazer parse dos dados:', parseError);
-        console.error('Conteúdo original:', data.content);
-        toast.error('Erro ao processar dados da proposta. Dados recebidos em formato inválido.');
-        return;
       }
 
-      if (!proposalData.titulo) {
-        toast.error('Título da proposta é obrigatório');
-        return;
-      }
-
-      // Processar itens de orçamento com campos corretos
-      const processedBudgetItems = proposalData.budget_items ? proposalData.budget_items.map((item: any) => {
-        const quantity = parseFloat(item.quantity) || 0;
-        const unitPrice = parseFloat(item.unit_price) || 0;
-        const totalPrice = quantity * unitPrice;
-        
-        return {
-          id: `temp-${Math.random()}`,
-          proposal_id: 'temp-id',
-          type: item.type === 'labor' ? 'labor' : 'material',
-          description: item.description,
-          quantity: quantity,
-          unit_price: unitPrice,
-          total_price: totalPrice,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-      }) : [];
-
-      let totalValue = processedBudgetItems.reduce((total: number, item: any) => {
-        return total + (item.total_price || 0);
-      }, 0);
-
-      console.log('Valor total calculado:', totalValue);
-      console.log('Itens processados:', processedBudgetItems);
-
-      // Preparar proposta para preview com a estrutura correta
-      const proposalForPreview = {
-        id: 'temp-id',
-        title: proposalData.titulo,
-        service_description: proposalData.servico || '',
-        detailed_description: proposalData.descricao || '',
-        value: totalValue > 0 ? totalValue : null,
-        delivery_time: proposalData.prazo || '',
-        observations: proposalData.observacoes || '',
-        companies: proposalData.cliente ? { 
-          name: proposalData.cliente,
-          email: proposalData.email || '',
-          phone: proposalData.telefone || ''
-        } : null,
-        created_at: new Date().toISOString(),
-        user_id: user.id,
-        // Incluir os itens de orçamento no formato correto para o hook useBudgetItems
-        proposal_budget_items: processedBudgetItems
-      };
-
-      // Buscar logo da empresa
-      const { data: userCompany } = await supabase
-        .from('companies')
-        .select('logo_url')
-        .eq('user_id', user.id)
+      // Criar a proposta
+      const { data: newProposal, error: proposalError } = await supabase
+        .from('proposals')
+        .insert({
+          title: proposalData.title,
+          company_id: companyId,
+          service_description: proposalData.service_description || null,
+          detailed_description: proposalData.detailed_description || null,
+          value: proposalData.value || null,
+          delivery_time: proposalData.delivery_time || null,
+          validity_date: proposalData.validity_date || null,
+          observations: proposalData.observations || null,
+          status: 'rascunho',
+          user_id: user!.id
+        })
+        .select()
         .single();
 
-      setPreviewProposal(proposalForPreview);
-      setCompanyLogo(userCompany?.logo_url || '');
-      
-      // Salvar dados temporários para usar depois
-      sessionStorage.setItem('tempProposalData', JSON.stringify({
-        proposalData,
-        budgetItems: processedBudgetItems
-      }));
-      
-      setShowPreview(true);
+      if (proposalError) throw proposalError;
+
+      // Criar itens do orçamento se existirem
+      if (proposalData.budget_items && proposalData.budget_items.length > 0) {
+        const budgetItemsToInsert = proposalData.budget_items.map(item => ({
+          proposal_id: newProposal.id,
+          type: item.type,
+          description: item.description,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: item.quantity * item.unit_price
+        }));
+
+        const { error: budgetError } = await supabase
+          .from('proposal_budget_items')
+          .insert(budgetItemsToInsert);
+
+        if (budgetError) throw budgetError;
+      }
+
+      toast.success('Proposta gerada com sucesso!');
+      navigate(`/propostas/visualizar/${newProposal.id}`);
 
     } catch (error) {
       console.error('Erro ao gerar proposta:', error);
       toast.error('Erro ao gerar proposta. Tente novamente.');
-      setShowGenerateButton(true); // Mostrar o botão novamente em caso de erro
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSaveAsDraft = async () => {
-    const tempData = sessionStorage.getItem('tempProposalData');
-    if (!tempData || !user) return;
-
-    const { proposalData, budgetItems } = JSON.parse(tempData);
-
-    try {
-      const totalValue = budgetItems.reduce((total: number, item: any) => {
-        return total + ((parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0));
-      }, 0);
-
-      const newProposal = await createProposal.mutateAsync({
-        title: proposalData.titulo,
-        service_description: proposalData.servico || '',
-        detailed_description: proposalData.descricao || '',
-        value: totalValue > 0 ? totalValue : null,
-        delivery_time: proposalData.prazo || '',
-        observations: proposalData.observacoes || '',
-        template_id: 'standard',
-        user_id: user.id,
-        status: 'rascunho'
-      });
-
-      if (budgetItems.length > 0) {
-        for (const item of budgetItems) {
-          if (item.description && item.quantity && item.unit_price) {
-            await createBudgetItem.mutateAsync({
-              proposal_id: newProposal.id,
-              type: item.type === 'labor' ? 'labor' : 'material',
-              description: item.description,
-              quantity: parseFloat(item.quantity) || 1,
-              unit_price: parseFloat(item.unit_price) || 0
-            });
-          }
-        }
-      }
-
-      sessionStorage.removeItem('tempProposalData');
-      toast.success('Proposta salva como rascunho!');
-      setShowPreview(false);
-      navigate(`/propostas/visualizar/${newProposal.id}`);
-    } catch (error) {
-      console.error('Erro ao salvar rascunho:', error);
-      toast.error('Erro ao salvar rascunho');
-    }
-  };
-
-  const handleSendEmail = () => {
-    setShowPreview(false);
-    setShowSendModal(true);
-  };
-
-  const handleSendProposal = async (emailData: any) => {
-    const tempData = sessionStorage.getItem('tempProposalData');
-    if (!tempData || !user) return;
-
-    const { proposalData, budgetItems } = JSON.parse(tempData);
-
-    try {
-      const totalValue = budgetItems.reduce((total: number, item: any) => {
-        return total + ((parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0));
-      }, 0);
-
-      const newProposal = await createProposal.mutateAsync({
-        title: proposalData.titulo,
-        service_description: proposalData.servico || '',
-        detailed_description: proposalData.descricao || '',
-        value: totalValue > 0 ? totalValue : null,
-        delivery_time: proposalData.prazo || '',
-        observations: proposalData.observacoes || '',
-        template_id: 'standard',
-        user_id: user.id,
-        status: 'enviada'
-      });
-
-      if (budgetItems.length > 0) {
-        for (const item of budgetItems) {
-          if (item.description && item.quantity && item.unit_price) {
-            await createBudgetItem.mutateAsync({
-              proposal_id: newProposal.id,
-              type: item.type === 'labor' ? 'labor' : 'material',
-              description: item.description,
-              quantity: parseFloat(item.quantity) || 1,
-              unit_price: parseFloat(item.unit_price) || 0
-            });
-          }
-        }
-      }
-
-      const success = await sendProposal(newProposal, emailData);
-      if (success) {
-        sessionStorage.removeItem('tempProposalData');
-        setShowSendModal(false);
-        toast.success('Proposta criada e enviada com sucesso!');
-        navigate(`/propostas/visualizar/${newProposal.id}`);
-      }
-    } catch (error) {
-      console.error('Erro ao criar e enviar proposta:', error);
-      toast.error('Erro ao criar e enviar proposta');
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      handleSendMessage();
     }
   };
 
   const tips = [
-    "💡 Seja específico sobre o serviço ou produto",
-    "💰 Inclua informações sobre materiais e mão de obra",
-    "⏰ Mencione prazos de entrega realistas",
-    "📋 Detalhe bem o escopo do trabalho",
-    "🎯 Informe o nome e dados do cliente"
+    "Seja específico sobre o escopo do projeto",
+    "Mencione prazos e entregas esperadas",
+    "Inclua informações sobre o cliente",
+    "Detalhe os serviços ou produtos",
+    "Especifique valores e condições de pagamento",
+    "Adicione observações importantes"
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto flex">
-        {/* Sidebar com dicas */}
-        <div className="hidden lg:block w-80 bg-white border-r border-gray-200 p-6">
-          <div className="sticky top-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Lightbulb className="h-5 w-5 text-yellow-500" />
-              <h3 className="font-semibold text-gray-900">Dicas para sua proposta</h3>
+    <div className="flex h-[calc(100vh-4rem)] bg-gray-50">
+      {/* Chat Principal */}
+      <div className="flex-1 flex flex-col">
+        <div className="bg-white border-b p-4">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-600 p-2 rounded-lg">
+              <Bot className="h-6 w-6 text-white" />
             </div>
-            <div className="space-y-3">
-              {tips.map((tip, index) => (
-                <div key={index} className="p-3 bg-blue-50 rounded-lg text-sm text-gray-700">
-                  {tip}
-                </div>
-              ))}
-            </div>
-            <div className="mt-6 p-4 bg-green-50 rounded-lg">
-              <h4 className="font-medium text-green-800 mb-2">Como funciona?</h4>
-              <p className="text-sm text-green-700">
-                Converse naturalmente comigo e eu vou coletando as informações necessárias para criar sua proposta profissional automaticamente.
-              </p>
+            <div>
+              <h1 className="text-xl font-semibold">Assistente de Propostas</h1>
+              <p className="text-gray-600 text-sm">Vamos criar sua proposta comercial juntos</p>
             </div>
           </div>
         </div>
 
-        {/* Chat principal */}
-        <div className="flex-1 p-6">
-          {/* Header */}
-          <div className="flex items-center gap-4 mb-6">
-            <Button variant="ghost" asChild>
-              <Link to="/propostas">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Voltar
-              </Link>
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                <MessageCircle className="h-6 w-6 text-blue-600" />
-                Chat para Proposta
-              </h1>
-              <p className="text-gray-600">Converse comigo para criar sua proposta comercial</p>
-            </div>
-          </div>
-
-          <Card className="h-[600px] flex flex-col">
-            <CardHeader className="flex-shrink-0">
-              <CardTitle className="flex items-center gap-2">
-                <Bot className="h-5 w-5 text-blue-600" />
-                Assistente de Propostas
-              </CardTitle>
-            </CardHeader>
-            
-            <CardContent className="flex-1 flex flex-col">
-              {/* Messages - área com scroll */}
-              <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-2 max-h-[400px]">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`flex items-start gap-2 max-w-[85%] ${
-                        message.type === 'user' ? 'flex-row-reverse' : 'flex-row'
-                      }`}
-                    >
-                      <div
-                        className={`p-2 rounded-full flex-shrink-0 ${
-                          message.type === 'user' 
-                            ? 'bg-blue-600 text-white' 
-                            : 'bg-gray-200 text-gray-700'
-                        }`}
-                      >
-                        {message.type === 'user' ? (
-                          <User className="h-4 w-4" />
-                        ) : (
-                          <Bot className="h-4 w-4" />
-                        )}
-                      </div>
-                      <div
-                        className={`p-3 rounded-lg break-words ${
-                          message.type === 'user'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-900'
-                        }`}
-                      >
-                        <p className="text-sm whitespace-pre-wrap break-words overflow-wrap-anywhere">
-                          {message.content}
-                        </p>
-                      </div>
-                    </div>
+        {/* Mensagens */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {messages.map((message, index) => (
+            <div
+              key={index}
+              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-[80%] rounded-lg p-4 ${
+                  message.role === 'user'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white border shadow-sm'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  {message.role === 'assistant' && (
+                    <Bot className="h-5 w-5 text-blue-600 mt-1 flex-shrink-0" />
+                  )}
+                  {message.role === 'user' && (
+                    <User className="h-5 w-5 text-white mt-1 flex-shrink-0" />
+                  )}
+                  <div className="flex-1">
+                    <p className="whitespace-pre-wrap">{message.content}</p>
+                    <p className={`text-xs mt-2 ${
+                      message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
+                    }`}>
+                      {message.timestamp.toLocaleTimeString()}
+                    </p>
                   </div>
-                ))}
-                
-                {isLoading && (
-                  <div className="flex justify-start">
-                    <div className="flex items-start gap-2">
-                      <div className="p-2 rounded-full bg-gray-200 text-gray-700">
-                        <Bot className="h-4 w-4" />
-                      </div>
-                      <div className="p-3 rounded-lg bg-gray-100">
-                        <div className="flex space-x-1">
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-75"></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-150"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                <div ref={messagesEndRef} />
-              </div>
-
-              {/* Generate Button */}
-              {showGenerateButton && (
-                <div className="mb-4">
-                  <Button
-                    onClick={generateProposal}
-                    disabled={isLoading}
-                    className="w-full flex items-center gap-2 bg-green-600 hover:bg-green-700"
-                  >
-                    <FileText className="h-4 w-4" />
-                    Gerar Proposta
-                  </Button>
                 </div>
-              )}
-
-              {/* Input */}
-              <div className="flex gap-2">
-                <Input
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Digite sua mensagem..."
-                  disabled={isLoading}
-                  className="flex-1"
-                />
-                <Button
-                  onClick={sendMessage}
-                  disabled={isLoading || !inputMessage.trim()}
-                  size="icon"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          ))}
+          
+          {isLoading && (
+            <div className="flex justify-start">
+              <div className="bg-white border shadow-sm rounded-lg p-4 max-w-[80%]">
+                <div className="flex items-center gap-3">
+                  <Bot className="h-5 w-5 text-blue-600" />
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                    <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Botão de Gerar Proposta */}
+        {showGenerateButton && (
+          <div className="p-4 bg-yellow-50 border-t border-yellow-200">
+            <Button 
+              onClick={handleGenerateProposal}
+              className="w-full bg-green-600 hover:bg-green-700 text-white"
+              size="lg"
+            >
+              <FileText className="h-5 w-5 mr-2" />
+              Gerar Proposta
+            </Button>
+          </div>
+        )}
+
+        {/* Input de Mensagem */}
+        <div className="p-4 bg-white border-t">
+          <div className="flex gap-2">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Digite sua mensagem..."
+              disabled={isLoading}
+              className="flex-1"
+            />
+            <Button 
+              onClick={handleSendMessage} 
+              disabled={isLoading || !input.trim()}
+              size="icon"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Preview Modal */}
-      {showPreview && previewProposal && (
-        <ProposalCreatePreviewModal
-          isOpen={showPreview}
-          onClose={() => setShowPreview(false)}
-          onSaveAsDraft={handleSaveAsDraft}
-          onSendEmail={handleSendEmail}
-          proposal={previewProposal}
-          companyLogo={companyLogo}
-          isLoading={createProposal.isPending}
-        />
-      )}
+      {/* Painel de Dicas - Lado Direito */}
+      <div className="w-80 bg-white border-l">
+        <div className="p-4 border-b">
+          <div className="flex items-center gap-2">
+            <Lightbulb className="h-5 w-5 text-yellow-500" />
+            <h2 className="font-semibold">Dicas para uma boa proposta</h2>
+          </div>
+        </div>
+        
+        <div className="p-4 space-y-3">
+          {tips.map((tip, index) => (
+            <div key={index} className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
+              <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                {index + 1}
+              </div>
+              <p className="text-sm text-gray-700">{tip}</p>
+            </div>
+          ))}
+        </div>
 
-      {/* Send Modal */}
-      {showSendModal && previewProposal && (
-        <SendProposalModal
-          isOpen={showSendModal}
-          onClose={() => setShowSendModal(false)}
-          onSend={handleSendProposal}
-          proposalTitle={previewProposal.title}
-          clientName={previewProposal.companies?.name}
-          clientEmail={previewProposal.companies?.email}
-          isLoading={isSending || createProposal.isPending}
-        />
-      )}
+        <div className="p-4 border-t bg-gray-50">
+          <p className="text-xs text-gray-600">
+            💡 <strong>Dica:</strong> Quanto mais detalhes você fornecer, melhor será sua proposta!
+          </p>
+        </div>
+      </div>
     </div>
   );
 };
