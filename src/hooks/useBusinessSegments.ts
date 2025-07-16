@@ -25,7 +25,8 @@ export const useBusinessSegments = () => {
     queryFn: async () => {
       console.log('Fetching business segments...');
       
-      const { data, error } = await supabase
+      // Use type assertion to access the business_segments table
+      const { data, error } = await (supabase as any)
         .from('business_segments')
         .select('*')
         .order('segment_order');
@@ -52,7 +53,8 @@ export const useBusinessTypes = (segmentId?: string) => {
 
       console.log('Fetching business types for segment:', segmentId);
 
-      const { data, error } = await supabase
+      // Use type assertion to access the business_types table
+      const { data, error } = await (supabase as any)
         .from('business_types')
         .select('*')
         .eq('segment_id', segmentId)
