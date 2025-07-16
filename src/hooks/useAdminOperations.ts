@@ -40,9 +40,15 @@ export const useAdminOperations = () => {
 
       console.log('useAdminOperations - Usuários auth encontrados:', authUsers?.length);
 
-      // Buscar dados de assinatura e roles
-      const { data: subscribers } = await supabase.from('subscribers').select('*');
-      const { data: roles } = await supabase.from('user_roles').select('*');
+      // Buscar dados de assinatura e roles com dados mais atualizados
+      const { data: subscribers } = await supabase
+        .from('subscribers')
+        .select('*')
+        .order('updated_at', { ascending: false });
+        
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('*');
 
       console.log('useAdminOperations - Subscribers encontrados:', subscribers?.length);
       console.log('useAdminOperations - Roles encontradas:', roles?.length);
@@ -72,7 +78,8 @@ export const useAdminOperations = () => {
         console.log(`useAdminOperations - Usuário ${authUser.email}:`, {
           subscriber: subscriber ? 'encontrado' : 'não encontrado',
           subscriberData: subscriber,
-          role: userRole?.role || 'sem role'
+          role: userRole?.role || 'sem role',
+          trialProposalsUsed: subscriber?.trial_proposals_used
         });
         
         return {
@@ -184,9 +191,12 @@ export const useAdminOperations = () => {
 
       toast.success('Dados do usuário resetados com sucesso!');
       
-      // Recarregar dados imediatamente para refletir as mudanças
-      console.log('useAdminOperations - Recarregando dados dos usuários...');
-      await loadUsers();
+      // Recarregar dados com um pequeno delay para garantir que as mudanças foram persistidas
+      setTimeout(async () => {
+        console.log('useAdminOperations - Recarregando dados dos usuários após reset...');
+        await loadUsers();
+      }, 1000);
+      
       return true;
     } catch (error) {
       console.error('Erro ao resetar dados:', error);

@@ -2,9 +2,12 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Shield, Clock, CheckCircle, XCircle, Calendar } from 'lucide-react';
+import { useTrialStatus } from '@/hooks/useTrialStatus';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface UserStatusBadgesProps {
   user: {
+    id: string;
     role?: string;
     subscriber?: {
       subscribed: boolean;
@@ -17,6 +20,20 @@ interface UserStatusBadgesProps {
 }
 
 const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
+  const { user: currentUser } = useAuth();
+  
+  // Para usuários que não são o atual, usar os dados do subscriber diretamente
+  // Para o usuário atual, usar o hook que busca dados atualizados
+  const { 
+    proposalsUsed: currentUserProposalsUsed, 
+    proposalsRemaining: currentUserProposalsRemaining,
+    isInTrial: currentUserIsInTrial,
+    trialEndDate: currentUserTrialEndDate,
+    loading: trialStatusLoading
+  } = useTrialStatus();
+  
+  const isCurrentUser = currentUser?.id === user.id;
+  
   console.log('UserStatusBadges - user data:', user);
   
   const now = new Date();
@@ -35,9 +52,18 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
   // 2. OU se é role 'user' sem assinatura (mesmo sem dados de trial configurados)
   const isTrialActive = shouldBeInTrial && (!trialEndDate || trialEndDate > now);
   
-  // CORRIGIR: usar o valor real do banco, não calcular
-  const trialProposalsUsed = user.subscriber?.trial_proposals_used || 0;
-  const trialProposalsRemaining = Math.max(0, 20 - trialProposalsUsed);
+  // Para o usuário atual, usar dados do hook que busca informações atualizadas
+  // Para outros usuários, usar dados do banco vindos do admin
+  let trialProposalsUsed, trialProposalsRemaining;
+  
+  if (isCurrentUser && !trialStatusLoading) {
+    trialProposalsUsed = currentUserProposalsUsed;
+    trialProposalsRemaining = currentUserProposalsRemaining;
+  } else {
+    // Para outros usuários no painel admin, usar dados vindos do subscriber
+    trialProposalsUsed = user.subscriber?.trial_proposals_used || 0;
+    trialProposalsRemaining = Math.max(0, 20 - trialProposalsUsed);
+  }
 
   // Formattar data de término do trial
   const formatTrialEndDate = (dateString: string) => {
@@ -52,6 +78,7 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
     hasActiveSubscription,
     trialProposalsUsed,
     trialProposalsRemaining,
+    isCurrentUser,
     subscribed: user.subscriber?.subscribed,
     subscription_tier: user.subscriber?.subscription_tier,
     trial_end_date: user.subscriber?.trial_end_date,
