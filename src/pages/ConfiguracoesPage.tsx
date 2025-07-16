@@ -28,7 +28,7 @@ const ConfiguracoesPage = () => {
   const { data: companies, isLoading: companiesLoading } = useCompanies();
   const updateCompanyMutation = useUpdateCompany();
   const createCompanyMutation = useCreateCompany();
-  const { data: businessSegments } = useBusinessSegments();
+  const { data: businessSegments, isLoading: segmentsLoading } = useBusinessSegments();
   const isMobile = useIsMobile();
 
   const [activeTab, setActiveTab] = useState('perfil');
@@ -50,7 +50,7 @@ const ConfiguracoesPage = () => {
   });
 
   const [selectedSegmentId, setSelectedSegmentId] = useState<string>('');
-  const { data: businessTypes } = useBusinessTypes(selectedSegmentId);
+  const { data: businessTypes, isLoading: typesLoading } = useBusinessTypes(selectedSegmentId);
 
   const company = companies?.[0] as any;
   const isProfessional = subscription.subscription_tier === 'professional' || isAdmin;
@@ -58,9 +58,11 @@ const ConfiguracoesPage = () => {
   useEffect(() => {
     console.log('ConfiguracoesPage - companies:', companies);
     console.log('ConfiguracoesPage - company:', company);
+    console.log('ConfiguracoesPage - businessSegments:', businessSegments);
 
     if (company) {
       const segmentId = businessSegments?.find(s => s.segment_name === company.business_segment)?.id || '';
+      console.log('Found segment ID:', segmentId, 'for segment:', company.business_segment);
       setSelectedSegmentId(segmentId);
       
       setCompanyData({
@@ -93,7 +95,9 @@ const ConfiguracoesPage = () => {
   };
 
   const handleSegmentChange = (segmentName: string) => {
+    console.log('Segment changed to:', segmentName);
     const segment = businessSegments?.find(s => s.segment_name === segmentName);
+    console.log('Found segment:', segment);
     setSelectedSegmentId(segment?.id || '');
     handleInputChange('business_segment', segmentName);
     handleInputChange('business_type_detail', ''); // Reset type when segment changes
@@ -166,7 +170,7 @@ const ConfiguracoesPage = () => {
     }
   ];
 
-  if (companiesLoading) {
+  if (companiesLoading || segmentsLoading) {
     return (
       <div className="p-6 space-y-6">
         <div>
@@ -289,39 +293,41 @@ const ConfiguracoesPage = () => {
                         placeholder="55+DDD+Número (ex: 5511999999999)"
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="business_segment">Segmento de Atuação</Label>
-                      <Select value={companyData.business_segment} onValueChange={handleSegmentChange}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o segmento" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {businessSegments?.map((segment) => (
-                            <SelectItem key={segment.id} value={segment.segment_name}>
-                              {segment.segment_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="business_type_detail">Tipo</Label>
-                      <Select 
-                        value={companyData.business_type_detail} 
-                        onValueChange={(value) => handleInputChange('business_type_detail', value)}
-                        disabled={!selectedSegmentId}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={selectedSegmentId ? "Selecione o tipo" : "Primeiro selecione um segmento"} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {businessTypes?.map((type) => (
-                            <SelectItem key={type.id} value={type.type_name}>
-                              {type.type_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="business_segment">Segmento de Atuação</Label>
+                        <Select value={companyData.business_segment} onValueChange={handleSegmentChange}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o segmento" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {businessSegments?.map((segment) => (
+                              <SelectItem key={segment.id} value={segment.segment_name}>
+                                {segment.segment_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="business_type_detail">Tipo</Label>
+                        <Select 
+                          value={companyData.business_type_detail} 
+                          onValueChange={(value) => handleInputChange('business_type_detail', value)}
+                          disabled={!selectedSegmentId || typesLoading}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={selectedSegmentId ? "Selecione o tipo" : "Primeiro selecione um segmento"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {businessTypes?.map((type) => (
+                              <SelectItem key={type.id} value={type.type_name}>
+                                {type.type_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                     <div>
                       <Label htmlFor="cnpj">CNPJ</Label>
@@ -581,6 +587,15 @@ const ConfiguracoesPage = () => {
                     />
                   </div>
                   <div>
+                    <Label htmlFor="cnpj">CNPJ</Label>
+                    <Input
+                      id="cnpj"
+                      value={companyData.cnpj}
+                      onChange={(e) => handleInputChange('cnpj', e.target.value)}
+                      placeholder="00.000.000/0000-00"
+                    />
+                  </div>
+                  <div>
                     <Label htmlFor="business_segment">Segmento de Atuação</Label>
                     <Select value={companyData.business_segment} onValueChange={handleSegmentChange}>
                       <SelectTrigger>
@@ -600,7 +615,7 @@ const ConfiguracoesPage = () => {
                     <Select 
                       value={companyData.business_type_detail} 
                       onValueChange={(value) => handleInputChange('business_type_detail', value)}
-                      disabled={!selectedSegmentId}
+                      disabled={!selectedSegmentId || typesLoading}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder={selectedSegmentId ? "Selecione o tipo" : "Primeiro selecione um segmento"} />
@@ -613,15 +628,6 @@ const ConfiguracoesPage = () => {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="cnpj">CNPJ</Label>
-                    <Input
-                      id="cnpj"
-                      value={companyData.cnpj}
-                      onChange={(e) => handleInputChange('cnpj', e.target.value)}
-                      placeholder="00.000.000/0000-00"
-                    />
                   </div>
                   <div>
                     <Label htmlFor="website">Website</Label>

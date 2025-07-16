@@ -19,6 +19,8 @@ export const useBusinessSegments = () => {
   return useQuery({
     queryKey: ['business-segments'],
     queryFn: async () => {
+      console.log('Fetching business segments...');
+      
       const { data, error } = await supabase
         .from('business_segments' as any)
         .select('*')
@@ -29,6 +31,7 @@ export const useBusinessSegments = () => {
         throw error;
       }
 
+      console.log('Business segments data:', data);
       return (data as unknown) as BusinessSegment[];
     },
   });
@@ -38,7 +41,12 @@ export const useBusinessTypes = (segmentId?: string) => {
   return useQuery({
     queryKey: ['business-types', segmentId],
     queryFn: async () => {
-      if (!segmentId) return [];
+      if (!segmentId) {
+        console.log('No segmentId provided, returning empty array');
+        return [];
+      }
+
+      console.log('Fetching business types for segment:', segmentId);
 
       const { data, error } = await supabase
         .from('business_types' as any)
@@ -51,6 +59,7 @@ export const useBusinessTypes = (segmentId?: string) => {
         throw error;
       }
 
+      console.log('Business types data:', data);
       return (data as unknown) as BusinessType[];
     },
     enabled: !!segmentId,
