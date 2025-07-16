@@ -29,7 +29,7 @@ export const useBusinessSegments = () => {
         throw error;
       }
 
-      return data as BusinessSegment[];
+      return (data as unknown) as BusinessSegment[];
     },
   });
 };
@@ -51,7 +51,7 @@ export const useBusinessTypes = (segmentId?: string) => {
         throw error;
       }
 
-      return data as BusinessType[];
+      return (data as unknown) as BusinessType[];
     },
     enabled: !!segmentId,
   });
