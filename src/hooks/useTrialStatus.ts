@@ -45,7 +45,7 @@ export const useTrialStatus = () => {
 
       const isUserRole = userRole?.role === 'user';
       
-      const { data: subscriberData, error } = await supabase
+      let { data: subscriberData, error } = await supabase
         .from('subscribers')
         .select('*')
         .eq('user_id', user.id)
