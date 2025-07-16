@@ -25,16 +25,7 @@ export const useBusinessSegments = () => {
     queryFn: async () => {
       console.log('Fetching business segments...');
       
-      // Usar rpc ou query direta para contornar os tipos TypeScript
-      const { data, error } = await supabase
-        .rpc('get_business_segments') 
-        .catch(async () => {
-          // Fallback para query direta se a função RPC não existir
-          return await (supabase as any)
-            .from('business_segments')
-            .select('*')
-            .order('segment_order');
-        });
+      const { data, error } = await supabase.rpc('get_business_segments');
 
       if (error) {
         console.error('Error fetching business segments:', error);
@@ -58,17 +49,9 @@ export const useBusinessTypes = (segmentId?: string) => {
 
       console.log('Fetching business types for segment:', segmentId);
 
-      // Usar rpc ou query direta para contornar os tipos TypeScript
-      const { data, error } = await supabase
-        .rpc('get_business_types', { segment_id_param: segmentId })
-        .catch(async () => {
-          // Fallback para query direta se a função RPC não existir
-          return await (supabase as any)
-            .from('business_types')
-            .select('*')
-            .eq('segment_id', segmentId)
-            .order('type_order');
-        });
+      const { data, error } = await supabase.rpc('get_business_types', { 
+        segment_id_param: segmentId 
+      });
 
       if (error) {
         console.error('Error fetching business types:', error);
