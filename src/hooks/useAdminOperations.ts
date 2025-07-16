@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -16,6 +15,7 @@ interface AdminUser {
     subscription_tier?: string;
     trial_end_date?: string;
     trial_proposals_used?: number;
+    trial_start_date?: string;
   };
   role?: string;
 }
@@ -27,36 +27,88 @@ export const useAdminOperations = () => {
   const loadUsers = async (): Promise<AdminUser[]> => {
     setLoading(true);
     try {
-      // Buscar usuários
+      console.log('useAdminOperations - Carregando usuários...');
+      
+      // Buscar usuários com melhor tratamento de erro
       const { data: authUsers, error: authError } = await supabase.functions.invoke('get-users');
       
       if (authError) {
-        console.error('Erro ao buscar usuários:', authError);
-        toast.error('Erro ao carregar usuários');
+        console.error('useAdminOperations - Erro ao buscar usuários:', authError);
+        
+        // Mensagens de erro mais específicas
+        if (authError.message?.includes('401') || authError.message?.includes('Unauthorized')) {
+          toast.error('Erro de autorização. Verifique se você tem permissões de admin.');
+        } else if (authError.message?.includes('403') || authError.message?.includes('Access denied')) {
+          toast.error('Acesso negado. Apenas administradores podem ver esta página.');
+        } else {
+          toast.error('Erro ao carregar usuários. Tente novamente.');
+        }
         return [];
       }
 
-      // Buscar dados de assinatura e roles
-      const { data: subscribers } = await supabase.from('subscribers').select('*');
-      const { data: roles } = await supabase.from('user_roles').select('*');
+      if (!authUsers || !Array.isArray(authUsers)) {
+        console.error('useAdminOperations - Resposta inválida da API:', authUsers);
+        toast.error('Erro na resposta do servidor');
+        return [];
+      }
 
-      // Combinar dados
-      const usersWithData = authUsers.map((authUser: any) => {
+      console.log('useAdminOperations - Usuários auth encontrados:', authUsers?.length);
+
+      // Buscar dados de assinatura e roles com dados mais atualizados
+      const { data: subscribers } = await supabase
+        .from('subscribers')
+        .select('*')
+        .order('updated_at', { ascending: false });
+        
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('*');
+
+      console.log('useAdminOperations - Subscribers encontrados:', subscribers?.length);
+      console.log('useAdminOperations - Roles encontradas:', roles?.length);
+
+      // Combinar dados e garantir que todos tenham uma role
+      const usersWithData = await Promise.all(authUsers.map(async (authUser: any) => {
         const subscriber = subscribers?.find(s => s.user_id === authUser.id || s.email === authUser.email);
-        const userRole = roles?.find(r => r.user_id === authUser.id);
+        let userRole = roles?.find(r => r.user_id === authUser.id);
+        
+        // Se o usuário não tem role, criar uma role 'user' por padrão
+        if (!userRole && authUser.email !== 'admin@borafecharai.com') {
+          console.log(`useAdminOperations - Criando role 'user' para ${authUser.email}`);
+          const { data: newRole, error: roleError } = await supabase
+            .from('user_roles')
+            .insert({
+              user_id: authUser.id,
+              role: 'user'
+            })
+            .select()
+            .single();
+
+          if (!roleError && newRole) {
+            userRole = newRole;
+          }
+        }
+        
+        console.log(`useAdminOperations - Usuário ${authUser.email}:`, {
+          subscriber: subscriber ? 'encontrado' : 'não encontrado',
+          subscriberData: subscriber,
+          role: userRole?.role || 'sem role',
+          trialProposalsUsed: subscriber?.trial_proposals_used
+        });
         
         return {
           ...authUser,
           subscriber,
           role: userRole?.role
         };
-      });
+      }));
 
+      console.log('useAdminOperations - Usuários finais processados:', usersWithData.length);
       setUsers(usersWithData);
       return usersWithData;
     } catch (error) {
-      console.error('Erro ao carregar usuários:', error);
-      toast.error('Erro ao carregar usuários');
+      console.error('useAdminOperations - Erro ao carregar usuários:', error);
+      toast.error('Erro inesperado ao carregar usuários');
       return [];
     } finally {
       setLoading(false);
@@ -114,7 +166,10 @@ export const useAdminOperations = () => {
 
   const resetUserData = async (userId: string, resetType: 'proposals' | 'trial' | 'both') => {
     try {
+      console.log('useAdminOperations - Iniciando reset para usuário:', userId, 'tipo:', resetType);
+      
       if (resetType === 'proposals' || resetType === 'both') {
+        console.log('useAdminOperations - Resetando propostas...');
         const { error: proposalsError } = await supabase
           .from('subscribers')
           .update({ trial_proposals_used: 0 })
@@ -128,12 +183,21 @@ export const useAdminOperations = () => {
       }
 
       if (resetType === 'trial' || resetType === 'both') {
-        const { error } = await supabase.functions.invoke('fix-trial', {
+        console.log('useAdminOperations - Resetando trial via edge function...');
+        const { data, error } = await supabase.functions.invoke('fix-trial', {
           body: { userId }
         });
 
+        console.log('useAdminOperations - Resposta da edge function:', data);
+
         if (error) {
           console.error('Erro ao resetar trial:', error);
+          toast.error('Erro ao resetar trial');
+          return false;
+        }
+
+        if (!data?.success) {
+          console.error('Edge function não retornou sucesso:', data);
           toast.error('Erro ao resetar trial');
           return false;
         }
@@ -141,11 +205,12 @@ export const useAdminOperations = () => {
 
       toast.success('Dados do usuário resetados com sucesso!');
       
-      // Aguardar um momento para garantir que as mudanças foram aplicadas
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Recarregar dados com um pequeno delay para garantir que as mudanças foram persistidas
+      setTimeout(async () => {
+        console.log('useAdminOperations - Recarregando dados dos usuários após reset...');
+        await loadUsers();
+      }, 1000);
       
-      // Recarregar lista para atualizar o status
-      await loadUsers();
       return true;
     } catch (error) {
       console.error('Erro ao resetar dados:', error);

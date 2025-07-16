@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
@@ -23,55 +24,73 @@ serve(async (req) => {
       }
     })
 
-    // Verificar se o usuário é admin
+    // Verificar se o usuário está autenticado
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      console.error('get-users: No authorization header provided')
+      return new Response(JSON.stringify({ error: 'Authorization header required' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
     const jwt = authHeader.replace('Bearer ', '')
+    console.log('get-users: Validating user token...')
+    
     const { data: { user }, error: userError } = await supabase.auth.getUser(jwt)
     
     if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      console.error('get-users: Invalid user token:', userError?.message)
+      return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    // Verificar se é admin
-    const isAdmin = user.email === 'admin@borafecharai.com'
+    console.log('get-users: User authenticated:', user.email)
+
+    // Verificar se é admin - primeiro checar email direto
+    let isAdmin = user.email === 'admin@borafecharai.com'
     
     if (!isAdmin) {
-      // Verificar role de admin na tabela user_roles
-      const { data: userRoles } = await supabase
+      console.log('get-users: Checking admin role in user_roles table...')
+      // Verificar role de admin na tabela user_roles usando service key
+      const { data: userRoles, error: rolesError } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id)
         .eq('role', 'admin')
         .single()
       
-      if (!userRoles) {
-        return new Response(JSON.stringify({ error: 'Access denied - Admin only' }), {
-          status: 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        })
+      if (rolesError) {
+        console.error('get-users: Error checking user roles:', rolesError.message)
       }
+      
+      isAdmin = !!userRoles
     }
+    
+    if (!isAdmin) {
+      console.error('get-users: User is not admin:', user.email)
+      return new Response(JSON.stringify({ error: 'Access denied - Admin privileges required' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    console.log('get-users: Admin access confirmed, fetching users...')
 
     // Buscar todos os usuários usando o service key
     const { data: users, error } = await supabase.auth.admin.listUsers()
     
     if (error) {
-      console.error('Erro ao buscar usuários:', error)
+      console.error('get-users: Error fetching users:', error.message)
       return new Response(JSON.stringify({ error: 'Failed to fetch users' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
+
+    console.log('get-users: Successfully fetched', users.users.length, 'users')
 
     // Retornar apenas os dados necessários
     const userData = users.users.map(user => ({
@@ -88,7 +107,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   } catch (error) {
-    console.error('Erro geral:', error)
+    console.error('get-users: Unexpected error:', error.message)
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
