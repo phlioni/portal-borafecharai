@@ -428,7 +428,6 @@ export type Database = {
       telegram_sessions: {
         Row: {
           chat_id: number
-          client_email: string | null
           created_at: string
           expires_at: string | null
           id: string
@@ -442,7 +441,6 @@ export type Database = {
         }
         Insert: {
           chat_id: number
-          client_email?: string | null
           created_at?: string
           expires_at?: string | null
           id?: string
@@ -456,7 +454,6 @@ export type Database = {
         }
         Update: {
           chat_id?: number
-          client_email?: string | null
           created_at?: string
           expires_at?: string | null
           id?: string

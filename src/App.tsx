@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -24,7 +25,6 @@ import TelegramBotPage from '@/pages/TelegramBotPage';
 import GerenciamentoUsuariosPage from '@/pages/GerenciamentoUsuariosPage';
 import TermosDeUso from '@/pages/TermosDeUso';
 import LandingPage from '@/pages/LandingPage';
-import ResetPassword from '@/pages/ResetPassword';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -47,7 +47,6 @@ function App() {
             {/* Rotas públicas */}
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/termos-de-uso" element={<TermosDeUso />} />
             <Route path="/landingpage" element={<LandingPage />} />
             <Route path="/planos" element={<Planos />} />
