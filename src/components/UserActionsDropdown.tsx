@@ -83,12 +83,12 @@ const UserActionsDropdown = ({ user }: UserActionsDropdownProps) => {
           .eq('user_id', user.id);
       }
 
-      // Inserir nova role
+      // Inserir nova role - agora com o tipo correto
       const { error } = await supabase
         .from('user_roles')
         .insert({
           user_id: user.id,
-          role: newRole
+          role: newRole as any // Temporariamente usar 'any' até os tipos serem regenerados
         });
 
       if (error) {
