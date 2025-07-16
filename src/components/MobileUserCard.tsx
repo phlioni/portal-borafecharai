@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { User, Mail, Calendar, UserX } from 'lucide-react';
 import UserActionsDropdown from '@/components/UserActionsDropdown';
 import UserStatusBadges from '@/components/UserStatusBadges';
+import UserTrialEndDate from '@/components/UserTrialEndDate';
 
 interface MobileUserCardProps {
   user: {
@@ -55,6 +56,10 @@ const MobileUserCard = ({ user, onDeleteUser, isDeleting }: MobileUserCardProps)
 
         <div className="flex items-center gap-2">
           <UserStatusBadges user={user} />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <UserTrialEndDate user={user} />
         </div>
 
         <div className="flex justify-end pt-2">

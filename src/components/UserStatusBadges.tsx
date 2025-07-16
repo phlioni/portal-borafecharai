@@ -57,15 +57,16 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
   let trialProposalsUsed, trialProposalsRemaining;
   
   if (isCurrentUser && !trialStatusLoading) {
-    trialProposalsUsed = currentUserProposalsUsed;
-    trialProposalsRemaining = currentUserProposalsRemaining;
+    trialProposalsUsed = Math.min(currentUserProposalsUsed, 20);
+    trialProposalsRemaining = Math.max(0, 20 - trialProposalsUsed);
   } else {
     // Para outros usuários no painel admin, usar dados vindos do subscriber
-    trialProposalsUsed = user.subscriber?.trial_proposals_used || 0;
+    const rawProposalsUsed = user.subscriber?.trial_proposals_used || 0;
+    trialProposalsUsed = Math.min(rawProposalsUsed, 20);
     trialProposalsRemaining = Math.max(0, 20 - trialProposalsUsed);
   }
 
-  // Formattar data de término do trial
+  // Formatrar data de término do trial
   const formatTrialEndDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR');
@@ -113,31 +114,15 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
         // Para usuários role 'user' sempre mostrar status de trial
         <>
           {isTrialActive ? (
-            <>
-              <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                <Clock className="h-3 w-3 mr-1" />
-                Trial Ativo ({trialProposalsRemaining} restantes)
-              </Badge>
-              {user.subscriber?.trial_end_date && (
-                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                  <Calendar className="h-3 w-3 mr-1" />
-                  Válido até {formatTrialEndDate(user.subscriber.trial_end_date)}
-                </Badge>
-              )}
-            </>
+            <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+              <Clock className="h-3 w-3 mr-1" />
+              Trial Ativo ({trialProposalsRemaining} restantes)
+            </Badge>
           ) : trialEndDate && trialEndDate < now ? (
-            <>
-              <Badge variant="destructive" className="text-xs">
-                <XCircle className="h-3 w-3 mr-1" />
-                Trial Expirado
-              </Badge>
-              {user.subscriber?.trial_end_date && (
-                <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">
-                  <Calendar className="h-3 w-3 mr-1" />
-                  Expirou em {formatTrialEndDate(user.subscriber.trial_end_date)}
-                </Badge>
-              )}
-            </>
+            <Badge variant="destructive" className="text-xs">
+              <XCircle className="h-3 w-3 mr-1" />
+              Trial Expirado
+            </Badge>
           ) : (
             // Se não tem dados de trial configurados mas deveria ter
             <Badge variant="secondary" className="text-xs">
