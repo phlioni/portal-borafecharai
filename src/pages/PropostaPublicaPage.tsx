@@ -112,7 +112,7 @@ const PropostaPublicaPage = () => {
     try {
       const { error } = await supabase
         .from('proposals')
-        .update({ status: 'rejeitada' })
+        .update({ status: 'perdida' })
         .eq('id', proposal.id);
 
       if (error) throw error;
@@ -217,7 +217,7 @@ const PropostaPublicaPage = () => {
                       <span className="text-sm font-medium">Proposta Aceita</span>
                     </div>
                   )}
-                  {proposal.status === 'rejeitada' && (
+                  {proposal.status === 'perdida' && (
                     <div className="flex items-center gap-2 text-red-700">
                       <X className="h-4 w-4" />
                       <span className="text-sm font-medium">Proposta Rejeitada</span>
