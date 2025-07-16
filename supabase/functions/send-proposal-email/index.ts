@@ -89,35 +89,43 @@ serve(async (req) => {
     console.log('URL pública final:', publicUrl);
     console.log('Payload do email preparado');
 
+    // Processar a mensagem para melhorar espaçamento e remover link
+    const processedMessage = emailMessage
+      .replace(/\[LINK_DA_PROPOSTA\]/g, '') // Remove o placeholder do link
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0) // Remove linhas vazias
+      .join('<br><br>'); // Adiciona quebras de linha duplas para melhor espaçamento
+
     const emailPayload = {
       from: `Propostas <proposta@borafecharai.com>`,
       to: [recipientEmail],
       subject: emailSubject,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6;">
           <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px; text-align: center; color: white;">
             <h1 style="margin: 0; font-size: 32px; font-weight: bold;">${proposal.title}</h1>
             <p style="margin: 10px 0 0 0; font-size: 18px; opacity: 0.9;">Proposta Comercial</p>
           </div>
           
-          <div style="padding: 30px 20px;">
-            <div style="white-space: pre-line; color: #333; line-height: 1.6; margin-bottom: 30px;">
-              ${emailMessage}
+          <div style="padding: 40px 30px;">
+            <div style="color: #333; margin-bottom: 40px; font-size: 16px;">
+              ${processedMessage}
             </div>
             
-            <div style="text-align: center; margin: 30px 0;">
+            <div style="text-align: center; margin: 40px 0;">
               <a href="${publicUrl}" 
-                 style="display: inline-block; background-color: #007bff; color: white; text-decoration: none; padding: 12px 30px; border-radius: 5px; font-weight: bold;">
-                Visualizar Proposta Completa
+                 style="display: inline-block; background-color: #007bff; color: white; text-decoration: none; padding: 15px 35px; border-radius: 8px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                📄 Visualizar Proposta Completa
               </a>
             </div>
           </div>
           
-          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 14px;">
-            <p style="margin: 0;"><strong>${companyName}</strong></p>
+          <div style="background-color: #f8f9fa; padding: 30px 20px; text-align: center; color: #666; font-size: 14px; border-top: 1px solid #eee;">
+            <p style="margin: 0 0 10px 0; font-weight: bold; font-size: 16px;">${companyName}</p>
             <p style="margin: 5px 0;">${responsibleName}</p>
-            ${companyEmail ? `<p style="margin: 5px 0;">📧 ${companyEmail}</p>` : ''}
-            ${companyPhone ? `<p style="margin: 5px 0;">📱 ${companyPhone}</p>` : ''}
+            ${companyEmail ? `<p style="margin: 8px 0;">📧 ${companyEmail}</p>` : ''}
+            ${companyPhone ? `<p style="margin: 8px 0;">📱 ${companyPhone}</p>` : ''}
           </div>
         </div>
       `

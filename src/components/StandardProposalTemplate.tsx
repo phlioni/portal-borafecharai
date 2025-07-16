@@ -18,6 +18,7 @@ interface ProposalData {
   service_description?: string;
   detailed_description?: string;
   observations?: string;
+  validity_date?: string;
   created_at: string;
   proposal_budget_items?: any[];
 }
@@ -96,6 +97,11 @@ const StandardProposalTemplate = ({ proposal, className = "", companyLogo }: Sta
 
   const getCurrentDate = () => {
     return new Date().toLocaleDateString('pt-BR');
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'Não informado';
+    return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
   const getProposalNumber = () => {
@@ -227,17 +233,55 @@ const StandardProposalTemplate = ({ proposal, className = "", companyLogo }: Sta
         </div>
       )}
 
+      {/* Informações Adicionais da Proposta */}
+      <div className="mb-6 space-y-4">
+        {/* Resumo do Serviço */}
+        {proposal.service_description && (
+          <div>
+            <h3 className="font-bold mb-2 bg-gray-100 p-2">Resumo do Serviço</h3>
+            <p className="text-sm leading-relaxed">{proposal.service_description}</p>
+          </div>
+        )}
+
+        {/* Descrição Detalhada */}
+        {proposal.detailed_description && (
+          <div>
+            <h3 className="font-bold mb-2 bg-gray-100 p-2">Descrição Detalhada</h3>
+            <div className="text-sm leading-relaxed whitespace-pre-wrap">{proposal.detailed_description}</div>
+          </div>
+        )}
+
+        {/* Prazo e Validade */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {proposal.delivery_time && (
+            <div>
+              <h4 className="font-bold mb-1">Prazo de Entrega</h4>
+              <p className="text-sm">{proposal.delivery_time}</p>
+            </div>
+          )}
+          
+          {proposal.validity_date && (
+            <div>
+              <h4 className="font-bold mb-1">Validade da Proposta</h4>
+              <p className="text-sm">{formatDate(proposal.validity_date)}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Observações */}
+        {proposal.observations && (
+          <div>
+            <h3 className="font-bold mb-2 bg-gray-100 p-2">Observações</h3>
+            <div className="text-sm leading-relaxed whitespace-pre-wrap">{proposal.observations}</div>
+          </div>
+        )}
+      </div>
+
       {/* Pagamento */}
       <div className="mb-6">
-        <h3 className="font-bold mb-2">Pagamento</h3>
+        <h3 className="font-bold mb-2 bg-gray-100 p-2">Forma de Pagamento</h3>
         <div className="text-sm">
-          <p><strong>Meios de pagamento</strong></p>
           <p>Boleto, transferência bancária, dinheiro, cheque, cartão de crédito ou cartão de débito.</p>
-          {proposal.delivery_time && (
-            <p className="mt-2">
-              <strong>Prazo:</strong> {proposal.delivery_time}
-            </p>
-          )}
         </div>
       </div>
 
