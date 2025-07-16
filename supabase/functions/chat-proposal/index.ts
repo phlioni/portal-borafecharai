@@ -18,121 +18,41 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, action, user_id } = await req.json();
+    const { message, conversation_history } = await req.json();
+    console.log('Dados recebidos:', { message, conversation_history });
     
-    // Inicializar cliente Supabase se necessário
-    const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
-
-    let systemPrompt = '';
+    // Verificar se conversation_history é um array válido
+    const messages = Array.isArray(conversation_history) ? conversation_history : [];
     
-    if (action === 'chat') {
-      systemPrompt = `Você é um assistente especializado em criar propostas comerciais profissionais.
-      
-      Seu objetivo é conversar com o usuário para entender completamente o projeto/serviço que ele quer propor e coletar todas as informações necessárias para criar uma proposta padronizada.
-      
-      Colete as seguintes informações de forma natural e conversacional:
-      1. Nome/empresa do cliente
-      2. Nome do responsável
-      3. Email e telefone de contato (se disponível)
-      4. Título/nome do serviço
-      5. Descrição detalhada do serviço/produto
-      6. Prazo de entrega
-      7. IMPORTANTE: Sempre colete itens de orçamento detalhado com:
-         - Itens de materiais (descrição, quantidade, valor unitário)
-         - Itens de mão de obra (descrição, quantidade, valor unitário)
-      8. Observações especiais
-      9. Forma de pagamento (à vista, parcelado, etc.)
-      
-      Seja amigável, profissional e faça perguntas inteligentes para entender o contexto do negócio.
-      
-      IMPORTANTE: Quando tiver coletado pelo menos as informações principais (cliente, responsável, serviço, itens de orçamento e prazo), 
-      termine sua resposta com EXATAMENTE: "Parece que já temos as informações principais! Quer que eu gere a proposta para você revisar?"
-      
-      Essa frase específica irá ativar automaticamente um botão especial para gerar a proposta.`;
-    } else if (action === 'generate') {
-      // Buscar dados de clientes existentes se o usuário foi fornecido
-      let clientData = null;
-      if (supabase && user_id) {
-        try {
-          // Extrair informações de cliente das mensagens para buscar no banco
-          const conversationText = messages.map((msg: any) => msg.content).join(' ');
-          
-          // Buscar empresas/clientes cadastrados pelo usuário
-          const { data: companies } = await supabase
-            .from('companies')
-            .select('*')
-            .eq('user_id', user_id);
-          
-          if (companies && companies.length > 0) {
-            // Tentar encontrar correspondência com base no nome mencionado na conversa
-            for (const company of companies) {
-              if (company.name && conversationText.toLowerCase().includes(company.name.toLowerCase())) {
-                clientData = company;
-                break;
-              }
-              if (company.email && conversationText.toLowerCase().includes(company.email.toLowerCase())) {
-                clientData = company;
-                break;
-              }
-              if (company.phone && conversationText.includes(company.phone)) {
-                clientData = company;
-                break;
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Erro ao buscar dados do cliente:', error);
-        }
-      }
+    let systemPrompt = `Você é um assistente especializado em criar propostas comerciais profissionais.
 
-      systemPrompt = `Você é um especialista em gerar propostas comerciais estruturadas.
-      
-      Analise CUIDADOSAMENTE toda a conversa anterior e extraia as informações específicas mencionadas pelo usuário.
-      
-      ${clientData ? `DADOS DO CLIENTE ENCONTRADOS NO BANCO:
-      - Nome: ${clientData.name}
-      - Email: ${clientData.email || ''}
-      - Telefone: ${clientData.phone || ''}
-      - Endereço: ${clientData.address || ''}
-      - Cidade: ${clientData.city || ''}
-      - Estado: ${clientData.state || ''}
-      
-      Use estes dados como base e complete com as informações da conversa.` : ''}
-      
-      IMPORTANTE: A proposta seguirá um padrão único e padronizado. O valor total será calculado automaticamente com base nos itens de serviços e materiais.
-      
-      Retorne APENAS um JSON válido no seguinte formato, usando as informações EXATAS da conversa e dados do cliente:
-      
-      {
-        "titulo": "título específico mencionado pelo usuário ou nome do serviço",
-        "cliente": "${clientData?.name || 'nome exato do cliente/empresa mencionado'}",
-        "responsavel": "nome do responsável mencionado",
-        "email": "${clientData?.email || 'email mencionado ou \'\''}",
-        "telefone": "${clientData?.phone || 'telefone mencionado ou \'\''}",
-        "servico": "nome específico do serviço mencionado",
-        "descricao": "descrição detalhada do serviço/projeto",
-        "prazo": "prazo específico mencionado pelo usuário",
-        "observacoes": "observações específicas mencionadas ou ''",
-        "forma_pagamento": "forma de pagamento mencionada ou 'À vista'",
-        "budget_items": [
-          {
-            "type": "material" ou "labor",
-            "description": "descrição do item",
-            "quantity": número,
-            "unit_price": número
-          }
-        ]
-      }
-      
-      IMPORTANTE: 
-      - Use APENAS informações que foram explicitamente mencionadas na conversa
-      - Se uma informação não foi mencionada, use os dados do cliente ou uma string vazia ''
-      - SEMPRE inclua os itens de orçamento no array "budget_items"
-      - Seja específico e preciso com as informações extraídas
-      - O valor total será calculado automaticamente pelo sistema com base nos itens
-      
-      Certifique-se de que o JSON seja válido e contenha todas as informações extraídas da conversa.`;
-    }
+Seu objetivo é conversar com o usuário para entender completamente o projeto/serviço que ele quer propor e coletar todas as informações necessárias para criar uma proposta padronizada.
+
+Colete as seguintes informações de forma natural e conversacional:
+1. Título do projeto/serviço
+2. Nome/empresa do cliente  
+3. Email e telefone de contato do cliente (se disponível)
+4. Descrição resumida do serviço/produto
+5. Descrição detalhada do que será entregue
+6. Valor da proposta
+7. Prazo de entrega
+8. Observações especiais (condições de pagamento, garantias, etc.)
+
+Seja amigável, profissional e faça perguntas inteligentes para entender o contexto do negócio.
+
+IMPORTANTE: Quando tiver coletado pelo menos as informações principais (título, cliente, serviço, valor e prazo), 
+termine sua resposta com EXATAMENTE esta frase: "Parece que já temos as informações principais! Quer que eu gere a proposta para você revisar?"
+
+Essa frase específica irá ativar automaticamente um botão especial para gerar a proposta.`;
+
+    // Preparar mensagens para o OpenAI
+    const openAIMessages = [
+      { role: 'system', content: systemPrompt },
+      ...messages,
+      { role: 'user', content: message }
+    ];
+
+    console.log('Enviando para OpenAI:', openAIMessages);
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -142,24 +62,37 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...messages
-        ],
-        temperature: action === 'generate' ? 0.0 : 0.7,
-        max_tokens: action === 'generate' ? 2000 : 2000,
+        messages: openAIMessages,
+        temperature: 0.7,
+        max_tokens: 2000,
       }),
     });
 
-    const data = await response.json();
-    const content = data.choices[0].message.content;
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
 
-    return new Response(JSON.stringify({ content }), {
+    const data = await response.json();
+    const assistantMessage = data.choices[0].message.content;
+
+    console.log('Resposta do OpenAI:', assistantMessage);
+
+    // Verificar se deve mostrar o botão de gerar proposta
+    const showGenerateButton = assistantMessage.includes("Parece que já temos as informações principais! Quer que eu gere a proposta para você revisar?");
+
+    return new Response(JSON.stringify({ 
+      message: assistantMessage,
+      show_generate_button: showGenerateButton
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
+
   } catch (error) {
     console.error('Error in chat-proposal function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      message: 'Desculpe, ocorreu um erro. Pode tentar novamente?'
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

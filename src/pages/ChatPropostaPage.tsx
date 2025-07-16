@@ -73,6 +73,11 @@ const ChatPropostaPage = () => {
     setIsLoading(true);
 
     try {
+      console.log('Enviando mensagem para chat-proposal:', {
+        message: input.trim(),
+        conversation_history: messages
+      });
+
       const response = await supabase.functions.invoke('chat-proposal', {
         body: {
           message: input.trim(),
@@ -80,11 +85,13 @@ const ChatPropostaPage = () => {
         }
       });
 
+      console.log('Resposta recebida:', response);
+
       if (response.error) {
         throw response.error;
       }
 
-      const { message, proposal_data, show_generate_button } = response.data;
+      const { message, show_generate_button } = response.data;
 
       const assistantMessage: Message = {
         role: 'assistant',
@@ -93,10 +100,6 @@ const ChatPropostaPage = () => {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-      
-      if (proposal_data) {
-        setProposalData(proposal_data);
-      }
       
       if (show_generate_button) {
         setShowGenerateButton(true);
@@ -118,88 +121,10 @@ const ChatPropostaPage = () => {
   };
 
   const handleGenerateProposal = async () => {
-    if (!proposalData) {
-      toast.error('Dados da proposta não encontrados');
-      return;
-    }
-
-    try {
-      // Buscar cliente existente se houver informações
-      let companyId = null;
-      if (proposalData.client_name || proposalData.client_email || proposalData.client_phone) {
-        const { data: existingCompanies } = await supabase
-          .from('companies')
-          .select('*')
-          .eq('user_id', user!.id)
-          .or(`name.eq.${proposalData.client_name},email.eq.${proposalData.client_email},phone.eq.${proposalData.client_phone}`);
-
-        if (existingCompanies && existingCompanies.length > 0) {
-          companyId = existingCompanies[0].id;
-          toast.success(`Cliente "${existingCompanies[0].name}" encontrado e será usado na proposta`);
-        } else if (proposalData.client_name) {
-          // Criar novo cliente
-          const { data: newCompany, error: companyError } = await supabase
-            .from('companies')
-            .insert({
-              name: proposalData.client_name,
-              email: proposalData.client_email || null,
-              phone: proposalData.client_phone || null,
-              user_id: user!.id
-            })
-            .select()
-            .single();
-
-          if (companyError) throw companyError;
-          companyId = newCompany.id;
-          toast.success(`Novo cliente "${proposalData.client_name}" criado`);
-        }
-      }
-
-      // Criar a proposta
-      const { data: newProposal, error: proposalError } = await supabase
-        .from('proposals')
-        .insert({
-          title: proposalData.title,
-          company_id: companyId,
-          service_description: proposalData.service_description || null,
-          detailed_description: proposalData.detailed_description || null,
-          value: proposalData.value || null,
-          delivery_time: proposalData.delivery_time || null,
-          validity_date: proposalData.validity_date || null,
-          observations: proposalData.observations || null,
-          status: 'rascunho',
-          user_id: user!.id
-        })
-        .select()
-        .single();
-
-      if (proposalError) throw proposalError;
-
-      // Criar itens do orçamento se existirem
-      if (proposalData.budget_items && proposalData.budget_items.length > 0) {
-        const budgetItemsToInsert = proposalData.budget_items.map(item => ({
-          proposal_id: newProposal.id,
-          type: item.type,
-          description: item.description,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          total_price: item.quantity * item.unit_price
-        }));
-
-        const { error: budgetError } = await supabase
-          .from('proposal_budget_items')
-          .insert(budgetItemsToInsert);
-
-        if (budgetError) throw budgetError;
-      }
-
-      toast.success('Proposta gerada com sucesso!');
-      navigate(`/propostas/visualizar/${newProposal.id}`);
-
-    } catch (error) {
-      console.error('Erro ao gerar proposta:', error);
-      toast.error('Erro ao gerar proposta. Tente novamente.');
-    }
+    // Por enquanto, apenas navegar para a página de nova proposta
+    // TODO: Implementar geração automática baseada na conversa
+    toast.info('Redirecionando para criar proposta...');
+    navigate('/propostas/nova');
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -221,7 +146,7 @@ const ChatPropostaPage = () => {
   return (
     <div className="flex h-[calc(100vh-4rem)] bg-gray-50">
       {/* Chat Principal */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col max-w-4xl mx-auto">
         <div className="bg-white border-b p-4">
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 p-2 rounded-lg">
