@@ -360,14 +360,53 @@ async function storeUserChatId(userId: string, chatId: number) {
   }
 }
 
-async function sendProposalByEmail(proposalId: string, clientEmail: string) {
+async function sendProposalByEmail(proposalId: string, clientEmail: string, clientName: string) {
   console.log(`Enviando proposta ${proposalId} por e-mail para ${clientEmail}`);
 
   try {
+    // Buscar dados da proposta
+    const { data: proposal, error: proposalError } = await supabase
+      .from('proposals')
+      .select(`
+        *,
+        companies (
+          id,
+          name,
+          email,
+          phone
+        )
+      `)
+      .eq('id', proposalId)
+      .single();
+
+    if (proposalError) {
+      console.error('Erro ao buscar proposta:', proposalError);
+      throw proposalError;
+    }
+
+    console.log('Proposta encontrada para envio:', proposal.title);
+
+    // Gerar URL pública da proposta
+    const publicUrl = `https://pakrraqbjbkkbdnwkkbt.supabase.co/proposal/${proposal.public_hash}`;
+
     const { data, error } = await supabase.functions.invoke('send-proposal-email', {
       body: {
-        proposal_id: proposalId,
-        recipient_email: clientEmail
+        proposalId: proposalId,
+        recipientEmail: clientEmail,
+        recipientName: clientName,
+        emailSubject: `Sua proposta para o projeto ${proposal.title} está pronta`,
+        emailMessage: `Olá ${clientName},
+
+Espero que esteja bem!
+
+Sua proposta para o projeto "${proposal.title}" está finalizada e disponível para visualização.
+
+Preparamos esta proposta cuidadosamente para atender às suas necessidades específicas. Para acessar todos os detalhes, clique no botão abaixo.
+
+Fico à disposição para esclarecer qualquer dúvida e discutir os próximos passos.
+
+Aguardo seu retorno!`,
+        publicUrl: publicUrl
       }
     });
 
@@ -746,7 +785,7 @@ async function handleMessage(update: TelegramUpdate) {
             `📧 *Enviando proposta por e-mail...*\n\n⏳ Por favor aguarde...`
           );
 
-          await sendProposalByEmail(session.data.proposalId!, session.data.clientEmail!);
+          await sendProposalByEmail(session.data.proposalId!, session.data.clientEmail!, session.data.clientName!);
 
           const keyboard = {
             keyboard: [
