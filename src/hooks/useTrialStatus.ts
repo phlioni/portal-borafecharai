@@ -53,8 +53,47 @@ export const useTrialStatus = () => {
 
       if (error) {
         console.error('useTrialStatus - Error fetching subscriber:', error);
-        setTrialStatus(prev => ({ ...prev, loading: false }));
-        return;
+        
+        // Se não encontrou subscriber, vamos tentar criar um automaticamente
+        if (error.code === 'PGRST116') {
+          console.log('useTrialStatus - Subscriber not found, creating one...');
+          
+          const { error: insertError } = await supabase
+            .from('subscribers')
+            .insert({
+              user_id: user.id,
+              email: user.email!,
+              trial_start_date: new Date().toISOString(),
+              trial_end_date: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
+              trial_proposals_used: 0,
+              subscribed: false,
+              subscription_tier: null
+            });
+
+          if (insertError) {
+            console.error('useTrialStatus - Error creating subscriber:', insertError);
+            setTrialStatus(prev => ({ ...prev, loading: false }));
+            return;
+          }
+
+          // Buscar novamente após criar
+          const { data: newSubscriberData, error: newError } = await supabase
+            .from('subscribers')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+
+          if (newError || !newSubscriberData) {
+            console.error('useTrialStatus - Error fetching new subscriber:', newError);
+            setTrialStatus(prev => ({ ...prev, loading: false }));
+            return;
+          }
+
+          subscriberData = newSubscriberData;
+        } else {
+          setTrialStatus(prev => ({ ...prev, loading: false }));
+          return;
+        }
       }
 
       if (!subscriberData) {
