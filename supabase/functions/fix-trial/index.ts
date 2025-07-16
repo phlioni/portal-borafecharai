@@ -67,22 +67,51 @@ serve(async (req) => {
     console.log('Data de início do trial:', trialStartDate)
     console.log('Data de fim do trial:', trialEndDate)
 
-    // Usar upsert para garantir que o subscriber seja criado ou atualizado
-    const { data, error } = await supabase
+    // Verificar se o subscriber já existe
+    const { data: existingSubscriber } = await supabase
       .from('subscribers')
-      .upsert({
-        user_id: targetUserId,
-        email: currentUser.email,
-        trial_start_date: trialStartDate,
-        trial_end_date: trialEndDate,
-        trial_proposals_used: 0,
-        subscribed: false,
-        subscription_tier: null,
-        updated_at: now.toISOString()
-      }, {
-        onConflict: 'user_id'
-      })
-      .select()
+      .select('id')
+      .eq('user_id', targetUserId)
+      .single()
+
+    let data, error
+
+    if (existingSubscriber) {
+      // Atualizar subscriber existente
+      const { data: updateData, error: updateError } = await supabase
+        .from('subscribers')
+        .update({
+          trial_start_date: trialStartDate,
+          trial_end_date: trialEndDate,
+          trial_proposals_used: 0,
+          subscribed: false,
+          subscription_tier: null,
+          updated_at: now.toISOString()
+        })
+        .eq('user_id', targetUserId)
+        .select()
+
+      data = updateData
+      error = updateError
+    } else {
+      // Criar novo subscriber
+      const { data: insertData, error: insertError } = await supabase
+        .from('subscribers')
+        .insert({
+          user_id: targetUserId,
+          email: currentUser.email,
+          trial_start_date: trialStartDate,
+          trial_end_date: trialEndDate,
+          trial_proposals_used: 0,
+          subscribed: false,
+          subscription_tier: null,
+          updated_at: now.toISOString()
+        })
+        .select()
+
+      data = insertData
+      error = insertError
+    }
 
     if (error) {
       console.error('Erro ao resetar trial:', error)
