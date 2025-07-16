@@ -31,12 +31,26 @@ const Login = () => {
     confirmPassword: ''
   });
 
-  // Check for confirmation success from URL params
+  // Check for confirmation success from URL params and error messages
   useEffect(() => {
     const token_hash = searchParams.get('token_hash');
     const type = searchParams.get('type');
+    const error_description = searchParams.get('error_description');
+    const error_code = searchParams.get('error_code');
     
-    if (token_hash && type === 'signup') {
+    console.log('URL params:', { token_hash, type, error_description, error_code });
+    
+    if (error_description || error_code) {
+      if (error_description?.includes('expired') || error_code === 'otp_expired') {
+        setError('❌ Link de confirmação expirado. Tente criar uma nova conta ou solicitar um novo email de confirmação.');
+      } else if (error_description?.includes('invalid') || error_code === 'otp_invalid') {
+        setError('❌ Link de confirmação inválido. Verifique se você clicou no link mais recente enviado para seu email.');
+      } else {
+        setError(`❌ Erro na confirmação: ${error_description || error_code}`);
+      }
+      // Clear URL params
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (token_hash && type === 'signup') {
       setSuccess('✅ Email confirmado com sucesso! Agora você pode fazer login normalmente.');
       // Clear URL params
       window.history.replaceState({}, document.title, window.location.pathname);

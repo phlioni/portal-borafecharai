@@ -59,10 +59,6 @@ enable_signup = true
 double_confirm_changes = true
 enable_confirmations = true
 
-[auth.email.template.confirmation]
-subject = "🚀 Confirme seu cadastro - BoraFecharAI"
-content_path = "./supabase/templates/confirmation.html"
-
 [functions.send-proposal-email]
 verify_jwt = false
 
@@ -96,6 +92,7 @@ verify_jwt = false
 [functions.telegram-notifications]
 verify_jwt = false
 
+# Configure o hook de envio de email para usar nossa edge function customizada
 [auth.hook.send_email]
 enabled = true
-uri = "{{SUPABASE_URL}}/functions/v1/send-confirmation-email"
+uri = "https://pakrraqbjbkkbdnwkkbt.supabase.co/functions/v1/send-confirmation-email"

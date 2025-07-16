@@ -30,10 +30,12 @@ serve(async (req) => {
 
     const resend = new Resend(resendApiKey);
 
-    // URL de confirmação corrigida - usando o token correto e redirect para dashboard
+    // URL de confirmação corrigida - usando diretamente a API do Supabase para confirmação
     const confirmationUrl = `${supabaseUrl}/auth/v1/verify?token=${token_hash}&type=signup&redirect_to=${encodeURIComponent('https://www.borafecharai.com/dashboard')}`;
 
     console.log('URL de confirmação:', confirmationUrl);
+    console.log('Token hash:', token_hash);
+    console.log('User email:', user.email);
 
     const emailPayload = {
       from: 'BoraFecharAI - Propostas Inteligentes <noreply@borafecharai.com>',
@@ -199,11 +201,11 @@ serve(async (req) => {
             <!-- Content -->
             <div class="main-content">
               <h2 class="welcome-title">
-                🎉 Bem-vindo ao futuro das propostas comerciais!
+                🎉 Confirme seu email para ativar sua conta!
               </h2>
               
               <p class="intro-text">
-                <strong>Parabéns!</strong> Você está a apenas <u>um clique</u> de transformar completamente a forma como cria propostas e fecha negócios.
+                <strong>Último passo!</strong> Clique no botão abaixo para confirmar seu email e começar a criar propostas profissionais que realmente vendem.
               </p>
 
               <div class="trial-badge">
@@ -222,7 +224,7 @@ serve(async (req) => {
               
               <div style="text-align: center; margin: 40px 0;">
                 <a href="${confirmationUrl}" class="cta-button">
-                  🚀 CONFIRMAR EMAIL E COMEÇAR AGORA
+                  🚀 CONFIRMAR EMAIL E ACESSAR AGORA
                 </a>
               </div>
 
@@ -260,7 +262,7 @@ serve(async (req) => {
 
               <div style="background-color: #fef3c7; border-radius: 12px; padding: 20px; margin: 30px 0; border: 1px solid #fbbf24; text-align: center;">
                 <p style="color: #92400e; font-size: 16px; margin: 0; font-weight: 500;">
-                  ⏰ <strong>Oferta limitada:</strong> Primeiros 1000 usuários ganham acesso vitalício aos templates premium!
+                  ⏰ <strong>Importante:</strong> Este link expira em 24 horas. Confirme agora para não perder acesso!
                 </p>
               </div>
 
@@ -309,7 +311,7 @@ serve(async (req) => {
 
 Olá!
 
-Parabéns! Você está a apenas um clique de transformar completamente a forma como cria propostas e fecha negócios.
+Último passo! Clique no link abaixo para confirmar seu email e começar a criar propostas profissionais que realmente vendem.
 
 ⚡ TRIAL GRATUITO: 30 dias + 20 propostas grátis
 
@@ -327,7 +329,7 @@ ${confirmationUrl}
 ⚡ Envio Automático - Envie por email com rastreamento
 🎨 Templates Premium - Designs profissionais que impressionam
 
-⏰ OFERTA LIMITADA: Primeiros 1000 usuários ganham acesso vitalício aos templates premium!
+⏰ IMPORTANTE: Este link expira em 24 horas. Confirme agora para não perder acesso!
 
 ---
 BoraFecharAI - A plataforma que está revolucionando o mercado brasileiro
