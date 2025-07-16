@@ -42,7 +42,16 @@ const BudgetItemsManager = ({ proposalId, isNewProposal = false, onItemsChange }
   // Sincronizar com o banco quando não é nova proposta
   useEffect(() => {
     if (!isNewProposal && dbItems) {
-      setLocalItems(dbItems);
+      // Convert database items to proper BudgetItem format
+      const convertedItems: BudgetItem[] = dbItems.map(item => ({
+        id: item.id,
+        type: item.type as 'material' | 'labor',
+        description: item.description,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total_price: item.total_price || 0
+      }));
+      setLocalItems(convertedItems);
     }
   }, [dbItems, isNewProposal]);
 
@@ -193,24 +202,30 @@ const BudgetItemsManager = ({ proposalId, isNewProposal = false, onItemsChange }
               <Label htmlFor="item-quantity">Quantidade</Label>
               <Input
                 id="item-quantity"
-                type="number"
-                min="0"
-                step="0.01"
-                value={newItem.quantity}
-                onChange={(e) => setNewItem(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }))}
-                placeholder="0"
+                type="text"
+                value={newItem.quantity.toString()}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                    setNewItem(prev => ({ ...prev, quantity: value === '' ? 0 : parseFloat(value) || 0 }));
+                  }
+                }}
+                placeholder="Quantidade"
               />
             </div>
             <div>
               <Label htmlFor="item-unit-price">Preço Unitário</Label>
               <Input
                 id="item-unit-price"
-                type="number"
-                min="0"
-                step="0.01"
-                value={newItem.unit_price}
-                onChange={(e) => setNewItem(prev => ({ ...prev, unit_price: parseFloat(e.target.value) || 0 }))}
-                placeholder="0,00"
+                type="text"
+                value={newItem.unit_price.toString()}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                    setNewItem(prev => ({ ...prev, unit_price: value === '' ? 0 : parseFloat(value) || 0 }));
+                  }
+                }}
+                placeholder="Preço unitário"
               />
             </div>
             <div>
@@ -280,23 +295,29 @@ const BudgetItemsManager = ({ proposalId, isNewProposal = false, onItemsChange }
                     <div>
                       <Label>Quantidade</Label>
                       <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.quantity}
-                        onChange={(e) => handleUpdateItem(item.id!, { quantity: parseFloat(e.target.value) || 0 })}
-                        placeholder="0"
+                        type="text"
+                        value={item.quantity.toString()}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                            handleUpdateItem(item.id!, { quantity: value === '' ? 0 : parseFloat(value) || 0 });
+                          }
+                        }}
+                        placeholder="Quantidade"
                       />
                     </div>
                     <div>
                       <Label>Preço Unitário</Label>
                       <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.unit_price}
-                        onChange={(e) => handleUpdateItem(item.id!, { unit_price: parseFloat(e.target.value) || 0 })}
-                        placeholder="0,00"
+                        type="text"
+                        value={item.unit_price.toString()}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                            handleUpdateItem(item.id!, { unit_price: value === '' ? 0 : parseFloat(value) || 0 });
+                          }
+                        }}
+                        placeholder="Preço unitário"
                       />
                     </div>
                     <div>
