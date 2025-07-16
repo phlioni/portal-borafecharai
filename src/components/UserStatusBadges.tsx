@@ -44,7 +44,14 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
   return (
     <div className="flex flex-wrap gap-1">
       {user.role && (
-        <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="text-xs">
+        <Badge 
+          variant={
+            user.role === 'admin' ? 'default' : 
+            user.role === 'guest' ? 'outline' : 
+            'secondary'
+          } 
+          className="text-xs"
+        >
           <Shield className="h-3 w-3 mr-1" />
           {user.role}
         </Badge>
@@ -68,10 +75,15 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
             </Badge>
           )}
         </>
-      ) : user.subscriber?.trial_end_date ? (
+      ) : user.subscriber?.trial_end_date && trialEndDate && trialEndDate < now ? (
         <Badge variant="destructive" className="text-xs">
           <XCircle className="h-3 w-3 mr-1" />
-          Expirado
+          Trial Expirado
+        </Badge>
+      ) : user.subscriber ? (
+        <Badge variant="secondary" className="text-xs">
+          <Clock className="h-3 w-3 mr-1" />
+          Sem Trial Ativo
         </Badge>
       ) : null}
     </div>

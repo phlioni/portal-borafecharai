@@ -47,10 +47,27 @@ export const useAdminOperations = () => {
       console.log('useAdminOperations - Subscribers encontrados:', subscribers?.length);
       console.log('useAdminOperations - Roles encontradas:', roles?.length);
 
-      // Combinar dados
-      const usersWithData = authUsers.map((authUser: any) => {
+      // Combinar dados e garantir que todos tenham uma role
+      const usersWithData = await Promise.all(authUsers.map(async (authUser: any) => {
         const subscriber = subscribers?.find(s => s.user_id === authUser.id || s.email === authUser.email);
-        const userRole = roles?.find(r => r.user_id === authUser.id);
+        let userRole = roles?.find(r => r.user_id === authUser.id);
+        
+        // Se o usuário não tem role, criar uma role 'user' por padrão
+        if (!userRole && authUser.email !== 'admin@borafecharai.com') {
+          console.log(`useAdminOperations - Criando role 'user' para ${authUser.email}`);
+          const { data: newRole, error: roleError } = await supabase
+            .from('user_roles')
+            .insert({
+              user_id: authUser.id,
+              role: 'user'
+            })
+            .select()
+            .single();
+
+          if (!roleError && newRole) {
+            userRole = newRole;
+          }
+        }
         
         console.log(`useAdminOperations - Usuário ${authUser.email}:`, {
           subscriber: subscriber ? 'encontrado' : 'não encontrado',
@@ -62,7 +79,7 @@ export const useAdminOperations = () => {
           subscriber,
           role: userRole?.role
         };
-      });
+      }));
 
       console.log('useAdminOperations - Usuários finais processados:', usersWithData.length);
       setUsers(usersWithData);
