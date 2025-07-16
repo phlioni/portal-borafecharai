@@ -20,6 +20,7 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
     new Date(user.subscriber.trial_end_date) > new Date();
   
   const trialProposalsUsed = user.subscriber?.trial_proposals_used || 0;
+  const trialProposalsRemaining = Math.max(0, 20 - trialProposalsUsed);
 
   return (
     <div className="flex flex-wrap gap-1">
@@ -38,7 +39,7 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
       ) : isTrialActive ? (
         <Badge variant="outline" className="text-xs">
           <Clock className="h-3 w-3 mr-1" />
-          Trial ({trialProposalsUsed}/20)
+          Trial ({trialProposalsRemaining} restantes)
         </Badge>
       ) : (
         <Badge variant="destructive" className="text-xs">

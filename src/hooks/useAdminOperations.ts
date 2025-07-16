@@ -140,7 +140,12 @@ export const useAdminOperations = () => {
       }
 
       toast.success('Dados do usuário resetados com sucesso!');
-      await loadUsers(); // Recarregar lista
+      
+      // Aguardar um momento para garantir que as mudanças foram aplicadas
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Recarregar lista para atualizar o status
+      await loadUsers();
       return true;
     } catch (error) {
       console.error('Erro ao resetar dados:', error);
