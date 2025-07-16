@@ -20,6 +20,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import MobileUserCard from '@/components/MobileUserCard';
 import UserActionsDropdown from '@/components/UserActionsDropdown';
 import UserStatusBadges from '@/components/UserStatusBadges';
+import UserTrialEndDate from '@/components/UserTrialEndDate';
 
 const GerenciamentoUsuariosPage = () => {
   const { users, loading, deleteUser, createAdminUser } = useAdminOperations();
@@ -207,13 +208,14 @@ const GerenciamentoUsuariosPage = () => {
                   <TableHead>Email</TableHead>
                   <TableHead>Data de Criação</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Trial</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       Nenhum usuário encontrado
                     </TableCell>
                   </TableRow>
@@ -229,6 +231,9 @@ const GerenciamentoUsuariosPage = () => {
                       </TableCell>
                       <TableCell>
                         <UserStatusBadges user={user} />
+                      </TableCell>
+                      <TableCell>
+                        <UserTrialEndDate user={user} />
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Shield, Clock, CheckCircle, XCircle, Calendar } from 'lucide-react';
+import { Shield, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -65,12 +65,6 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
     trialProposalsUsed = Math.min(rawProposalsUsed, 20);
     trialProposalsRemaining = Math.max(0, 20 - trialProposalsUsed);
   }
-
-  // Formatrar data de término do trial
-  const formatTrialEndDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR');
-  };
 
   console.log('UserStatusBadges - calculated values:', {
     isTrialActive,
