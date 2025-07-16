@@ -48,13 +48,16 @@ image_transformation = { enabled = true }
 
 [auth]
 enabled = true
-additional_redirect_urls = ["https://pakrraqbjbkkbdnwkkbt.supabase.co"]
+additional_redirect_urls = ["https://pakrraqbjbkkbdnwkkbt.supabase.co", "https://www.borafecharai.com", "https://www.borafecharai.com/dashboard"]
 jwt_expiry = 3600
 enable_anonymous_sign_ins = false
 enable_signup = true
-enable_confirmations = false
+enable_confirmations = true
 
 [functions.send-proposal-email]
+verify_jwt = false
+
+[functions.send-confirmation-email]
 verify_jwt = false
 
 [functions.generate-proposal-template]

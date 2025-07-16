@@ -110,7 +110,7 @@ const Login = () => {
         if (error.message.includes('Invalid login credentials')) {
           setError('Email ou senha incorretos. Verifique suas credenciais.');
         } else if (error.message.includes('Email not confirmed')) {
-          setError('Por favor, confirme seu email antes de fazer login.');
+          setError('Por favor, confirme seu email antes de fazer login. Verifique sua caixa de entrada.');
         } else if (error.message.includes('too_many_requests')) {
           setError('Muitas tentativas de login. Aguarde alguns minutos e tente novamente.');
         } else {
@@ -149,12 +149,25 @@ const Login = () => {
 
     try {
       console.log('Signup form submitted for email:', signupForm.email);
-      const { error } = await signUp(signupForm.email, signupForm.password);
+      
+      // Configurar o redirect URL para o dashboard
+      const redirectTo = `${window.location.origin}/dashboard`;
+      
+      const { data, error } = await supabase.auth.signUp({
+        email: signupForm.email,
+        password: signupForm.password,
+        options: {
+          emailRedirectTo: redirectTo,
+          data: {
+            email_confirm: true
+          }
+        }
+      });
       
       if (error) {
         console.error('Signup error:', error);
         if (error.message.includes('User already registered')) {
-          setError('Este email já está cadastrado. Tente fazer login.');
+          setError('Este email já está cadastrado. Tente fazer login ou recuperar sua senha.');
         } else if (error.message.includes('Password should be at least 6 characters')) {
           setError('A senha deve ter pelo menos 6 caracteres.');
         } else if (error.message.includes('rate limit') || error.message.includes('429')) {
@@ -165,8 +178,12 @@ const Login = () => {
           setError(`Erro ao criar conta: ${error.message}`);
         }
       } else {
-        console.log('Signup successful');
-        setSuccess('Conta criada com sucesso! Você já pode fazer login.');
+        console.log('Signup successful', data);
+        if (data.user && !data.user.email_confirmed_at) {
+          setSuccess('✅ Conta criada com sucesso! Verifique seu email para confirmar o cadastro e fazer login.');
+        } else {
+          setSuccess('Conta criada com sucesso! Você já pode fazer login.');
+        }
         setSignupForm({ email: '', password: '', confirmPassword: '' });
       }
     } catch (err) {
@@ -185,7 +202,7 @@ const Login = () => {
     },
     {
       icon: Clock,
-      title: "Economia de Tempo",
+      title: "Economia de Tempo", 
       description: "Reduza em 80% o tempo gasto criando propostas comerciais"
     },
     {
