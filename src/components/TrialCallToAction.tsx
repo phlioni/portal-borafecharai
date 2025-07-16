@@ -79,7 +79,7 @@ const TrialCallToAction = () => {
               {trialEndDate && (
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Clock className="h-4 w-4" />
-                  <span>Até {formatEndDate(trialEndDate)}</span>
+                  <span>Até {formatEndDate(trialEndDate.toISOString())}</span>
                 </div>
               )}
             </div>
