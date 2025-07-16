@@ -20,7 +20,7 @@ export const useBusinessSegments = () => {
     queryKey: ['business-segments'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('business_segments')
+        .from('business_segments' as any)
         .select('*')
         .order('segment_order');
 
@@ -41,7 +41,7 @@ export const useBusinessTypes = (segmentId?: string) => {
       if (!segmentId) return [];
 
       const { data, error } = await supabase
-        .from('business_types')
+        .from('business_types' as any)
         .select('*')
         .eq('segment_id', segmentId)
         .order('type_order');

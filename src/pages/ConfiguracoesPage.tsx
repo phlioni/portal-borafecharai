@@ -52,7 +52,7 @@ const ConfiguracoesPage = () => {
   const [selectedSegmentId, setSelectedSegmentId] = useState<string>('');
   const { data: businessTypes } = useBusinessTypes(selectedSegmentId);
 
-  const company = companies?.[0];
+  const company = companies?.[0] as any;
   const isProfessional = subscription.subscription_tier === 'professional' || isAdmin;
 
   useEffect(() => {
