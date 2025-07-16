@@ -17,6 +17,7 @@ const TrialCallToAction = () => {
     totalTrialDays, 
     proposalsUsed, 
     proposalsRemaining, 
+    trialEndDate,
     loading 
   } = useTrialStatus();
 
@@ -26,6 +27,7 @@ const TrialCallToAction = () => {
     totalTrialDays,
     proposalsUsed,
     proposalsRemaining,
+    trialEndDate,
     loading,
     isAdmin
   });
@@ -35,6 +37,15 @@ const TrialCallToAction = () => {
 
   // Só mostrar se estiver em trial ativo
   if (!isInTrial) return null;
+
+  // Calcular dias restantes
+  const daysRemaining = trialEndDate ? Math.max(0, Math.ceil((new Date(trialEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0;
+
+  // Formattar data de validade
+  const formatEndDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR');
+  };
 
   return (
     <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 shadow-md">
@@ -48,12 +59,12 @@ const TrialCallToAction = () => {
               </h3>
               <Badge variant="secondary" className="bg-green-100 text-green-700">
                 <Calendar className="h-3 w-3 mr-1" />
-                {totalTrialDays - daysUsed} dias restantes
+                {daysRemaining} dias restantes
               </Badge>
             </div>
             
             <p className="text-gray-600 mb-4">
-              Você tem {proposalsRemaining} propostas restantes e {totalTrialDays - daysUsed} dias do seu período gratuito. O que acabar primeiro determina o fim do período gratuito.
+              Você tem {proposalsRemaining} propostas restantes e {daysRemaining} dias do seu período gratuito. O que acabar primeiro determina o fim do período gratuito.
             </p>
 
             <div className="flex items-center gap-4 mb-4">
@@ -63,8 +74,14 @@ const TrialCallToAction = () => {
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <Calendar className="h-4 w-4" />
-                <span>{totalTrialDays - daysUsed} {(totalTrialDays - daysUsed) === 1 ? 'dia restante' : 'dias restantes'}</span>
+                <span>{daysRemaining} {daysRemaining === 1 ? 'dia restante' : 'dias restantes'}</span>
               </div>
+              {trialEndDate && (
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Clock className="h-4 w-4" />
+                  <span>Até {formatEndDate(trialEndDate)}</span>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2 mb-4">

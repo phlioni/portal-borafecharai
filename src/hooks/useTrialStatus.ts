@@ -84,6 +84,7 @@ export const useTrialStatus = () => {
         daysUsed = Math.min(15, Math.max(0, daysPassed));
       }
 
+      // USAR O VALOR REAL DO BANCO
       const proposalsUsed = subscriberData.trial_proposals_used || 0;
       const proposalsRemaining = Math.max(0, 20 - proposalsUsed);
 

@@ -35,6 +35,7 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
   // 2. OU se é role 'user' sem assinatura (mesmo sem dados de trial configurados)
   const isTrialActive = shouldBeInTrial && (!trialEndDate || trialEndDate > now);
   
+  // CORRIGIR: usar o valor real do banco, não calcular
   const trialProposalsUsed = user.subscriber?.trial_proposals_used || 0;
   const trialProposalsRemaining = Math.max(0, 20 - trialProposalsUsed);
 
@@ -93,15 +94,23 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
               {user.subscriber?.trial_end_date && (
                 <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
                   <Calendar className="h-3 w-3 mr-1" />
-                  Até {formatTrialEndDate(user.subscriber.trial_end_date)}
+                  Válido até {formatTrialEndDate(user.subscriber.trial_end_date)}
                 </Badge>
               )}
             </>
           ) : trialEndDate && trialEndDate < now ? (
-            <Badge variant="destructive" className="text-xs">
-              <XCircle className="h-3 w-3 mr-1" />
-              Trial Expirado
-            </Badge>
+            <>
+              <Badge variant="destructive" className="text-xs">
+                <XCircle className="h-3 w-3 mr-1" />
+                Trial Expirado
+              </Badge>
+              {user.subscriber?.trial_end_date && (
+                <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">
+                  <Calendar className="h-3 w-3 mr-1" />
+                  Expirou em {formatTrialEndDate(user.subscriber.trial_end_date)}
+                </Badge>
+              )}
+            </>
           ) : (
             // Se não tem dados de trial configurados mas deveria ter
             <Badge variant="secondary" className="text-xs">
