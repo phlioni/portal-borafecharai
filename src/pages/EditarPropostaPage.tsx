@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -213,12 +212,14 @@ const EditarPropostaPage = () => {
             </div>
             <div>
               <Label htmlFor="company">Cliente</Label>
-              <Select value={formData.company_id} onValueChange={(value) => handleInputChange('company_id', value)}>
+              <Select 
+                value={formData.company_id || undefined}
+                onValueChange={(value) => handleInputChange('company_id', value || '')}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione um cliente" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhum cliente selecionado</SelectItem>
                   {companies?.map((company) => (
                     <SelectItem key={company.id} value={company.id}>
                       {company.name}
