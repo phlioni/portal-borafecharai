@@ -29,12 +29,26 @@ export const useAdminOperations = () => {
     try {
       console.log('useAdminOperations - Carregando usuários...');
       
-      // Buscar usuários
+      // Buscar usuários com melhor tratamento de erro
       const { data: authUsers, error: authError } = await supabase.functions.invoke('get-users');
       
       if (authError) {
-        console.error('Erro ao buscar usuários:', authError);
-        toast.error('Erro ao carregar usuários');
+        console.error('useAdminOperations - Erro ao buscar usuários:', authError);
+        
+        // Mensagens de erro mais específicas
+        if (authError.message?.includes('401') || authError.message?.includes('Unauthorized')) {
+          toast.error('Erro de autorização. Verifique se você tem permissões de admin.');
+        } else if (authError.message?.includes('403') || authError.message?.includes('Access denied')) {
+          toast.error('Acesso negado. Apenas administradores podem ver esta página.');
+        } else {
+          toast.error('Erro ao carregar usuários. Tente novamente.');
+        }
+        return [];
+      }
+
+      if (!authUsers || !Array.isArray(authUsers)) {
+        console.error('useAdminOperations - Resposta inválida da API:', authUsers);
+        toast.error('Erro na resposta do servidor');
         return [];
       }
 
@@ -93,8 +107,8 @@ export const useAdminOperations = () => {
       setUsers(usersWithData);
       return usersWithData;
     } catch (error) {
-      console.error('Erro ao carregar usuários:', error);
-      toast.error('Erro ao carregar usuários');
+      console.error('useAdminOperations - Erro ao carregar usuários:', error);
+      toast.error('Erro inesperado ao carregar usuários');
       return [];
     } finally {
       setLoading(false);
