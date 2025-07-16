@@ -99,14 +99,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }, 1000);
           }
         }
-
-        // Handle email confirmation success
-        if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
-          console.log('Email confirmed successfully, user signed in');
-          setSession(session);
-          setUser(session?.user ?? null);
-          setLoading(false);
-        }
       }
     );
 
@@ -180,7 +172,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string) => {
     console.log('Attempting sign up for:', email);
-    const redirectUrl = `${window.location.origin}/`;
+    const redirectUrl = `${window.location.origin}/dashboard`;
     
     try {
       const { data, error } = await supabase.auth.signUp({

@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 const Login = () => {
   const { signIn, signUp, user, loading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +30,18 @@ const Login = () => {
     password: '',
     confirmPassword: ''
   });
+
+  // Check for confirmation success from URL params
+  useEffect(() => {
+    const token_hash = searchParams.get('token_hash');
+    const type = searchParams.get('type');
+    
+    if (token_hash && type === 'signup') {
+      setSuccess('✅ Email confirmado com sucesso! Agora você pode fazer login normalmente.');
+      // Clear URL params
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [searchParams]);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -150,19 +164,7 @@ const Login = () => {
     try {
       console.log('Signup form submitted for email:', signupForm.email);
       
-      // Configurar o redirect URL para o dashboard
-      const redirectTo = `${window.location.origin}/dashboard`;
-      
-      const { data, error } = await supabase.auth.signUp({
-        email: signupForm.email,
-        password: signupForm.password,
-        options: {
-          emailRedirectTo: redirectTo,
-          data: {
-            email_confirm: true
-          }
-        }
-      });
+      const { error } = await signUp(signupForm.email, signupForm.password);
       
       if (error) {
         console.error('Signup error:', error);
@@ -178,12 +180,8 @@ const Login = () => {
           setError(`Erro ao criar conta: ${error.message}`);
         }
       } else {
-        console.log('Signup successful', data);
-        if (data.user && !data.user.email_confirmed_at) {
-          setSuccess('🎉 Conta criada com sucesso! 📧 Enviamos um email de confirmação para você. Verifique sua caixa de entrada (e a pasta de spam também) e clique no link para ativar sua conta. ⚡ Importante: Sem a confirmação do email, você não conseguirá acessar o sistema.');
-        } else {
-          setSuccess('Conta criada com sucesso! Você já pode fazer login.');
-        }
+        console.log('Signup successful');
+        setSuccess('🎉 Conta criada com sucesso! 📧 Enviamos um email de confirmação para você. Verifique sua caixa de entrada (e a pasta de spam também) e clique no link para ativar sua conta. ⚡ Importante: Sem a confirmação do email, você não conseguirá acessar o sistema.');
         setSignupForm({ email: '', password: '', confirmPassword: '' });
       }
     } catch (err) {
