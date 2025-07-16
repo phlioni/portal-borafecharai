@@ -156,15 +156,21 @@ export const useAdminOperations = () => {
           toast.error('Erro ao resetar trial');
           return false;
         }
+
+        if (!data?.success) {
+          console.error('Edge function não retornou sucesso:', data);
+          toast.error('Erro ao resetar trial');
+          return false;
+        }
       }
 
       toast.success('Dados do usuário resetados com sucesso!');
       
-      // Aguardar 3 segundos para garantir que as mudanças foram aplicadas
-      console.log('useAdminOperations - Aguardando 3 segundos antes de recarregar...');
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Aguardar um tempo para garantir que as mudanças foram aplicadas no banco
+      console.log('useAdminOperations - Aguardando antes de recarregar...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Forçar recarregamento completo dos dados
+      // Recarregar dados dos usuários
       console.log('useAdminOperations - Recarregando dados dos usuários...');
       await loadUsers();
       return true;

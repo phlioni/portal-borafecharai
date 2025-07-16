@@ -19,9 +19,8 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
   console.log('UserStatusBadges - user data:', user);
   
   const now = new Date();
-  const isTrialActive = user.subscriber?.trial_end_date && 
-    new Date(user.subscriber.trial_end_date) > now && 
-    !user.subscriber.subscribed;
+  const trialEndDate = user.subscriber?.trial_end_date ? new Date(user.subscriber.trial_end_date) : null;
+  const isTrialActive = trialEndDate && trialEndDate > now && !user.subscriber?.subscribed;
   
   const trialProposalsUsed = user.subscriber?.trial_proposals_used || 0;
   const trialProposalsRemaining = Math.max(0, 20 - trialProposalsUsed);
@@ -37,7 +36,9 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
     trialProposalsUsed,
     trialProposalsRemaining,
     subscribed: user.subscriber?.subscribed,
-    trial_end_date: user.subscriber?.trial_end_date
+    trial_end_date: user.subscriber?.trial_end_date,
+    trialEndDate: trialEndDate?.toISOString(),
+    now: now.toISOString()
   });
 
   return (
@@ -67,12 +68,12 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
             </Badge>
           )}
         </>
-      ) : (
+      ) : user.subscriber?.trial_end_date ? (
         <Badge variant="destructive" className="text-xs">
           <XCircle className="h-3 w-3 mr-1" />
           Expirado
         </Badge>
-      )}
+      ) : null}
     </div>
   );
 };
