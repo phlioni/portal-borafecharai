@@ -22,7 +22,7 @@ export const useBusinessSegments = () => {
       console.log('Fetching business segments...');
       
       const { data, error } = await supabase
-        .from('business_segments' as any)
+        .from('business_segments')
         .select('*')
         .order('segment_order');
 
@@ -32,7 +32,7 @@ export const useBusinessSegments = () => {
       }
 
       console.log('Business segments data:', data);
-      return (data as unknown) as BusinessSegment[];
+      return data as BusinessSegment[];
     },
   });
 };
@@ -49,7 +49,7 @@ export const useBusinessTypes = (segmentId?: string) => {
       console.log('Fetching business types for segment:', segmentId);
 
       const { data, error } = await supabase
-        .from('business_types' as any)
+        .from('business_types')
         .select('*')
         .eq('segment_id', segmentId)
         .order('type_order');
@@ -60,7 +60,7 @@ export const useBusinessTypes = (segmentId?: string) => {
       }
 
       console.log('Business types data:', data);
-      return (data as unknown) as BusinessType[];
+      return data as BusinessType[];
     },
     enabled: !!segmentId,
   });
