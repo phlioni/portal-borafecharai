@@ -364,18 +364,10 @@ async function sendProposalByEmail(proposalId: string, clientEmail: string, clie
   console.log(`Enviando proposta ${proposalId} por e-mail para ${clientEmail}`);
 
   try {
-    // Buscar dados da proposta
+    // Buscar dados da proposta para obter o public_hash
     const { data: proposal, error: proposalError } = await supabase
       .from('proposals')
-      .select(`
-        *,
-        companies (
-          id,
-          name,
-          email,
-          phone
-        )
-      `)
+      .select('*')
       .eq('id', proposalId)
       .single();
 
@@ -386,9 +378,10 @@ async function sendProposalByEmail(proposalId: string, clientEmail: string, clie
 
     console.log('Proposta encontrada para envio:', proposal.title);
 
-    // Gerar URL pública da proposta
-    const publicUrl = `https://pakrraqbjbkkbdnwkkbt.supabase.co/proposal/${proposal.public_hash}`;
+    // Gerar URL pública da proposta usando o formato correto
+    const publicUrl = `https://pakrraqbjbkkbdnwkkbt.supabase.co/proposta-publica/${proposal.public_hash}`;
 
+    // Usar exatamente o mesmo sistema de e-mail do sistema principal
     const { data, error } = await supabase.functions.invoke('send-proposal-email', {
       body: {
         proposalId: proposalId,
