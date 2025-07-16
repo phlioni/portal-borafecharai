@@ -87,6 +87,13 @@ function App() {
                 </Layout>
               </ProtectedRoute>
             } />
+            <Route path="/propostas/:id/editar" element={
+              <ProtectedRoute>
+                <Layout>
+                  <EditarPropostaPage />
+                </Layout>
+              </ProtectedRoute>
+            } />
             <Route path="/propostas/editar/:id" element={
               <ProtectedRoute>
                 <Layout>
