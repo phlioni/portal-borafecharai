@@ -23,11 +23,17 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
   const trialEndDate = user.subscriber?.trial_end_date ? new Date(user.subscriber.trial_end_date) : null;
   const trialStartDate = user.subscriber?.trial_start_date ? new Date(user.subscriber.trial_start_date) : null;
   
-  // Um usuário está em trial se:
-  // 1. Tem trial_end_date
-  // 2. trial_end_date é maior que agora
-  // 3. NÃO está subscrito
-  const isTrialActive = trialEndDate && trialEndDate > now && !user.subscriber?.subscribed;
+  // Para usuários com role 'user', sempre deve mostrar trial se não tem assinatura paga
+  const isUserRole = user.role === 'user';
+  const hasActiveSubscription = user.subscriber?.subscribed && user.subscriber?.subscription_tier;
+  
+  // Se é usuário comum (role 'user') e não tem assinatura, deve estar em trial
+  const shouldBeInTrial = isUserRole && !hasActiveSubscription;
+  
+  // Trial está ativo se:
+  // 1. Tem trial_end_date válida E é maior que agora E não tem assinatura ativa
+  // 2. OU se é role 'user' sem assinatura (deve sempre estar em trial)
+  const isTrialActive = shouldBeInTrial && trialEndDate && trialEndDate > now;
   
   const trialProposalsUsed = user.subscriber?.trial_proposals_used || 0;
   const trialProposalsRemaining = Math.max(0, 20 - trialProposalsUsed);
@@ -40,9 +46,13 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
 
   console.log('UserStatusBadges - calculated values:', {
     isTrialActive,
+    shouldBeInTrial,
+    isUserRole,
+    hasActiveSubscription,
     trialProposalsUsed,
     trialProposalsRemaining,
     subscribed: user.subscriber?.subscribed,
+    subscription_tier: user.subscriber?.subscription_tier,
     trial_end_date: user.subscriber?.trial_end_date,
     trial_start_date: user.subscriber?.trial_start_date,
     trialEndDate: trialEndDate?.toISOString(),
@@ -66,7 +76,7 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
         </Badge>
       )}
       
-      {user.subscriber?.subscribed ? (
+      {hasActiveSubscription ? (
         <Badge variant="default" className="text-xs">
           <CheckCircle className="h-3 w-3 mr-1" />
           {user.subscriber.subscription_tier || 'Assinante'}
@@ -84,20 +94,22 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
             </Badge>
           )}
         </>
-      ) : user.subscriber?.trial_end_date && trialEndDate && trialEndDate < now ? (
+      ) : shouldBeInTrial && trialEndDate && trialEndDate < now ? (
         <Badge variant="destructive" className="text-xs">
           <XCircle className="h-3 w-3 mr-1" />
           Trial Expirado
         </Badge>
-      ) : user.subscriber && user.subscriber.trial_start_date ? (
+      ) : isUserRole ? (
+        // Se é role 'user' mas não tem dados de trial, mostrar como sem trial configurado
         <Badge variant="secondary" className="text-xs">
           <Clock className="h-3 w-3 mr-1" />
-          Trial Inativo
+          Trial não configurado
         </Badge>
       ) : (
+        // Para outras roles (admin, guest) que não precisam de trial
         <Badge variant="secondary" className="text-xs">
-          <Clock className="h-3 w-3 mr-1" />
-          Sem Trial
+          <CheckCircle className="h-3 w-3 mr-1" />
+          Acesso Completo
         </Badge>
       )}
     </div>

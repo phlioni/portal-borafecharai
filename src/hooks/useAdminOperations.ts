@@ -147,6 +147,15 @@ export const useAdminOperations = () => {
     try {
       console.log('useAdminOperations - Iniciando reset para usuário:', userId, 'tipo:', resetType);
       
+      // Verificar se o usuário tem role 'user'
+      const { data: userRole } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+
+      const isUserRole = userRole?.role === 'user';
+      
       if (resetType === 'proposals' || resetType === 'both') {
         console.log('useAdminOperations - Resetando propostas...');
         const { error: proposalsError } = await supabase
@@ -180,13 +189,49 @@ export const useAdminOperations = () => {
           toast.error('Erro ao resetar trial');
           return false;
         }
+
+        // Se o usuário tem role 'user', garantir que as regras de trial sejam aplicadas
+        if (isUserRole) {
+          console.log('useAdminOperations - Aplicando regras de trial para usuário com role user...');
+          
+          // Verificar se o subscriber existe e tem assinatura ativa
+          const { data: subscriber } = await supabase
+            .from('subscribers')
+            .select('subscribed, subscription_tier')
+            .eq('user_id', userId)
+            .single();
+
+          // Se não tem assinatura ativa, garantir que o trial esteja configurado
+          if (!subscriber?.subscribed || !subscriber?.subscription_tier) {
+            const now = new Date();
+            const trialEndDate = new Date(now.getTime() + (15 * 24 * 60 * 60 * 1000));
+            
+            const { error: updateError } = await supabase
+              .from('subscribers')
+              .update({
+                trial_start_date: now.toISOString(),
+                trial_end_date: trialEndDate.toISOString(),
+                trial_proposals_used: 0,
+                subscribed: false,
+                subscription_tier: null,
+                updated_at: now.toISOString()
+              })
+              .eq('user_id', userId);
+
+            if (updateError) {
+              console.error('Erro ao configurar trial para usuário:', updateError);
+            } else {
+              console.log('useAdminOperations - Trial configurado para usuário com role user');
+            }
+          }
+        }
       }
 
       toast.success('Dados do usuário resetados com sucesso!');
       
       // Aguardar um tempo menor e recarregar os dados
       console.log('useAdminOperations - Aguardando antes de recarregar...');
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Recarregar dados dos usuários
       console.log('useAdminOperations - Recarregando dados dos usuários...');
