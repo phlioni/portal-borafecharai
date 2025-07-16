@@ -62,30 +62,73 @@ serve(async (req) => {
 
     const now = new Date()
     const trialStartDate = now.toISOString()
-    const trialEndDate = new Date(now.getTime() + (15 * 24 * 60 * 60 * 1000)).toISOString() // 15 dias
+    const trialEndDate = new Date(now.getTime() + (15 * 24 * 60 * 60 * 1000)).toISOString() // Exatamente 15 dias
 
-    // Sempre fazer UPDATE para garantir que os dados sejam atualizados
-    const { data, error } = await supabase
+    console.log('Data de início do trial:', trialStartDate)
+    console.log('Data de fim do trial:', trialEndDate)
+
+    // Primeiro verificar se o subscriber existe
+    const { data: existingSubscriber } = await supabase
       .from('subscribers')
-      .update({
-        trial_start_date: trialStartDate,
-        trial_end_date: trialEndDate,
-        trial_proposals_used: 0,
-        subscribed: false,
-        updated_at: now.toISOString()
-      })
+      .select('*')
       .eq('user_id', targetUserId)
-      .select()
+      .single()
 
-    if (error) {
-      console.error('Erro ao resetar trial:', error)
-      return new Response(JSON.stringify({ error: 'Failed to reset trial' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
+    if (!existingSubscriber) {
+      console.log('Subscriber não existe, criando novo...')
+      
+      // Criar novo subscriber se não existir
+      const { data, error } = await supabase
+        .from('subscribers')
+        .insert({
+          user_id: targetUserId,
+          email: currentUser.email,
+          trial_start_date: trialStartDate,
+          trial_end_date: trialEndDate,
+          trial_proposals_used: 0,
+          subscribed: false,
+          subscription_tier: null,
+          created_at: now.toISOString(),
+          updated_at: now.toISOString()
+        })
+        .select()
+
+      if (error) {
+        console.error('Erro ao criar subscriber:', error)
+        return new Response(JSON.stringify({ error: 'Failed to create trial' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      console.log('Subscriber criado com sucesso:', data)
+    } else {
+      console.log('Subscriber existe, atualizando...')
+      
+      // Atualizar subscriber existente
+      const { data, error } = await supabase
+        .from('subscribers')
+        .update({
+          trial_start_date: trialStartDate,
+          trial_end_date: trialEndDate,
+          trial_proposals_used: 0,
+          subscribed: false,
+          subscription_tier: null,
+          updated_at: now.toISOString()
+        })
+        .eq('user_id', targetUserId)
+        .select()
+
+      if (error) {
+        console.error('Erro ao atualizar subscriber:', error)
+        return new Response(JSON.stringify({ error: 'Failed to reset trial' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      console.log('Subscriber atualizado com sucesso:', data)
     }
-
-    console.log('Trial resetado com sucesso:', data)
 
     return new Response(JSON.stringify({ 
       success: true, 

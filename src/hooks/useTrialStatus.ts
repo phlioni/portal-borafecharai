@@ -80,7 +80,9 @@ export const useTrialStatus = () => {
         proposalsUsed,
         proposalsRemaining,
         trialStartDate,
-        trialEndDate
+        trialEndDate,
+        now: now.toISOString(),
+        trialEndDateString: trialEndDate?.toISOString()
       });
 
       setTrialStatus({

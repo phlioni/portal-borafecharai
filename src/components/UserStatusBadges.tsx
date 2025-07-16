@@ -16,8 +16,12 @@ interface UserStatusBadgesProps {
 }
 
 const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
+  console.log('UserStatusBadges - user data:', user);
+  
+  const now = new Date();
   const isTrialActive = user.subscriber?.trial_end_date && 
-    new Date(user.subscriber.trial_end_date) > new Date();
+    new Date(user.subscriber.trial_end_date) > now && 
+    !user.subscriber.subscribed;
   
   const trialProposalsUsed = user.subscriber?.trial_proposals_used || 0;
   const trialProposalsRemaining = Math.max(0, 20 - trialProposalsUsed);
@@ -27,6 +31,14 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR');
   };
+
+  console.log('UserStatusBadges - calculated values:', {
+    isTrialActive,
+    trialProposalsUsed,
+    trialProposalsRemaining,
+    subscribed: user.subscriber?.subscribed,
+    trial_end_date: user.subscriber?.trial_end_date
+  });
 
   return (
     <div className="flex flex-wrap gap-1">
