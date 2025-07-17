@@ -22,7 +22,7 @@ export interface BusinessType {
 export const useBusinessSegments = () => {
   return useQuery({
     queryKey: ['business-segments'],
-    queryFn: async () => {
+    queryFn: async (): Promise<BusinessSegment[]> => {
       console.log('Fetching business segments...');
       
       const { data, error } = await supabase
@@ -36,7 +36,7 @@ export const useBusinessSegments = () => {
       }
 
       console.log('Business segments data:', data);
-      return data;
+      return data || [];
     },
   });
 };
@@ -44,7 +44,7 @@ export const useBusinessSegments = () => {
 export const useBusinessTypes = (segmentId?: string) => {
   return useQuery({
     queryKey: ['business-types', segmentId],
-    queryFn: async () => {
+    queryFn: async (): Promise<BusinessType[]> => {
       if (!segmentId) {
         console.log('No segmentId provided, returning empty array');
         return [];
@@ -52,7 +52,7 @@ export const useBusinessTypes = (segmentId?: string) => {
 
       console.log('Fetching business types for segment:', segmentId);
 
-      // Use rpc to call the function or raw query
+      // Use rpc to call the function
       const { data, error } = await supabase
         .rpc('get_business_types_by_segment', { segment_id: segmentId });
 
@@ -62,7 +62,7 @@ export const useBusinessTypes = (segmentId?: string) => {
       }
 
       console.log('Business types data:', data);
-      return data;
+      return data || [];
     },
     enabled: !!segmentId,
   });

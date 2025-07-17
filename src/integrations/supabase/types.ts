@@ -563,6 +563,17 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      get_business_types_by_segment: {
+        Args: { segment_id: string }
+        Returns: {
+          id: string
+          segment_id: string
+          type_name: string
+          type_order: number
+          created_at: string
+          updated_at: string
+        }[]
+      }
       get_monthly_proposal_count: {
         Args: { _user_id: string; _month?: string }
         Returns: number
