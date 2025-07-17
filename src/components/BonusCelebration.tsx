@@ -1,15 +1,17 @@
-
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Gift, Sparkles, Trophy, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface BonusCelebrationProps {
-  show: boolean;
-  onComplete: () => void;
+  show?: boolean;
+  onComplete?: () => void;
 }
 
-const BonusCelebration: React.FC<BonusCelebrationProps> = ({ show, onComplete }) => {
+const BonusCelebration: React.FC<BonusCelebrationProps> = ({ 
+  show = false, 
+  onComplete = () => {} 
+}) => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {

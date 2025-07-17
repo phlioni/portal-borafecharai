@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -43,7 +43,7 @@ function App() {
               <Route path="/proposta/:hash" element={<PropostaPublicaPage />} />
               <Route path="/planos" element={<Planos />} />
               
-              <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+              <Route element={<ProtectedRoute><Layout><Outlet /></Layout></ProtectedRoute>}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/propostas" element={<Propostas />} />
                 <Route path="/nova-proposta" element={<NovaPropostaPage />} />
@@ -58,16 +58,12 @@ function App() {
                 <Route path="/telegram-bot" element={<TelegramBotPage />} />
                 <Route path="/whatsapp-bot" element={<WhatsAppBotPage />} />
                 <Route path="/test-business" element={<TestBusinessSegments />} />
-                
-                <Route element={<ProtectedRoute requiredRole="admin" />}>
-                  <Route path="/admin/usuarios" element={<GerenciamentoUsuariosPage />} />
-                </Route>
+                <Route path="/admin/usuarios" element={<GerenciamentoUsuariosPage />} />
               </Route>
               
               <Route path="*" element={<NotFound />} />
             </Routes>
             <Toaster />
-            <BonusCelebration />
           </div>
         </AuthProvider>
       </BrowserRouter>
