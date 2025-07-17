@@ -96,14 +96,14 @@ export const useUpdateCompany = () => {
         .from('companies')
         .select('user_id')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
       if (ownerError) {
         console.error('Error checking company owner:', ownerError);
         throw new Error('Empresa não encontrada');
       }
 
-      if (companyOwner.user_id !== user.id) {
+      if (!companyOwner || companyOwner.user_id !== user.id) {
         throw new Error('Você não tem permissão para modificar esta empresa');
       }
 

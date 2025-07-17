@@ -108,11 +108,13 @@ const ConfiguracoesPage = () => {
 
     try {
       if (company?.id) {
+        console.log('Updating existing company with ID:', company.id);
         await updateCompanyMutation.mutateAsync({
           id: company.id,
           updates: companyData
         });
       } else {
+        console.log('Creating new company');
         await createCompanyMutation.mutateAsync(companyData);
       }
     } catch (error) {

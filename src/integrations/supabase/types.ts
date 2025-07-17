@@ -76,7 +76,9 @@ export type Database = {
       companies: {
         Row: {
           address: string | null
+          business_segment: string | null
           business_type: string | null
+          business_type_detail: string | null
           city: string | null
           cnpj: string | null
           country_code: string | null
@@ -96,7 +98,9 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          business_segment?: string | null
           business_type?: string | null
+          business_type_detail?: string | null
           city?: string | null
           cnpj?: string | null
           country_code?: string | null
@@ -116,7 +120,9 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          business_segment?: string | null
           business_type?: string | null
+          business_type_detail?: string | null
           city?: string | null
           cnpj?: string | null
           country_code?: string | null
