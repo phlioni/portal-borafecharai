@@ -19,9 +19,24 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { proposalId, emailData } = await req.json()
+    const requestBody = await req.json()
+    console.log('Request body received:', requestBody)
 
-    console.log('Enviando proposta por email:', { proposalId, emailData })
+    const { 
+      proposalId, 
+      recipientEmail, 
+      recipientName, 
+      emailSubject, 
+      emailMessage, 
+      publicUrl 
+    } = requestBody
+
+    console.log('Enviando proposta por email:', { 
+      proposalId, 
+      recipientEmail, 
+      recipientName, 
+      emailSubject 
+    })
 
     // Buscar proposta com cliente
     const { data: proposal, error: proposalError } = await supabase
@@ -61,67 +76,13 @@ Deno.serve(async (req) => {
       .eq('user_id', proposal.user_id)
       .single()
 
-    // Buscar template de email personalizado
-    const { data: emailTemplate } = await supabase
-      .from('email_templates')
-      .select('*')
-      .eq('user_id', proposal.user_id)
-      .single()
-
     // Calcular valor total da proposta
     const totalValue = proposal.proposal_budget_items?.reduce((total: number, item: any) => {
       return total + (item.quantity * item.unit_price)
     }, 0) || proposal.value || 0
 
-    // Gerar link público da proposta
-    const publicLink = `https://pakrraqbjbkkbdnwkkbt.supabase.co/proposta/${proposal.public_hash}`
-
-    // Montar dados para o template
-    const templateData = {
-      proposalTitle: proposal.title,
-      proposalValue: totalValue,
-      clientName: proposal.clients?.name || 'Cliente',
-      companyName: userCompany?.name || 'Empresa',
-      publicLink,
-      deliveryTime: proposal.delivery_time,
-      validityDate: proposal.validity_date,
-      serviceDescription: proposal.service_description,
-      detailedDescription: proposal.detailed_description,
-      observations: proposal.observations,
-      companyEmail: userCompany?.email,
-      companyPhone: userCompany?.phone,
-      companyAddress: userCompany?.address
-    }
-
-    // Usar template personalizado se disponível
-    let emailSubject = emailTemplate?.email_subject_template || 'Proposta Comercial: {{proposalTitle}}'
-    let emailMessage = emailTemplate?.email_message_template || `
-Olá {{clientName}},
-
-Segue em anexo nossa proposta comercial para o projeto "{{proposalTitle}}".
-
-Valor: R$ {{proposalValue}}
-Prazo de entrega: {{deliveryTime}}
-Validade: {{validityDate}}
-
-Você pode visualizar e responder a proposta através do link:
-{{publicLink}}
-
-Atenciosamente,
-{{companyName}}
-`
-
-    // Substituir variáveis no template
-    Object.entries(templateData).forEach(([key, value]) => {
-      const placeholder = `{{${key}}}`
-      emailSubject = emailSubject.replace(new RegExp(placeholder, 'g'), value?.toString() || '')
-      emailMessage = emailMessage.replace(new RegExp(placeholder, 'g'), value?.toString() || '')
-    })
-
-    // Adicionar assinatura se disponível
-    if (emailTemplate?.email_signature) {
-      emailMessage += `\n\n${emailTemplate.email_signature}`
-    }
+    // Preparar mensagem final substituindo o placeholder
+    const finalMessage = emailMessage.replace('[LINK_DA_PROPOSTA]', publicUrl || `${supabaseUrl}/proposta/${proposal.public_hash}`)
 
     // Enviar email via Resend
     const emailResponse = await fetch('https://api.resend.com/emails', {
@@ -131,10 +92,10 @@ Atenciosamente,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: emailData.from || 'noreply@borafecharai.com',
-        to: [emailData.to],
+        from: 'noreply@borafecharai.com',
+        to: [recipientEmail],
         subject: emailSubject,
-        html: emailMessage.replace(/\n/g, '<br>')
+        html: finalMessage.replace(/\n/g, '<br>')
       })
     })
 
@@ -150,10 +111,13 @@ Atenciosamente,
     // Atualizar status da proposta para 'enviada'
     await supabase
       .from('proposals')
-      .update({ status: 'enviada' })
+      .update({ 
+        status: 'enviada',
+        updated_at: new Date().toISOString()
+      })
       .eq('id', proposalId)
 
-    console.log('Email enviado com sucesso para:', emailData.to)
+    console.log('Email enviado com sucesso para:', recipientEmail)
 
     return new Response(
       JSON.stringify({ success: true, message: 'Email enviado com sucesso' }),

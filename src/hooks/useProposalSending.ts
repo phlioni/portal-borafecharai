@@ -100,9 +100,6 @@ export const useProposalSending = () => {
       const publicUrl = `${window.location.origin}/proposta/${publicHash}`;
       console.log('URL pública da proposta:', publicUrl);
 
-      // Preparar o conteúdo do email
-      const emailContent = emailData.emailMessage.replace('[LINK_DA_PROPOSTA]', publicUrl);
-
       console.log('Enviando email via edge function...');
 
       const { data, error } = await supabase.functions.invoke('send-proposal-email', {
@@ -111,7 +108,7 @@ export const useProposalSending = () => {
           recipientEmail: emailData.recipientEmail,
           recipientName: emailData.recipientName,
           emailSubject: emailData.emailSubject,
-          emailMessage: emailContent,
+          emailMessage: emailData.emailMessage,
           publicUrl: publicUrl
         }
       });

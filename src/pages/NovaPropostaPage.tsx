@@ -139,6 +139,7 @@ const NovaPropostaPage = () => {
       };
 
       const newProposal = await createProposal.mutateAsync(proposalData);
+      console.log('Proposta criada com ID:', newProposal.id);
       
       if (budgetItems.length > 0) {
         sessionStorage.setItem('pendingBudgetItems', JSON.stringify(budgetItems));
@@ -146,6 +147,8 @@ const NovaPropostaPage = () => {
       
       toast.success('Proposta salva como rascunho!');
       setShowPreview(false);
+      
+      // Navegação correta
       navigate(`/propostas/${newProposal.id}`);
     } catch (error) {
       console.error('Erro ao salvar rascunho:', error);
@@ -181,6 +184,7 @@ const NovaPropostaPage = () => {
       };
 
       const newProposal = await createProposal.mutateAsync(proposalData);
+      console.log('Proposta criada para envio com ID:', newProposal.id);
       
       if (budgetItems.length > 0) {
         sessionStorage.setItem('pendingBudgetItems', JSON.stringify(budgetItems));
