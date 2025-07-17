@@ -26,7 +26,7 @@ export const useUserPermissions = () => {
         setLoading(true);
         console.log('useUserPermissions - Checking permissions for user:', user.id);
 
-        // Check if user is admin - usar .maybeSingle() ao invés de .single()
+        // Check if user has roles - se não tiver nenhuma role, atribuir 'user' por padrão
         const { data: userRoles, error: rolesError } = await supabase
           .from('user_roles')
           .select('role')
@@ -34,6 +34,18 @@ export const useUserPermissions = () => {
 
         if (rolesError) {
           console.error('useUserPermissions - Error fetching user roles:', rolesError);
+        }
+
+        // Se não encontrou roles para o usuário, criar a role 'user' automaticamente
+        if (!userRoles || userRoles.length === 0) {
+          console.log('useUserPermissions - No roles found, creating user role');
+          const { error: insertError } = await supabase
+            .from('user_roles')
+            .insert({ user_id: user.id, role: 'user' });
+
+          if (insertError) {
+            console.error('useUserPermissions - Error creating user role:', insertError);
+          }
         }
 
         const adminRole = userRoles?.some(role => role.role === 'admin') || false;
