@@ -107,7 +107,7 @@ const ConfiguracoesPage = () => {
     console.log('Saving company data:', companyData);
 
     try {
-      if (company) {
+      if (company?.id) {
         await updateCompanyMutation.mutateAsync({
           id: company.id,
           updates: companyData

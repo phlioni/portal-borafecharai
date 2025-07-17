@@ -73,19 +73,20 @@ export const useUpdateCompany = () => {
       
       // Verificar se o telefone já existe para outro usuário (se telefone foi fornecido)
       if (updates.phone && updates.phone.trim() !== '') {
-        const { data: existingCompany, error: checkError } = await supabase
+        const { data: existingCompanies, error: checkError } = await supabase
           .from('companies')
           .select('id, user_id')
           .eq('phone', updates.phone)
-          .neq('id', id)
-          .single();
+          .neq('id', id);
 
-        if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found
+        if (checkError) {
           console.error('Error checking phone uniqueness:', checkError);
           throw new Error('Erro ao verificar telefone');
         }
 
-        if (existingCompany) {
+        // Verificar se existe alguma empresa com este telefone que não seja do usuário atual
+        const conflictingCompany = existingCompanies?.find(company => company.user_id !== user.id);
+        if (conflictingCompany) {
           throw new Error('Este telefone já está cadastrado por outro usuário');
         }
       }
@@ -152,18 +153,17 @@ export const useCreateCompany = () => {
       
       // Verificar se o telefone já existe (se fornecido)
       if (companyData.phone && companyData.phone.trim() !== '') {
-        const { data: existingCompany, error: checkError } = await supabase
+        const { data: existingCompanies, error: checkError } = await supabase
           .from('companies')
           .select('id')
-          .eq('phone', companyData.phone)
-          .single();
+          .eq('phone', companyData.phone);
 
-        if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found
+        if (checkError) {
           console.error('Error checking phone uniqueness:', checkError);
           throw new Error('Erro ao verificar telefone');
         }
 
-        if (existingCompany) {
+        if (existingCompanies && existingCompanies.length > 0) {
           throw new Error('Este telefone já está cadastrado');
         }
       }
