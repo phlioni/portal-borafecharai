@@ -11,6 +11,7 @@ interface TrialStatus {
   proposalsRemaining: number;
   trialStartDate: Date | null;
   trialEndDate: Date | null;
+  bonusProposals: number;
   loading: boolean;
 }
 
@@ -24,6 +25,7 @@ export const useTrialStatus = () => {
     proposalsRemaining: 20,
     trialStartDate: null,
     trialEndDate: null,
+    bonusProposals: 0,
     loading: true,
   });
 
@@ -125,7 +127,9 @@ export const useTrialStatus = () => {
 
       // USAR O VALOR REAL DO BANCO
       const proposalsUsed = subscriberData.trial_proposals_used || 0;
-      const proposalsRemaining = Math.max(0, 20 - proposalsUsed);
+      const bonusProposals = subscriberData.bonus_proposals_current_month || 0;
+      const totalLimit = 20 + bonusProposals;
+      const proposalsRemaining = Math.max(0, totalLimit - proposalsUsed);
 
       console.log('useTrialStatus - Calculated status:', {
         isInTrial: !!isInTrial,
@@ -133,6 +137,8 @@ export const useTrialStatus = () => {
         hasActiveSubscription,
         daysUsed,
         proposalsUsed,
+        bonusProposals,
+        totalLimit,
         proposalsRemaining,
         trialStartDate,
         trialEndDate,
@@ -148,6 +154,7 @@ export const useTrialStatus = () => {
         proposalsRemaining,
         trialStartDate,
         trialEndDate,
+        bonusProposals,
         loading: false,
       });
 

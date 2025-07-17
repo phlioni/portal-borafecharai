@@ -10,6 +10,7 @@ export const useUserPermissions = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [monthlyProposalCount, setMonthlyProposalCount] = useState(0);
   const [monthlyProposalLimit, setMonthlyProposalLimit] = useState<number | null>(null);
+  const [bonusProposals, setBonusProposals] = useState(0);
   const [canCreateProposal, setCanCreateProposal] = useState(false);
   const [canAccessAnalytics, setCanAccessAnalytics] = useState(false);
   const [canAccessPremiumTemplates, setCanAccessPremiumTemplates] = useState(false);
@@ -80,7 +81,7 @@ export const useUserPermissions = () => {
           .from('subscribers')
           .select('*')
           .eq('user_id', user.id)
-          .maybeSingle(); // Usar .maybeSingle() aqui também
+          .maybeSingle();
 
         if (subscriberError) {
           console.error('useUserPermissions - Error fetching subscriber:', subscriberError);
@@ -89,6 +90,10 @@ export const useUserPermissions = () => {
         console.log('useUserPermissions - subscriber data:', subscriber);
         console.log('useUserPermissions - subscribed from hook:', subscribed);
         console.log('useUserPermissions - subscription_tier from hook:', subscription_tier);
+
+        // Obter propostas bônus
+        const bonusFromDb = subscriber?.bonus_proposals_current_month || 0;
+        setBonusProposals(bonusFromDb);
 
         // Determinar limites e acessos baseado no status
         let proposalLimit = null;
@@ -104,7 +109,8 @@ export const useUserPermissions = () => {
           setCanAccessPremiumTemplates(true);
         } else if (subscribed) {
           if (subscription_tier === 'basico') {
-            proposalLimit = 10;
+            // Plano básico: 10 propostas + bônus
+            proposalLimit = 10 + bonusFromDb;
             setCanAccessAnalytics(false);
             setCanAccessPremiumTemplates(false);
           } else if (subscription_tier === 'profissional') {
@@ -115,8 +121,9 @@ export const useUserPermissions = () => {
         } else {
           // Trial ou sem acesso
           if (subscriber?.trial_end_date && new Date(subscriber.trial_end_date) >= new Date()) {
-            proposalLimit = 20;
-            console.log('useUserPermissions - User in trial, limit 20 proposals');
+            // Trial: 20 propostas + bônus
+            proposalLimit = 20 + bonusFromDb;
+            console.log('useUserPermissions - User in trial, limit:', proposalLimit, 'proposals (including', bonusFromDb, 'bonus)');
           } else {
             proposalLimit = 0;
             console.log('useUserPermissions - User trial expired, no access');
@@ -131,6 +138,7 @@ export const useUserPermissions = () => {
           canCreateProposal: canCreate,
           monthlyProposalLimit: proposalLimit,
           monthlyProposalCount: monthlyCount,
+          bonusProposals: bonusFromDb,
           isAdmin: adminRole,
           isGuest: guestRole,
           subscribed,
@@ -152,6 +160,7 @@ export const useUserPermissions = () => {
     isAdmin,
     monthlyProposalCount,
     monthlyProposalLimit,
+    bonusProposals,
     canCreateProposal,
     canAccessAnalytics,
     canAccessPremiumTemplates,

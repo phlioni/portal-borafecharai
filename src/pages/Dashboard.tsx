@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useProposals } from '@/hooks/useProposals';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ModernLoader } from '@/components/ModernLoader';
@@ -19,6 +20,7 @@ const Dashboard = () => {
   const { data: proposals, isLoading: proposalsLoading } = useProposals();
   const { subscribed, subscription_tier } = useSubscription();
   const { showCelebration, handleCelebrationComplete } = useProfileCompletion();
+  const { monthlyProposalCount, monthlyProposalLimit, bonusProposals } = useUserPermissions();
 
   if (isLoading || proposalsLoading) {
     return <ModernLoader message="Carregando dashboard..." fullScreen />;
@@ -50,6 +52,11 @@ const Dashboard = () => {
   const totalValue = data?.totalProposalsValue || 0;
   const acceptanceRate = totalProposals > 0 ? (totalAccepted / totalProposals) * 100 : 0;
   const totalViews = proposals?.reduce((acc, p) => acc + (p.views || 0), 0) || 0;
+
+  // Calcular propostas restantes
+  const proposalsRemaining = monthlyProposalLimit !== null 
+    ? Math.max(0, monthlyProposalLimit - monthlyProposalCount)
+    : null;
 
   // Pegar as 3 propostas mais recentes
   const recentProposals = proposals?.slice(0, 3) || [];
@@ -143,6 +150,27 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
+        {/* Card de Propostas Restantes */}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Propostas Restantes</p>
+                <p className="text-3xl font-bold">
+                  {proposalsRemaining !== null ? proposalsRemaining : '∞'}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {bonusProposals > 0 && `+${bonusProposals} bônus • `}
+                  Este mês
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                <FileText className="h-6 w-6 text-orange-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -168,21 +196,6 @@ const Dashboard = () => {
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
                 <TrendingUp className="h-6 w-6 text-purple-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Visualizações</p>
-                <p className="text-3xl font-bold">{totalViews}</p>
-                <p className="text-xs text-gray-500 mt-1">Total de views</p>
-              </div>
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Eye className="h-6 w-6 text-orange-600" />
               </div>
             </div>
           </CardContent>
