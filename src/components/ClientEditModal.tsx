@@ -4,12 +4,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Building, Save, User, MapPin, Globe, Phone, Mail } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { Building, Save, User, MapPin, Phone, Mail } from 'lucide-react';
+import { useCreateClient, useUpdateClient } from '@/hooks/useClients';
 
-interface Company {
+interface Client {
   id: string;
   name: string;
   email: string | null;
@@ -20,7 +18,7 @@ interface Company {
 }
 
 interface ClientEditModalProps {
-  company: Company | null;
+  company: Client | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCompanyUpdated: () => void;
@@ -32,9 +30,8 @@ const ClientEditModal: React.FC<ClientEditModalProps> = ({
   onOpenChange,
   onCompanyUpdated,
 }) => {
-  const { toast } = useToast();
-  const { user } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
+  const createClientMutation = useCreateClient();
+  const updateClientMutation = useUpdateClient();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -64,85 +61,65 @@ const ClientEditModal: React.FC<ClientEditModalProps> = ({
         website: '',
         notes: '',
       });
+    } else {
+      // Reset form for new client
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        contact_person: '',
+        cnpj: '',
+        address: '',
+        city: '',
+        state: '',
+        zip_code: '',
+        website: '',
+        notes: '',
+      });
     }
-  }, [company]);
+  }, [company, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!company || !user) return;
+    
+    console.log('Form submitted', { company, formData });
 
-    // Verificar se a empresa pertence ao usuário atual
-    if (company.user_id !== user.id) {
-      toast({
-        title: "Erro de Segurança",
-        description: "Você não tem permissão para modificar esta empresa.",
-        variant: "destructive",
-      });
+    if (!formData.name.trim()) {
+      console.error('Nome é obrigatório');
       return;
     }
 
-    setIsLoading(true);
     try {
-      // Verificar se o telefone já existe para outro usuário (se telefone foi fornecido e alterado)
-      if (formData.phone && formData.phone.trim() !== '' && formData.phone !== company.phone) {
-        const { data: existingCompany, error: checkError } = await supabase
-          .from('companies')
-          .select('id, user_id')
-          .eq('phone', formData.phone)
-          .neq('id', company.id)
-          .single();
-
-        if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found
-          console.error('Error checking phone uniqueness:', checkError);
-          throw new Error('Erro ao verificar telefone');
-        }
-
-        if (existingCompany) {
-          toast({
-            title: "Telefone já cadastrado",
-            description: "Este telefone já está sendo usado por outro usuário.",
-            variant: "destructive",
-          });
-          return;
-        }
-      }
-
-      const { error } = await supabase
-        .from('companies')
-        .update({
+      if (company) {
+        // Atualizar cliente existente
+        console.log('Updating client:', company.id);
+        await updateClientMutation.mutateAsync({
+          id: company.id,
+          updates: {
+            name: formData.name,
+            email: formData.email || null,
+            phone: formData.phone || null,
+          }
+        });
+      } else {
+        // Criar novo cliente
+        console.log('Creating new client');
+        await createClientMutation.mutateAsync({
           name: formData.name,
           email: formData.email || null,
           phone: formData.phone || null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', company.id)
-        .eq('user_id', user.id); // Garantir que só atualiza empresa do próprio usuário
-
-      if (error) {
-        if (error.message.includes('unique_phone_per_user')) {
-          throw new Error('Este telefone já está cadastrado');
-        }
-        throw error;
+        });
       }
 
-      toast({
-        title: "Sucesso",
-        description: "Cliente atualizado com sucesso!",
-      });
-
+      console.log('Client operation successful');
       onCompanyUpdated();
       onOpenChange(false);
-    } catch (error: any) {
-      console.error('Erro ao atualizar cliente:', error);
-      toast({
-        title: "Erro",
-        description: error.message || "Erro ao atualizar cliente. Tente novamente.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+    } catch (error) {
+      console.error('Error saving client:', error);
     }
   };
+
+  const isLoading = createClientMutation.isPending || updateClientMutation.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -150,7 +127,7 @@ const ClientEditModal: React.FC<ClientEditModalProps> = ({
         <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Building className="h-5 w-5" />
-            Editar Cliente: {company?.name}
+            {company ? `Editar Cliente: ${company.name}` : 'Novo Cliente'}
           </DialogTitle>
         </DialogHeader>
 
@@ -323,7 +300,7 @@ const ClientEditModal: React.FC<ClientEditModalProps> = ({
             ) : (
               <>
                 <Save className="h-4 w-4 mr-2" />
-                Salvar Alterações
+                {company ? 'Salvar Alterações' : 'Criar Cliente'}
               </>
             )}
           </Button>

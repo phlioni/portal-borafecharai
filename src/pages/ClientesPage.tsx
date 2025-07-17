@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useClients, useCreateClient, useUpdateClient, useDeleteClient } from '@/hooks/useClients';
+import { useClients, useDeleteClient } from '@/hooks/useClients';
 import {
   Table,
   TableBody,
@@ -28,9 +28,7 @@ interface Client {
 }
 
 const ClientesPage = () => {
-  const { data: clients = [], isLoading } = useClients();
-  const createClientMutation = useCreateClient();
-  const updateClientMutation = useUpdateClient();
+  const { data: clients = [], isLoading, refetch } = useClients();
   const deleteClientMutation = useDeleteClient();
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -39,28 +37,30 @@ const ClientesPage = () => {
   const isMobile = useIsMobile();
 
   const handleEditClient = (client: Client) => {
+    console.log('Editing client:', client);
     setSelectedClient(client);
     setIsModalOpen(true);
   };
 
+  const handleCreateClient = () => {
+    console.log('Creating new client');
+    setSelectedClient(null);
+    setIsModalOpen(true);
+  };
+
   const handleCloseModal = () => {
+    console.log('Closing modal');
     setIsModalOpen(false);
     setSelectedClient(null);
   };
 
-  const handleSaveClient = async (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
-    if (selectedClient) {
-      await updateClientMutation.mutateAsync({
-        id: selectedClient.id,
-        updates: clientData
-      });
-    } else {
-      await createClientMutation.mutateAsync(clientData);
-    }
-    handleCloseModal();
+  const handleClientUpdated = () => {
+    console.log('Client updated, refetching data');
+    refetch();
   };
 
   const handleDeleteClient = async (clientId: string) => {
+    console.log('Deleting client:', clientId);
     await deleteClientMutation.mutateAsync(clientId);
   };
 
@@ -91,7 +91,7 @@ const ClientesPage = () => {
           <p className="text-muted-foreground">Gerencie seus clientes</p>
         </div>
         <Button
-          onClick={() => setIsModalOpen(true)}
+          onClick={handleCreateClient}
           className={`${isMobile ? 'px-3' : ''}`}
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -201,7 +201,7 @@ const ClientesPage = () => {
         company={selectedClient}
         open={isModalOpen}
         onOpenChange={handleCloseModal}
-        onCompanyUpdated={() => {}} // Não precisa mais fazer refetch manual
+        onCompanyUpdated={handleClientUpdated}
       />
     </div>
   );
