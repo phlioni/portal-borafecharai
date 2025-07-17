@@ -52,8 +52,8 @@ export const useBusinessTypes = (segmentId?: string) => {
 
       console.log('Fetching business types for segment:', segmentId);
 
-      // Use rpc to call the function
-      const { data, error } = await supabase
+      // Use rpc function with any type to avoid TypeScript issues until types are regenerated
+      const { data, error } = await (supabase as any)
         .rpc('get_business_types_by_segment', { segment_id: segmentId });
 
       if (error) {

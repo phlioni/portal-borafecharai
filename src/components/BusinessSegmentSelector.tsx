@@ -89,7 +89,7 @@ export const BusinessSegmentSelector: React.FC<BusinessSegmentSelectorProps> = (
               <SelectValue placeholder="Selecione um segmento" />
             </SelectTrigger>
             <SelectContent>
-              {segments && segments.map((segment) => (
+              {segments && Array.isArray(segments) && segments.map((segment) => (
                 <SelectItem key={segment.id} value={segment.id}>
                   {segment.segment_name}
                 </SelectItem>
@@ -118,7 +118,7 @@ export const BusinessSegmentSelector: React.FC<BusinessSegmentSelectorProps> = (
                   <SelectValue placeholder="Selecione um tipo de serviço" />
                 </SelectTrigger>
                 <SelectContent>
-                  {types && types.map((type) => (
+                  {types && Array.isArray(types) && types.map((type) => (
                     <SelectItem key={type.id} value={type.id}>
                       {type.type_name}
                     </SelectItem>
