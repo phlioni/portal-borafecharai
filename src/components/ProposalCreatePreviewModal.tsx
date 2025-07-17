@@ -50,7 +50,7 @@ const ProposalCreatePreviewModal = ({
               <strong>Título:</strong> {proposal?.title || 'Sem título'}
             </p>
             <p className="text-sm text-gray-600 mb-2">
-              <strong>Cliente:</strong> {proposal?.companies?.name || 'Não informado'}
+              <strong>Cliente:</strong> {proposal?.clients?.name || 'Não informado'}
             </p>
             <p className="text-sm text-gray-600">
               <strong>Valor:</strong> {proposal?.value 

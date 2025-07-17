@@ -9,7 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Save, Eye } from 'lucide-react';
 import { useCreateProposal } from '@/hooks/useProposals';
-import { useCompanies } from '@/hooks/useCompanies';
+import { useClients } from '@/hooks/useClients';
+import { useUserCompany } from '@/hooks/useUserCompany';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import ProposalCreatePreviewModal from '@/components/ProposalCreatePreviewModal';
@@ -21,12 +22,13 @@ const NovaPropostaPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const createProposal = useCreateProposal();
-  const { data: companies } = useCompanies();
+  const { data: clients } = useClients();
+  const { data: userCompany } = useUserCompany();
   const { sendProposal, isSending } = useProposalSending();
 
   const [formData, setFormData] = useState({
     title: '',
-    company_id: '',
+    client_id: '',
     service_description: '',
     detailed_description: '',
     delivery_time: '',
@@ -52,13 +54,16 @@ const NovaPropostaPage = () => {
   };
 
   const prepareProposalForPreview = () => {
-    // Buscar logo da empresa se selecionada
+    // Buscar logo da empresa do usuário
     let logoUrl = '';
-    let selectedCompany = null;
+    let selectedClient = null;
     
-    if (formData.company_id && formData.company_id !== 'none' && companies) {
-      selectedCompany = companies.find(c => c.id === formData.company_id);
-      logoUrl = selectedCompany?.logo_url || '';
+    if (formData.client_id && formData.client_id !== 'none' && clients) {
+      selectedClient = clients.find(c => c.id === formData.client_id);
+    }
+
+    if (userCompany) {
+      logoUrl = userCompany.logo_url || '';
     }
 
     // Calcular valor total baseado nos itens do orçamento
@@ -70,7 +75,7 @@ const NovaPropostaPage = () => {
       id: 'temp-id',
       ...formData,
       value: totalValue,
-      companies: selectedCompany,
+      clients: selectedClient,
       created_at: new Date().toISOString(),
       user_id: user?.id,
       proposal_budget_items: budgetItems.map(item => ({
@@ -112,7 +117,7 @@ const NovaPropostaPage = () => {
 
       const proposalData = {
         title: formData.title,
-        company_id: formData.company_id && formData.company_id !== 'none' ? formData.company_id : null,
+        client_id: formData.client_id && formData.client_id !== 'none' ? formData.client_id : null,
         service_description: formData.service_description || null,
         detailed_description: formData.detailed_description || null,
         value: totalValue > 0 ? totalValue : null,
@@ -154,7 +159,7 @@ const NovaPropostaPage = () => {
 
       const proposalData = {
         title: formData.title,
-        company_id: formData.company_id && formData.company_id !== 'none' ? formData.company_id : null,
+        client_id: formData.client_id && formData.client_id !== 'none' ? formData.client_id : null,
         service_description: formData.service_description || null,
         detailed_description: formData.detailed_description || null,
         value: totalValue > 0 ? totalValue : null,
@@ -223,19 +228,19 @@ const NovaPropostaPage = () => {
               />
             </div>
             <div>
-              <Label htmlFor="company">Cliente</Label>
+              <Label htmlFor="client">Cliente</Label>
               <Select 
-                value={formData.company_id} 
-                onValueChange={(value) => handleInputChange('company_id', value)}
+                value={formData.client_id} 
+                onValueChange={(value) => handleInputChange('client_id', value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione um cliente" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Nenhum cliente selecionado</SelectItem>
-                  {companies?.map((company) => (
-                    <SelectItem key={company.id} value={company.id}>
-                      {company.name}
+                  {clients?.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -328,8 +333,8 @@ const NovaPropostaPage = () => {
           onClose={() => setShowSendModal(false)}
           onSend={handleSendProposal}
           proposalTitle={previewProposal.title}
-          clientName={previewProposal.companies?.name}
-          clientEmail={previewProposal.companies?.email}
+          clientName={previewProposal.clients?.name}
+          clientEmail={previewProposal.clients?.email}
           isLoading={isSending || createProposal.isPending}
         />
       )}

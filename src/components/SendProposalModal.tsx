@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Mail, Send, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEmailTemplates } from '@/hooks/useEmailTemplates';
-import { useCompanies } from '@/hooks/useCompanies';
+import { useUserCompany } from '@/hooks/useUserCompany';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfiles } from '@/hooks/useProfiles';
 
@@ -32,7 +32,7 @@ const SendProposalModal = ({
   isLoading = false
 }: SendProposalModalProps) => {
   const { user } = useAuth();
-  const { data: companies, isLoading: companiesLoading } = useCompanies();
+  const { data: userCompany, isLoading: userCompanyLoading } = useUserCompany();
   const { getTemplate, processTemplate, templates, isLoading: templatesLoading } = useEmailTemplates();
   const { profile } = useProfiles();
 
@@ -45,27 +45,24 @@ const SendProposalModal = ({
 
   // Carregar e processar template quando modal abrir ou dados mudarem
   useEffect(() => {
-    if (isOpen && !templatesLoading && !companiesLoading) {
+    if (isOpen && !templatesLoading && !userCompanyLoading) {
       console.log('Modal aberto, processando template...');
       console.log('Templates disponíveis:', templates);
-      console.log('Empresas disponíveis:', companies);
+      console.log('Empresa do usuário:', userCompany);
 
       const template = getTemplate();
       console.log('Template obtido:', template);
 
-      const company = companies?.[0];
-      console.log('Empresa selecionada:', company);
-
-      // Preparar variáveis para substituição no template usando dados da empresa
+      // Preparar variáveis para substituição no template usando dados da empresa do usuário
       const variables = {
         CLIENTE_NOME: clientName || 'Cliente',
         NOME_CLIENTE: clientName || 'Cliente',
         PROJETO_NOME: proposalTitle || 'Projeto',
         NOME_PROJETO: proposalTitle || 'Projeto',
         SEU_NOME: user?.user_metadata?.name || profile?.name || 'Equipe',
-        EMPRESA_NOME: company?.name || 'Sua Empresa',
-        EMPRESA_TELEFONE: company?.phone ? `📱 ${company.phone}` : '',
-        EMPRESA_EMAIL: company?.email ? `📧 ${company.email}` : '',
+        EMPRESA_NOME: userCompany?.name || 'Sua Empresa',
+        EMPRESA_TELEFONE: userCompany?.phone ? `📱 ${userCompany.phone}` : '',
+        EMPRESA_EMAIL: userCompany?.email ? `📧 ${userCompany.email}` : '',
         BOTAO_PROPOSTA: '[LINK_DA_PROPOSTA]'
       };
 
@@ -97,7 +94,7 @@ const SendProposalModal = ({
       console.log('Atualizando FormData com:', newFormData);
       setFormData(newFormData);
     }
-  }, [isOpen, proposalTitle, clientName, clientEmail, user, companies, templates, templatesLoading, companiesLoading, getTemplate, processTemplate]);
+  }, [isOpen, proposalTitle, clientName, clientEmail, user, userCompany, templates, templatesLoading, userCompanyLoading, getTemplate, processTemplate]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
