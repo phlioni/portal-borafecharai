@@ -48,6 +48,17 @@ const ProfileTab = () => {
     try {
       console.log('Salvando perfil com dados:', formData);
       
+      // Validar dados obrigatórios
+      if (!formData.name || formData.name.trim() === '') {
+        toast.error('Nome é obrigatório');
+        return;
+      }
+
+      if (!formData.phone || formData.phone.trim() === '') {
+        toast.error('Telefone é obrigatório');
+        return;
+      }
+      
       // Validar formato do telefone se fornecido
       if (formData.phone && !formData.phone.match(/^\+\d{1,3}\d{10,11}$/)) {
         toast.error('Formato do telefone inválido. Use o formato: +DDIDDDxxxxxxxx');
@@ -62,6 +73,11 @@ const ProfileTab = () => {
 
       if (result?.error === 'Phone already in use') {
         return; // Toast já foi mostrado no hook
+      }
+
+      // Se chegou até aqui, deu certo
+      if (!result?.error) {
+        toast.success('Perfil salvo com sucesso!');
       }
     } catch (error) {
       console.error('Erro ao salvar perfil:', error);
@@ -114,22 +130,24 @@ const ProfileTab = () => {
           </div>
 
           <div>
-            <Label htmlFor="name">Nome</Label>
+            <Label htmlFor="name">Nome *</Label>
             <Input
               id="name"
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
               placeholder="Digite seu nome completo"
+              required
             />
           </div>
 
           <div>
-            <Label htmlFor="phone">Telefone</Label>
+            <Label htmlFor="phone">Telefone *</Label>
             <Input
               id="phone"
               value={formData.phone}
               onChange={(e) => handleInputChange('phone', e.target.value)}
               placeholder="+5511999999999"
+              required
             />
             <p className="text-xs text-muted-foreground mt-1">
               Formato: +[código do país][DDD][número] (ex: +5511999999999)

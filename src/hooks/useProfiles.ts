@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -61,23 +60,7 @@ export const useProfiles = () => {
     try {
       console.log('Verificando elegibilidade para bônus de perfil completo');
       
-      // Primeiro verificar se o perfil está realmente completo
-      const { data: isComplete, error: completeError } = await supabase
-        .rpc('is_profile_complete', { _user_id: user.id });
-
-      console.log('Perfil completo?', isComplete, 'Erro:', completeError);
-
-      if (completeError) {
-        console.error('Erro ao verificar se perfil está completo:', completeError);
-        return;
-      }
-
-      if (!isComplete) {
-        console.log('Perfil não está completo ainda');
-        return;
-      }
-
-      // Verificar se já ganhou o bônus
+      // Primeiro verificar se já reivindicou o bônus
       const { data: subscriber, error: subscriberError } = await supabase
         .from('subscribers')
         .select('profile_completion_bonus_claimed')
@@ -93,6 +76,22 @@ export const useProfiles = () => {
 
       if (subscriber?.profile_completion_bonus_claimed) {
         console.log('Bônus já foi reivindicado anteriormente');
+        return;
+      }
+
+      // Verificar se o perfil está realmente completo
+      const { data: isComplete, error: completeError } = await supabase
+        .rpc('is_profile_complete', { _user_id: user.id });
+
+      console.log('Perfil completo?', isComplete, 'Erro:', completeError);
+
+      if (completeError) {
+        console.error('Erro ao verificar se perfil está completo:', completeError);
+        return;
+      }
+
+      if (!isComplete) {
+        console.log('Perfil não está completo ainda');
         return;
       }
 
@@ -200,13 +199,12 @@ export const useProfiles = () => {
 
       console.log('Perfil atualizado com sucesso:', data);
       setProfile(data);
-      toast.success('Perfil atualizado com sucesso!');
       
       // Verificar e conceder bônus após atualização do perfil
       console.log('Verificando bônus após atualização do perfil');
       setTimeout(() => {
         checkAndGrantBonus();
-      }, 2000); // Aumentar o delay para 2 segundos
+      }, 1000); // Aguardar 1 segundo para garantir que os dados foram salvos
       
       return { data };
     } catch (error) {

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,14 @@ import { useProfileCompletion } from '@/hooks/useProfileCompletion';
 
 const ProfileCompletionAlert = () => {
   const { data: status, isLoading, claimBonus, isClaiming } = useProfileCompletion();
+
+  // Reivindicar automaticamente quando o bônus estiver disponível
+  useEffect(() => {
+    if (status?.canClaimBonus && !isClaiming) {
+      console.log('Bônus disponível - reivindicando automaticamente');
+      claimBonus();
+    }
+  }, [status?.canClaimBonus, claimBonus, isClaiming]);
 
   // Não mostrar nada se estiver carregando
   if (isLoading) {
@@ -20,7 +28,7 @@ const ProfileCompletionAlert = () => {
     return null;
   }
 
-  // Se perfil está completo e pode reivindicar bônus
+  // Se perfil está completo e pode reivindicar bônus (mas não deve aparecer aqui pois é reivindicado automaticamente)
   if (status.canClaimBonus) {
     return (
       <Card className="border-green-200 bg-green-50">

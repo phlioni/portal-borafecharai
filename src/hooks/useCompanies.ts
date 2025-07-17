@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -73,23 +74,7 @@ export const useUpdateCompany = () => {
     try {
       console.log('Verificando elegibilidade para bônus de perfil completo após atualizar empresa');
       
-      // Primeiro verificar se o perfil está realmente completo
-      const { data: isComplete, error: completeError } = await supabase
-        .rpc('is_profile_complete', { _user_id: user.id });
-
-      console.log('Perfil completo após atualizar empresa?', isComplete, 'Erro:', completeError);
-
-      if (completeError) {
-        console.error('Erro ao verificar se perfil está completo:', completeError);
-        return;
-      }
-
-      if (!isComplete) {
-        console.log('Perfil ainda não está completo');
-        return;
-      }
-
-      // Verificar se já ganhou o bônus
+      // Primeiro verificar se já reivindicou o bônus
       const { data: subscriber, error: subscriberError } = await supabase
         .from('subscribers')
         .select('profile_completion_bonus_claimed')
@@ -105,6 +90,22 @@ export const useUpdateCompany = () => {
 
       if (subscriber?.profile_completion_bonus_claimed) {
         console.log('Bônus já foi reivindicado anteriormente');
+        return;
+      }
+
+      // Verificar se o perfil está realmente completo
+      const { data: isComplete, error: completeError } = await supabase
+        .rpc('is_profile_complete', { _user_id: user.id });
+
+      console.log('Perfil completo após atualizar empresa?', isComplete, 'Erro:', completeError);
+
+      if (completeError) {
+        console.error('Erro ao verificar se perfil está completo:', completeError);
+        return;
+      }
+
+      if (!isComplete) {
+        console.log('Perfil ainda não está completo');
         return;
       }
 
@@ -215,7 +216,7 @@ export const useUpdateCompany = () => {
       console.log('Verificando bônus após atualização da empresa');
       setTimeout(() => {
         checkAndGrantBonus();
-      }, 2000); // Aumentar o delay para 2 segundos
+      }, 1000); // Aguardar 1 segundo para garantir que os dados foram salvos
     },
     onError: (error: any) => {
       console.error('Error updating company:', error);
