@@ -97,7 +97,7 @@ const WhatsAppBotSettings = () => {
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <h4 className="font-semibold text-blue-800 mb-2">Para testar no Sandbox:</h4>
             <ol className="text-sm text-blue-700 space-y-1">
-              <li>1. Envie "join {{seu-codigo-sandbox}}" para +1 415 523-8886 no WhatsApp</li>
+              <li>1. Envie "join your-sandbox-code" para +1 415 523-8886 no WhatsApp</li>
               <li>2. Aguarde a confirmação do Twilio</li>
               <li>3. Use o formulário abaixo para testar</li>
             </ol>
