@@ -25,6 +25,7 @@ import TelegramBotPage from '@/pages/TelegramBotPage';
 import GerenciamentoUsuariosPage from '@/pages/GerenciamentoUsuariosPage';
 import TermosDeUso from '@/pages/TermosDeUso';
 import LandingPage from '@/pages/LandingPage';
+import TestBusinessSegments from '@/pages/TestBusinessSegments';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -50,6 +51,7 @@ function App() {
             <Route path="/termos-de-uso" element={<TermosDeUso />} />
             <Route path="/landingpage" element={<LandingPage />} />
             <Route path="/planos" element={<Planos />} />
+            <Route path="/test-segments" element={<TestBusinessSegments />} />
             
             {/* Rotas autenticadas */}
             <Route path="/dashboard" element={
