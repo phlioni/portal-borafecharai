@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export const useCompanies = () => {
   const { user } = useAuth();
@@ -61,33 +62,75 @@ export const useCompanies = () => {
 export const useUpdateCompany = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { toast } = useToast();
+  const { toast: shadcnToast } = useToast();
 
   const checkAndGrantBonus = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log('Usuário não encontrado para verificar bônus');
+      return;
+    }
 
     try {
       console.log('Verificando elegibilidade para bônus de perfil completo após atualizar empresa');
       
+      // Primeiro verificar se o perfil está realmente completo
+      const { data: isComplete, error: completeError } = await supabase
+        .rpc('is_profile_complete', { _user_id: user.id });
+
+      console.log('Perfil completo após atualizar empresa?', isComplete, 'Erro:', completeError);
+
+      if (completeError) {
+        console.error('Erro ao verificar se perfil está completo:', completeError);
+        return;
+      }
+
+      if (!isComplete) {
+        console.log('Perfil ainda não está completo');
+        return;
+      }
+
+      // Verificar se já ganhou o bônus
+      const { data: subscriber, error: subscriberError } = await supabase
+        .from('subscribers')
+        .select('profile_completion_bonus_claimed')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      console.log('Dados do subscriber após empresa:', subscriber, 'Erro:', subscriberError);
+
+      if (subscriberError) {
+        console.error('Erro ao verificar subscriber:', subscriberError);
+        return;
+      }
+
+      if (subscriber?.profile_completion_bonus_claimed) {
+        console.log('Bônus já foi reivindicado anteriormente');
+        return;
+      }
+
+      // Tentar conceder o bônus
       const { data: success, error } = await supabase
         .rpc('grant_profile_completion_bonus', { _user_id: user.id });
 
+      console.log('Resultado do grant_profile_completion_bonus após empresa:', success, 'Erro:', error);
+
       if (error) {
-        console.error('Erro ao verificar bônus:', error);
+        console.error('Erro ao conceder bônus:', error);
         return;
       }
 
       if (success) {
-        console.log('Bônus de perfil completo concedido!');
-        toast({
-          title: "Parabéns! 🎉",
-          description: "Você ganhou 5 propostas extras por completar seu perfil!",
-        });
+        console.log('Bônus de perfil completo concedido após atualizar empresa!');
         
         // Invalidar queries relacionadas
         queryClient.invalidateQueries({ queryKey: ['profile-completion'] });
         queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
         queryClient.invalidateQueries({ queryKey: ['user-permissions'] });
+        
+        // Mostrar toast de sucesso
+        toast.success('🎉 Parabéns! Você ganhou 5 propostas extras por completar seu perfil!');
+      } else {
+        console.log('Função retornou false - condições não atendidas para o bônus');
       }
     } catch (error) {
       console.error('Erro ao verificar bônus:', error);
@@ -162,20 +205,21 @@ export const useUpdateCompany = () => {
       return data;
     },
     onSuccess: () => {
-      toast({
+      shadcnToast({
         title: "Sucesso!",
         description: "Informações da empresa atualizadas com sucesso!",
       });
       queryClient.invalidateQueries({ queryKey: ['companies'] });
       
       // Verificar e conceder bônus após atualização da empresa
+      console.log('Verificando bônus após atualização da empresa');
       setTimeout(() => {
         checkAndGrantBonus();
-      }, 1000);
+      }, 2000); // Aumentar o delay para 2 segundos
     },
     onError: (error: any) => {
       console.error('Error updating company:', error);
-      toast({
+      shadcnToast({
         title: "Erro",
         description: error.message || 'Erro ao atualizar informações da empresa',
         variant: "destructive",

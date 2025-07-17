@@ -50,11 +50,19 @@ export const useProfileCompletion = () => {
       const bonusAlreadyClaimed = subscriber?.profile_completion_bonus_claimed || false;
       const canClaimBonus = isComplete && !bonusAlreadyClaimed;
 
-      console.log('Status do perfil:', {
+      console.log('Status do perfil atualizado:', {
         isComplete,
         bonusAlreadyClaimed,
         canClaimBonus
       });
+
+      // Se pode reivindicar o bônus, reivindicar automaticamente
+      if (canClaimBonus) {
+        console.log('Bônus pode ser reivindicado automaticamente!');
+        setTimeout(() => {
+          handleAutoClaimBonus();
+        }, 1000);
+      }
 
       return {
         isProfileComplete: isComplete || false,
@@ -63,7 +71,37 @@ export const useProfileCompletion = () => {
       };
     },
     enabled: !!user?.id,
+    refetchInterval: 5000, // Verificar a cada 5 segundos
   });
+
+  const handleAutoClaimBonus = async () => {
+    if (!user?.id) return;
+
+    try {
+      console.log('Tentando reivindicar bônus automaticamente para usuário:', user.id);
+
+      const { data: success, error } = await supabase
+        .rpc('grant_profile_completion_bonus', { _user_id: user.id });
+
+      if (error) {
+        console.error('Erro ao reivindicar bônus automaticamente:', error);
+        return;
+      }
+
+      if (success) {
+        console.log('Bônus reivindicado com sucesso automaticamente!');
+        // Mostrar celebração
+        setShowCelebration(true);
+        
+        // Invalidar queries relacionadas
+        queryClient.invalidateQueries({ queryKey: ['profile-completion'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
+        queryClient.invalidateQueries({ queryKey: ['user-permissions'] });
+      }
+    } catch (error) {
+      console.error('Erro ao reivindicar bônus automaticamente:', error);
+    }
+  };
 
   const claimBonus = useMutation({
     mutationFn: async () => {
@@ -71,7 +109,7 @@ export const useProfileCompletion = () => {
         throw new Error('Usuário não autenticado');
       }
 
-      console.log('Tentando reivindicar bônus para usuário:', user.id);
+      console.log('Tentando reivindicar bônus manualmente para usuário:', user.id);
 
       const { data: success, error } = await supabase
         .rpc('grant_profile_completion_bonus', { _user_id: user.id });
