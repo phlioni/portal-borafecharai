@@ -64,6 +64,7 @@ function App() {
                 {/* Rotas protegidas */}
                 <Route element={<ProtectedRoute><Layout><Outlet /></Layout></ProtectedRoute>}>
                   <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/propostas/nova" element={<NovaPropostaPage />} />
                   <Route path="/nova-proposta" element={<NovaPropostaPage />} />
                   <Route path="/propostas" element={<Propostas />} />
                   <Route path="/propostas/:id/editar" element={<EditarPropostaPage />} />
