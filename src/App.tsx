@@ -1,91 +1,75 @@
-
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
-import { ThemeProvider } from "next-themes";
-import { AuthProvider } from "@/contexts/AuthContext";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import Layout from "@/components/Layout";
-
-// Pages
-import Index from "./pages/Index";
-import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import NovaPropostaPage from "./pages/NovaPropostaPage";
-import Propostas from "./pages/Propostas";
-import EditarPropostaPage from "./pages/EditarPropostaPage";
-import VisualizarPropostaPage from "./pages/VisualizarPropostaPage";
-import PropostaPublicaPage from "./pages/PropostaPublicaPage";
-import ClientesPage from "./pages/ClientesPage";
-import ConfiguracoesPage from "./pages/ConfiguracoesPage";
-import TemplatesPersonalizadosPage from "./pages/TemplatesPersonalizadosPage";
-import AnalyticsPage from "./pages/AnalyticsPage";
-import Planos from "./pages/Planos";
-import TelegramBotPage from "./pages/TelegramBotPage";
-import ChatPropostaPage from "./pages/ChatPropostaPage";
-import GerenciamentoUsuariosPage from "./pages/GerenciamentoUsuariosPage";
-import TermosDeUso from "./pages/TermosDeUso";
-import LandingPage from "./pages/LandingPage";
-import TestBusinessSegments from "./pages/TestBusinessSegments";
-import NotFound from "./pages/NotFound";
+import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { Layout } from '@/components/Layout';
+import { Dashboard } from '@/pages/Dashboard';
+import { Propostas } from '@/pages/Propostas';
+import { NovaPropostaPage } from '@/pages/NovaPropostaPage';
+import { EditarPropostaPage } from '@/pages/EditarPropostaPage';
+import { VisualizarPropostaPage } from '@/pages/VisualizarPropostaPage';
+import { ClientesPage } from '@/pages/ClientesPage';
+import { ConfiguracoesPage } from '@/pages/ConfiguracoesPage';
+import { AnalyticsPage } from '@/pages/AnalyticsPage';
+import { LandingPage } from '@/pages/LandingPage';
+import { Login } from '@/pages/Login';
+import { NotFound } from '@/pages/NotFound';
+import { Toaster } from '@/components/ui/toaster';
+import { BonusCelebration } from '@/components/BonusCelebration';
+import { TermosDeUso } from '@/pages/TermosDeUso';
+import { PropostaPublicaPage } from '@/pages/PropostaPublicaPage';
+import { Planos } from '@/pages/Planos';
+import { ChatPropostaPage } from '@/pages/ChatPropostaPage';
+import { TemplatesPersonalizadosPage } from '@/pages/TemplatesPersonalizadosPage';
+import { TelegramBotPage } from '@/pages/TelegramBotPage';
+import { TestBusinessSegments } from '@/pages/TestBusinessSegments';
+import { GerenciamentoUsuariosPage } from '@/pages/GerenciamentoUsuariosPage';
+import { WhatsAppBotPage } from '@/pages/WhatsAppBotPage';
 
 const queryClient = new QueryClient();
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="light"
-        enableSystem={false}
-        disableTransitionOnChange
-      >
-        <TooltipProvider>
-          <Toaster />
-          <BrowserRouter>
-            <AuthProvider>
-              <Routes>
-                {/* Rota da landing page */}
-                <Route path="/" element={<LandingPage />} />
+      <BrowserRouter>
+        <AuthProvider>
+          <div className="min-h-screen bg-background">
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/termos" element={<TermosDeUso />} />
+              <Route path="/proposta/:hash" element={<PropostaPublicaPage />} />
+              <Route path="/planos" element={<Planos />} />
+              
+              <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/propostas" element={<Propostas />} />
+                <Route path="/nova-proposta" element={<NovaPropostaPage />} />
+                <Route path="/propostas/nova" element={<NovaPropostaPage />} />
+                <Route path="/propostas/editar/:id" element={<EditarPropostaPage />} />
+                <Route path="/propostas/visualizar/:id" element={<VisualizarPropostaPage />} />
+                <Route path="/clientes" element={<ClientesPage />} />
+                <Route path="/configuracoes" element={<ConfiguracoesPage />} />
+                <Route path="/analytics" element={<AnalyticsPage />} />
+                <Route path="/chat-proposta" element={<ChatPropostaPage />} />
+                <Route path="/templates-personalizados" element={<TemplatesPersonalizadosPage />} />
+                <Route path="/telegram-bot" element={<TelegramBotPage />} />
+                <Route path="/whatsapp-bot" element={<WhatsAppBotPage />} />
+                <Route path="/test-business" element={<TestBusinessSegments />} />
                 
-                {/* Rota de login */}
-                <Route path="/login" element={<Login />} />
-
-                {/* Rota de termos de uso */}
-                <Route path="/termos" element={<TermosDeUso />} />
-
-                {/* Rota para proposta pública (não protegida) */}
-                <Route path="/proposta/:hash" element={<PropostaPublicaPage />} />
-
-                {/* Rota para teste dos segmentos de negócio */}
-                <Route path="/test-segments" element={<TestBusinessSegments />} />
-
-                {/* Rotas protegidas */}
-                <Route element={<ProtectedRoute><Layout><Outlet /></Layout></ProtectedRoute>}>
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/propostas/nova" element={<NovaPropostaPage />} />
-                  <Route path="/nova-proposta" element={<NovaPropostaPage />} />
-                  <Route path="/propostas" element={<Propostas />} />
-                  <Route path="/propostas/:id/editar" element={<EditarPropostaPage />} />
-                  <Route path="/propostas/:id" element={<VisualizarPropostaPage />} />
-                  <Route path="/clientes" element={<ClientesPage />} />
-                  <Route path="/configuracoes" element={<ConfiguracoesPage />} />
-                  <Route path="/templates" element={<TemplatesPersonalizadosPage />} />
-                  <Route path="/analytics" element={<AnalyticsPage />} />
-                  <Route path="/planos" element={<Planos />} />
-                  <Route path="/telegram" element={<TelegramBotPage />} />
-                  <Route path="/chat-proposta" element={<ChatPropostaPage />} />
-                  <Route path="/usuarios" element={<GerenciamentoUsuariosPage />} />
+                <Route element={<ProtectedRoute requiredRole="admin" />}>
+                  <Route path="/admin/usuarios" element={<GerenciamentoUsuariosPage />} />
                 </Route>
-
-                {/* Rota 404 */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </AuthProvider>
-          </BrowserRouter>
-        </TooltipProvider>
-      </ThemeProvider>
+              </Route>
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            <Toaster />
+            <BonusCelebration />
+          </div>
+        </AuthProvider>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 }
