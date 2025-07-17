@@ -62,7 +62,7 @@ export const useProfileCompletion = () => {
         throw profileError;
       }
 
-      const profileComplete = profile && 
+      const profileComplete = profile &&
         profile.name && profile.name.trim() !== '' &&
         profile.phone && profile.phone.trim() !== '';
 
@@ -70,7 +70,7 @@ export const useProfileCompletion = () => {
 
       // Verificar empresa (nome, email, telefone, endereço, cidade, segmento e tipo)
       const { data: company, error: companyError } = await supabase
-        .from('companies')
+        .from('user_companies')
         .select('name, email, phone, address, city, business_segment, business_type_detail')
         .eq('user_id', user.id)
         .maybeSingle();
@@ -156,7 +156,7 @@ export const useProfileCompletion = () => {
     onSuccess: () => {
       // Mostrar celebração
       setShowCelebration(true);
-      
+
       // Invalidar queries relacionadas
       queryClient.invalidateQueries({ queryKey: ['profile-completion'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
