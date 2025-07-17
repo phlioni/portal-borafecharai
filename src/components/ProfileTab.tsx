@@ -7,11 +7,14 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfiles } from '@/hooks/useProfiles';
 import ProfileAvatarUpload from '@/components/ProfileAvatarUpload';
+import BonusCelebration from '@/components/BonusCelebration';
+import { useProfileCompletion } from '@/hooks/useProfileCompletion';
 import { toast } from 'sonner';
 
 const ProfileTab = () => {
   const { user } = useAuth();
   const { profile, loading, updateProfile, uploadAvatar } = useProfiles();
+  const { data: status, isLoading, claimBonus, isClaiming, showCelebration, handleCelebrationComplete } = useProfileCompletion();
   
   const [formData, setFormData] = useState({
     name: '',
@@ -31,6 +34,14 @@ const ProfileTab = () => {
       });
     }
   }, [profile]);
+
+  // Reivindicar automaticamente quando o bônus estiver disponível
+  useEffect(() => {
+    if (status?.canClaimBonus && !isClaiming) {
+      console.log('Bônus disponível - reivindicando automaticamente');
+      claimBonus();
+    }
+  }, [status?.canClaimBonus, claimBonus, isClaiming]);
 
   const handleInputChange = (field: string, value: string) => {
     console.log('Alterando campo:', field, 'para:', value);
@@ -100,70 +111,78 @@ const ProfileTab = () => {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Informações do Perfil</CardTitle>
-        <CardDescription>Gerencie suas informações pessoais</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <ProfileAvatarUpload
-          currentAvatarUrl={formData.avatar_url}
-          userName={formData.name}
-          userEmail={user?.email}
-          onAvatarUpdate={handleAvatarUpdate}
-          onUpload={uploadAvatar}
-        />
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Informações do Perfil</CardTitle>
+          <CardDescription>Gerencie suas informações pessoais</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <ProfileAvatarUpload
+            currentAvatarUrl={formData.avatar_url}
+            userName={formData.name}
+            userEmail={user?.email}
+            onAvatarUpdate={handleAvatarUpdate}
+            onUpload={uploadAvatar}
+          />
 
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="email">E-mail</Label>
-            <Input
-              id="email"
-              type="email"
-              value={user?.email || ''}
-              disabled
-              className="bg-muted"
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              O e-mail não pode ser alterado
-            </p>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="email">E-mail</Label>
+              <Input
+                id="email"
+                type="email"
+                value={user?.email || ''}
+                disabled
+                className="bg-muted"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                O e-mail não pode ser alterado
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="name">Nome *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => handleInputChange('name', e.target.value)}
+                placeholder="Digite seu nome completo"
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="phone">Telefone *</Label>
+              <Input
+                id="phone"
+                value={formData.phone}
+                onChange={(e) => handleInputChange('phone', e.target.value)}
+                placeholder="+5511999999999"
+                required
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Formato: +[código do país][DDD][número] (ex: +5511999999999)
+              </p>
+            </div>
+
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              className="w-full"
+            >
+              {saving ? 'Salvando...' : 'Salvar Alterações'}
+            </Button>
           </div>
+        </CardContent>
+      </Card>
 
-          <div>
-            <Label htmlFor="name">Nome *</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
-              placeholder="Digite seu nome completo"
-              required
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="phone">Telefone *</Label>
-            <Input
-              id="phone"
-              value={formData.phone}
-              onChange={(e) => handleInputChange('phone', e.target.value)}
-              placeholder="+5511999999999"
-              required
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Formato: +[código do país][DDD][número] (ex: +5511999999999)
-            </p>
-          </div>
-
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            className="w-full"
-          >
-            {saving ? 'Salvando...' : 'Salvar Alterações'}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+      {/* Modal de celebração de bônus */}
+      <BonusCelebration 
+        show={showCelebration} 
+        onComplete={handleCelebrationComplete} 
+      />
+    </>
   );
 };
 

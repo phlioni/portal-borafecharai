@@ -11,14 +11,11 @@ import { ptBR } from 'date-fns/locale';
 import { ModernLoader } from '@/components/ModernLoader';
 import { TrialCallToActionWrapper } from '@/components/TrialCallToActionWrapper';
 import ProfileCompletionAlert from '@/components/ProfileCompletionAlert';
-import BonusCelebration from '@/components/BonusCelebration';
-import { useProfileCompletion } from '@/hooks/useProfileCompletion';
 
 const Dashboard = () => {
   const { data, isLoading, error } = useDashboardData();
   const { data: proposals, isLoading: proposalsLoading } = useProposals();
   const { subscribed, subscription_tier } = useSubscription();
-  const { showCelebration, handleCelebrationComplete } = useProfileCompletion();
 
   if (isLoading || proposalsLoading) {
     return <ModernLoader message="Carregando dashboard..." fullScreen />;
@@ -105,9 +102,6 @@ const Dashboard = () => {
 
   return (
     <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
-      {/* Celebração de bônus */}
-      <BonusCelebration show={showCelebration} onComplete={handleCelebrationComplete} />
-
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Olá! 👋</h1>
@@ -121,10 +115,10 @@ const Dashboard = () => {
         </Button>
       </div>
 
-      {/* Profile Completion Alert - novo componente */}
+      {/* Profile Completion Alert */}
       <ProfileCompletionAlert />
 
-      {/* Trial Call to Action - agora com verificação otimizada */}
+      {/* Trial Call to Action */}
       <TrialCallToActionWrapper />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
