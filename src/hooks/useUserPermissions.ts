@@ -109,7 +109,7 @@ export const useUserPermissions = () => {
           setCanAccessPremiumTemplates(true);
         } else if (subscribed) {
           if (subscription_tier === 'basico') {
-            // Plano básico: 10 propostas + bônus
+            // Plano básico: 10 propostas + bônus (incluindo as 5 do perfil completo)
             proposalLimit = 10 + bonusFromDb;
             setCanAccessAnalytics(false);
             setCanAccessPremiumTemplates(false);
@@ -121,7 +121,7 @@ export const useUserPermissions = () => {
         } else {
           // Trial ou sem acesso
           if (subscriber?.trial_end_date && new Date(subscriber.trial_end_date) >= new Date()) {
-            // Trial: 20 propostas + bônus
+            // Trial: 20 propostas + bônus (incluindo as 5 do perfil completo)
             proposalLimit = 20 + bonusFromDb;
             console.log('useUserPermissions - User in trial, limit:', proposalLimit, 'proposals (including', bonusFromDb, 'bonus)');
           } else {

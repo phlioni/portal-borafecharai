@@ -128,6 +128,7 @@ export const useTrialStatus = () => {
       // USAR O VALOR REAL DO BANCO
       const proposalsUsed = subscriberData.trial_proposals_used || 0;
       const bonusProposals = subscriberData.bonus_proposals_current_month || 0;
+      // Trial agora considera as 5 propostas extras do bônus
       const totalLimit = 20 + bonusProposals;
       const proposalsRemaining = Math.max(0, totalLimit - proposalsUsed);
 
