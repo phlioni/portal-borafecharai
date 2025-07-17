@@ -73,6 +73,36 @@ export type Database = {
           },
         ]
       }
+      clients: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           address: string | null
@@ -316,7 +346,7 @@ export type Database = {
       }
       proposals: {
         Row: {
-          company_id: string | null
+          client_id: string | null
           created_at: string
           delivery_time: string | null
           detailed_description: string | null
@@ -335,7 +365,7 @@ export type Database = {
           views: number | null
         }
         Insert: {
-          company_id?: string | null
+          client_id?: string | null
           created_at?: string
           delivery_time?: string | null
           detailed_description?: string | null
@@ -354,7 +384,7 @@ export type Database = {
           views?: number | null
         }
         Update: {
-          company_id?: string | null
+          client_id?: string | null
           created_at?: string
           delivery_time?: string | null
           detailed_description?: string | null
@@ -374,10 +404,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "proposals_company_id_fkey"
-            columns: ["company_id"]
+            foreignKeyName: "proposals_client_id_fkey"
+            columns: ["client_id"]
             isOneToOne: false
-            referencedRelation: "companies"
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
@@ -538,6 +568,75 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
           user_profile?: Json | null
+        }
+        Relationships: []
+      }
+      user_companies: {
+        Row: {
+          address: string | null
+          business_segment: string | null
+          business_type: string | null
+          business_type_detail: string | null
+          city: string | null
+          cnpj: string | null
+          country_code: string | null
+          created_at: string
+          description: string | null
+          email: string | null
+          id: string
+          legal_name: string | null
+          logo_url: string | null
+          name: string
+          phone: string | null
+          state: string | null
+          updated_at: string
+          user_id: string
+          website: string | null
+          zip_code: string | null
+        }
+        Insert: {
+          address?: string | null
+          business_segment?: string | null
+          business_type?: string | null
+          business_type_detail?: string | null
+          city?: string | null
+          cnpj?: string | null
+          country_code?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          legal_name?: string | null
+          logo_url?: string | null
+          name: string
+          phone?: string | null
+          state?: string | null
+          updated_at?: string
+          user_id: string
+          website?: string | null
+          zip_code?: string | null
+        }
+        Update: {
+          address?: string | null
+          business_segment?: string | null
+          business_type?: string | null
+          business_type_detail?: string | null
+          city?: string | null
+          cnpj?: string | null
+          country_code?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          legal_name?: string | null
+          logo_url?: string | null
+          name?: string
+          phone?: string | null
+          state?: string | null
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+          zip_code?: string | null
         }
         Relationships: []
       }

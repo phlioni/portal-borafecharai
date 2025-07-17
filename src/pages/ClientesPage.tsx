@@ -1,12 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useClients, useCreateClient, useUpdateClient, useDeleteClient } from '@/hooks/useClients';
 import {
   Table,
   TableBody,
@@ -31,117 +28,15 @@ interface Client {
 }
 
 const ClientesPage = () => {
-  const { user } = useAuth();
-  const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: clients = [], isLoading } = useClients();
+  const createClientMutation = useCreateClient();
+  const updateClientMutation = useUpdateClient();
+  const deleteClientMutation = useDeleteClient();
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [deletingClientId, setDeletingClientId] = useState<string | null>(null);
   const isMobile = useIsMobile();
-
-  const fetchClients = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('companies')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching clients:', error);
-        toast.error('Erro ao carregar clientes');
-        return;
-      }
-
-      setClients(data || []);
-    } catch (error) {
-      console.error('Error fetching clients:', error);
-      toast.error('Erro ao carregar clientes');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createClient = async (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('companies')
-        .insert([{
-          ...clientData,
-          user_id: user.id
-        }])
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating client:', error);
-        toast.error('Erro ao criar cliente');
-        return;
-      }
-
-      await fetchClients();
-      toast.success('Cliente criado com sucesso!');
-    } catch (error) {
-      console.error('Error creating client:', error);
-      toast.error('Erro ao criar cliente');
-    }
-  };
-
-  const updateClient = async (id: string, clientData: Partial<Client>) => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from('companies')
-        .update(clientData)
-        .eq('id', id)
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error('Error updating client:', error);
-        toast.error('Erro ao atualizar cliente');
-        return;
-      }
-
-      await fetchClients();
-      toast.success('Cliente atualizado com sucesso!');
-    } catch (error) {
-      console.error('Error updating client:', error);
-      toast.error('Erro ao atualizar cliente');
-    }
-  };
-
-  const deleteClient = async (clientId: string) => {
-    if (!user) return;
-
-    setDeletingClientId(clientId);
-    try {
-      const { error } = await supabase
-        .from('companies')
-        .delete()
-        .eq('id', clientId)
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error('Error deleting client:', error);
-        toast.error('Erro ao deletar cliente');
-        return;
-      }
-
-      await fetchClients();
-      toast.success('Cliente deletado com sucesso!');
-    } catch (error) {
-      console.error('Error deleting client:', error);
-      toast.error('Erro ao deletar cliente');
-    } finally {
-      setDeletingClientId(null);
-    }
-  };
 
   const handleEditClient = (client: Client) => {
     setSelectedClient(client);
@@ -155,23 +50,26 @@ const ClientesPage = () => {
 
   const handleSaveClient = async (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
     if (selectedClient) {
-      await updateClient(selectedClient.id, clientData);
+      await updateClientMutation.mutateAsync({
+        id: selectedClient.id,
+        updates: clientData
+      });
     } else {
-      await createClient(clientData);
+      await createClientMutation.mutateAsync(clientData);
     }
     handleCloseModal();
   };
 
-  useEffect(() => {
-    fetchClients();
-  }, [user]);
+  const handleDeleteClient = async (clientId: string) => {
+    await deleteClientMutation.mutateAsync(clientId);
+  };
 
   const filteredClients = clients.filter(client =>
     client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (client.email && client.email.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="p-6 space-y-6">
         <div>
@@ -235,8 +133,8 @@ const ClientesPage = () => {
                     key={client.id}
                     client={client}
                     onEdit={handleEditClient}
-                    onDelete={deleteClient}
-                    isDeleting={deletingClientId === client.id}
+                    onDelete={handleDeleteClient}
+                    isDeleting={deleteClientMutation.isPending}
                   />
                 ))
               )}
@@ -282,11 +180,11 @@ const ClientesPage = () => {
                           <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => deleteClient(client.id)}
-                            disabled={deletingClientId === client.id}
+                            onClick={() => handleDeleteClient(client.id)}
+                            disabled={deleteClientMutation.isPending}
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
-                            {deletingClientId === client.id ? 'Deletando...' : 'Deletar'}
+                            {deleteClientMutation.isPending ? 'Deletando...' : 'Deletar'}
                           </Button>
                         </div>
                       </TableCell>
@@ -303,7 +201,7 @@ const ClientesPage = () => {
         company={selectedClient}
         open={isModalOpen}
         onOpenChange={handleCloseModal}
-        onCompanyUpdated={fetchClients}
+        onCompanyUpdated={() => {}} // Não precisa mais fazer refetch manual
       />
     </div>
   );

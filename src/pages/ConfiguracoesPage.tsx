@@ -10,7 +10,7 @@ import { Building, CreditCard, Users, MessageSquare, Crown, Check, User, Mail } 
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useSubscription } from '@/hooks/useSubscription';
-import { useCompanies, useUpdateCompany, useCreateCompany } from '@/hooks/useCompanies';
+import { useUserCompany, useUpdateUserCompany, useCreateUserCompany } from '@/hooks/useUserCompany';
 import { useBusinessSegments, useBusinessTypes } from '@/hooks/useBusinessSegments';
 import CompanyLogoUpload from '@/components/CompanyLogoUpload';
 import { toast } from 'sonner';
@@ -25,9 +25,9 @@ const ConfiguracoesPage = () => {
   const { user } = useAuth();
   const { isAdmin } = useUserPermissions();
   const subscription = useSubscription();
-  const { data: companies, isLoading: companiesLoading } = useCompanies();
-  const updateCompanyMutation = useUpdateCompany();
-  const createCompanyMutation = useCreateCompany();
+  const { data: company, isLoading: companyLoading } = useUserCompany();
+  const updateCompanyMutation = useUpdateUserCompany();
+  const createCompanyMutation = useCreateUserCompany();
   const { data: businessSegments, isLoading: segmentsLoading } = useBusinessSegments();
   const isMobile = useIsMobile();
 
@@ -52,11 +52,9 @@ const ConfiguracoesPage = () => {
   const [selectedSegmentId, setSelectedSegmentId] = useState<string>('');
   const { data: businessTypes, isLoading: typesLoading } = useBusinessTypes(selectedSegmentId);
 
-  const company = companies?.[0] as any;
   const isProfessional = subscription.subscription_tier === 'professional' || isAdmin;
 
   useEffect(() => {
-    console.log('ConfiguracoesPage - companies:', companies);
     console.log('ConfiguracoesPage - company:', company);
     console.log('ConfiguracoesPage - businessSegments:', businessSegments);
 
@@ -81,14 +79,14 @@ const ConfiguracoesPage = () => {
         business_segment: company.business_segment || '',
         business_type_detail: company.business_type_detail || ''
       });
-    } else if (user && !companiesLoading) {
+    } else if (user && !companyLoading) {
       setCompanyData(prev => ({
         ...prev,
         email: user.email || '',
         name: 'Minha Empresa'
       }));
     }
-  }, [company, user, companiesLoading, businessSegments]);
+  }, [company, user, companyLoading, businessSegments]);
 
   const handleInputChange = (field: string, value: string) => {
     setCompanyData(prev => ({ ...prev, [field]: value }));
@@ -172,7 +170,7 @@ const ConfiguracoesPage = () => {
     }
   ];
 
-  if (companiesLoading || segmentsLoading) {
+  if (companyLoading || segmentsLoading) {
     return (
       <div className="p-6 space-y-6">
         <div>

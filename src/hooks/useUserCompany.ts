@@ -3,17 +3,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { toast } from 'sonner';
 
-export const useCompanies = () => {
+export const useUserCompany = () => {
   const { user } = useAuth();
   
   return useQuery({
-    queryKey: ['companies', user?.id],
+    queryKey: ['user-company', user?.id],
     queryFn: async () => {
       if (!user) throw new Error('User not authenticated');
 
-      console.log('Fetching user companies for user:', user.id);
+      console.log('Fetching user company for user:', user.id);
       
       const { data: companies, error } = await supabase
         .from('user_companies')
@@ -21,15 +20,15 @@ export const useCompanies = () => {
         .eq('user_id', user.id);
 
       if (error) {
-        console.error('Error fetching user companies:', error);
+        console.error('Error fetching user company:', error);
         throw error;
       }
 
       console.log('User companies found:', companies);
 
-      // Se não há empresas, criar uma automaticamente
+      // Se não há empresa, criar uma automaticamente
       if (!companies || companies.length === 0) {
-        console.log('No user companies found, creating default company');
+        console.log('No user company found, creating default company');
         
         const { data: newCompany, error: createError } = await supabase
           .from('user_companies')
@@ -49,19 +48,19 @@ export const useCompanies = () => {
         }
 
         console.log('Default user company created:', newCompany);
-        return [newCompany];
+        return newCompany;
       }
 
-      return companies;
+      return companies[0]; // Retorna a primeira (e única) empresa do usuário
     },
     enabled: !!user,
   });
 };
 
-export const useUpdateCompany = () => {
+export const useUpdateUserCompany = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { toast: shadcnToast } = useToast();
+  const { toast } = useToast();
 
   const checkAndTriggerBonus = async () => {
     if (!user?.id) return;
@@ -143,18 +142,18 @@ export const useUpdateCompany = () => {
       return data;
     },
     onSuccess: () => {
-      shadcnToast({
+      toast({
         title: "Sucesso!",
         description: "Informações da empresa atualizadas com sucesso!",
       });
-      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      queryClient.invalidateQueries({ queryKey: ['user-company'] });
       
       // Verificar bônus após atualização da empresa
       checkAndTriggerBonus();
     },
     onError: (error: any) => {
       console.error('Error updating user company:', error);
-      shadcnToast({
+      toast({
         title: "Erro",
         description: error.message || 'Erro ao atualizar informações da empresa',
         variant: "destructive",
@@ -163,7 +162,7 @@ export const useUpdateCompany = () => {
   });
 };
 
-export const useCreateCompany = () => {
+export const useCreateUserCompany = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -198,7 +197,7 @@ export const useCreateCompany = () => {
         title: "Sucesso!",
         description: "Empresa criada com sucesso!",
       });
-      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      queryClient.invalidateQueries({ queryKey: ['user-company'] });
     },
     onError: (error: any) => {
       console.error('Error creating user company:', error);

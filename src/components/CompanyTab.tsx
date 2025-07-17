@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -5,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useCompanies, useUpdateCompany } from '@/hooks/useCompanies';
+import { useUserCompany, useUpdateUserCompany } from '@/hooks/useUserCompany';
 import { useBusinessSegments } from '@/hooks/useBusinessSegments';
 import BonusCelebration from '@/components/BonusCelebration';
 import { useProfileCompletion } from '@/hooks/useProfileCompletion';
@@ -13,9 +14,9 @@ import CompanyLogoUpload from '@/components/CompanyLogoUpload';
 import { useEffect } from 'react';
 
 const CompanyTab = () => {
-  const { data: companies, isLoading: companiesLoading } = useCompanies();
+  const { data: company, isLoading: companyLoading } = useUserCompany();
   const { data: businessSegments } = useBusinessSegments();
-  const updateCompanyMutation = useUpdateCompany();
+  const updateCompanyMutation = useUpdateUserCompany();
   const { data: status, isLoading, claimBonus, isClaiming, showCelebration, handleCelebrationComplete } = useProfileCompletion();
 
   const [formData, setFormData] = useState({
@@ -33,8 +34,6 @@ const CompanyTab = () => {
     description: '',
     cnpj: ''
   });
-
-  const company = companies?.[0];
 
   // Reivindicar automaticamente quando o bônus estiver disponível
   useEffect(() => {
@@ -81,7 +80,7 @@ const CompanyTab = () => {
     });
   };
 
-  if (companiesLoading) {
+  if (companyLoading) {
     return (
       <Card>
         <CardContent className="p-6">

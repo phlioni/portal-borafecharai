@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,9 +20,9 @@ interface Proposal {
   public_hash?: string;
   views?: number;
   last_viewed_at?: string;
-  company_id?: string;
+  client_id?: string;
   user_id: string;
-  companies?: {
+  clients?: {
     name: string;
     email?: string;
     phone?: string;
@@ -49,7 +50,7 @@ export const useProposals = () => {
         .from('proposals')
         .select(`
           *,
-          companies (
+          clients (
             name,
             email,
             phone
@@ -90,7 +91,7 @@ export const useCreateProposal = () => {
         .insert([proposalData])
         .select(`
           *,
-          companies (
+          clients (
             name,
             email,
             phone
@@ -134,7 +135,7 @@ export const useUpdateProposal = () => {
         .eq('user_id', user.id)
         .select(`
           *,
-          companies (
+          clients (
             name,
             email,
             phone
@@ -182,7 +183,7 @@ export const useProposal = () => {
         .from('proposals')
         .select(`
           *,
-          companies (
+          clients (
             name,
             email,
             phone
@@ -217,7 +218,7 @@ export const useProposal = () => {
         }])
         .select(`
           *,
-          companies (
+          clients (
             name,
             email,
             phone
@@ -249,7 +250,7 @@ export const useProposal = () => {
         .eq('user_id', user.id)
         .select(`
           *,
-          companies (
+          clients (
             name,
             email,
             phone
