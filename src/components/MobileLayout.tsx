@@ -55,9 +55,9 @@ const MobileLayout = ({ children }: MobileLayoutProps) => {
 
   const menuItems = [
     { path: '/dashboard', icon: Home, label: 'Dashboard' },
-    { path: '/propostas/chat', icon: MessageSquare, label: 'Chat Proposta', highlight: true },
+    { path: '/chat-proposta', icon: MessageSquare, label: 'Chat Proposta', highlight: true },
     { path: '/propostas', icon: FileText, label: 'Propostas' },
-    ...(canCreateProposal ? [{ path: '/propostas/nova', icon: PlusCircle, label: 'Nova Proposta' }] : []),
+    ...(canCreateProposal ? [{ path: '/nova-proposta', icon: PlusCircle, label: 'Nova Proposta' }] : []),
     { path: '/clientes', icon: Users, label: 'Clientes' },
     { path: '/analytics', icon: BarChart3, label: 'Analytics' },
     { path: '/configuracoes', icon: Settings, label: 'Configurações' },
@@ -160,7 +160,7 @@ const MobileLayout = ({ children }: MobileLayoutProps) => {
                       onClick={handleSignOut}
                       className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
                     >
-                      <LogOut className="w-4 h-4" />
+                      <LogOut className="w-4 w-4" />
                       Sair
                     </Button>
                   </div>
