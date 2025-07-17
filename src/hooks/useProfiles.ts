@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -141,6 +142,13 @@ export const useProfiles = () => {
 
       if (error) {
         console.error('Error updating profile:', error);
+        
+        // Verificar se é erro de telefone duplicado
+        if (error.code === '23505' && error.message?.includes('profiles_phone_key')) {
+          toast.error('Este número de telefone já está cadastrado no sistema. Por favor, utilize outro número.');
+          return { error: 'Phone already exists' };
+        }
+        
         toast.error('Erro ao salvar perfil');
         return { error };
       }
