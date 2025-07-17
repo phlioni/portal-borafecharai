@@ -69,9 +69,37 @@ Deno.serve(async (req) => {
       )
     }
 
+    // Gerar hash público se não existir
+    let finalPublicHash = proposal.public_hash
+    if (!finalPublicHash) {
+      console.log('Gerando novo hash público para a proposta')
+      finalPublicHash = btoa(`${proposalId}-${Date.now()}`).replace(/[+=\/]/g, '').substring(0, 32)
+      
+      // Atualizar proposta com o novo hash
+      const { error: updateError } = await supabase
+        .from('proposals')
+        .update({ 
+          public_hash: finalPublicHash,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', proposalId)
+        
+      if (updateError) {
+        console.error('Erro ao atualizar hash público:', updateError)
+        return new Response(
+          JSON.stringify({ error: 'Erro ao gerar link da proposta' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    }
+
+    // Construir URL pública correta
+    const finalPublicUrl = publicUrl || `https://www.borafecharai.com/proposta/${finalPublicHash}`
+    console.log('URL final da proposta:', finalPublicUrl)
+
     // Buscar dados da empresa do usuário
     const { data: userCompany } = await supabase
-      .from('user_companies')
+      .from('companies')
       .select('*')
       .eq('user_id', proposal.user_id)
       .single()
@@ -176,7 +204,7 @@ Deno.serve(async (req) => {
       `;
     };
 
-    const emailHTML = generateEmailHTML(emailMessage, publicUrl || `${supabaseUrl}/proposta/${proposal.public_hash}`);
+    const emailHTML = generateEmailHTML(emailMessage, finalPublicUrl);
 
     // Enviar email via Resend
     const emailResponse = await fetch('https://api.resend.com/emails', {
@@ -212,9 +240,15 @@ Deno.serve(async (req) => {
       .eq('id', proposalId)
 
     console.log('Email enviado com sucesso para:', recipientEmail)
+    console.log('Hash público final:', finalPublicHash)
 
     return new Response(
-      JSON.stringify({ success: true, message: 'Email enviado com sucesso' }),
+      JSON.stringify({ 
+        success: true, 
+        message: 'Email enviado com sucesso',
+        publicHash: finalPublicHash,
+        publicUrl: finalPublicUrl
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 

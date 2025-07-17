@@ -21,8 +21,8 @@ const PropostaPublicaPage = () => {
       
       console.log('Buscando proposta com hash:', hash);
       
-      // Primeiro, tentar buscar pelo public_hash diretamente
-      const { data: proposalByHash, error: hashError } = await supabase
+      // Buscar pelo public_hash
+      const { data: proposalData, error: proposalError } = await supabase
         .from('proposals')
         .select(`
           *,
@@ -31,45 +31,78 @@ const PropostaPublicaPage = () => {
             name,
             email,
             phone
+          ),
+          proposal_budget_items (
+            id,
+            description,
+            quantity,
+            unit_price,
+            total_price,
+            type
           )
         `)
         .eq('public_hash', hash)
         .single();
 
-      if (!hashError && proposalByHash) {
-        console.log('Proposta encontrada por hash:', proposalByHash);
-        return proposalByHash;
+      if (proposalError) {
+        console.error('Erro ao buscar proposta por hash:', proposalError);
+        
+        // Se não encontrar pelo hash, tentar decodificar base64 (compatibilidade)
+        try {
+          const decodedId = atob(hash);
+          console.log('Tentando buscar por ID decodificado:', decodedId);
+          
+          const { data: proposalById, error: idError } = await supabase
+            .from('proposals')
+            .select(`
+              *,
+              clients (
+                id,
+                name,
+                email,
+                phone
+              ),
+              proposal_budget_items (
+                id,
+                description,
+                quantity,
+                unit_price,
+                total_price,
+                type
+              )
+            `)
+            .eq('id', decodedId)
+            .single();
+
+          if (idError) {
+            console.error('Erro ao buscar proposta por ID:', idError);
+            throw new Error('Proposta não encontrada');
+          }
+          
+          console.log('Proposta encontrada por ID:', proposalById);
+          return proposalById;
+        } catch (decodeError) {
+          console.error('Erro ao decodificar hash:', decodeError);
+          throw new Error('Proposta não encontrada');
+        }
       }
 
-      // Se não encontrar pelo hash, tentar decodificar base64 (compatibilidade)
-      try {
-        const proposalId = atob(hash);
-        console.log('Tentando buscar por ID decodificado:', proposalId);
-        
-        const { data: proposalById, error: idError } = await supabase
-          .from('proposals')
-          .select(`
-            *,
-            clients (
-              id,
-              name,
-              email,
-              phone
-            )
-          `)
-          .eq('id', proposalId)
-          .single();
-
-        if (idError) throw idError;
-        
-        console.log('Proposta encontrada por ID:', proposalById);
-        return proposalById;
-      } catch (error) {
-        console.error('Erro ao buscar proposta:', error);
-        throw new Error('Proposta não encontrada');
-      }
+      console.log('Proposta encontrada por hash:', proposalData);
+      
+      // Incrementar visualizações automaticamente
+      await supabase
+        .from('proposals')
+        .update({ 
+          views: (proposalData.views || 0) + 1,
+          last_viewed_at: new Date().toISOString()
+        })
+        .eq('id', proposalData.id);
+      
+      return proposalData;
     },
     enabled: !!hash,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   const handleAcceptProposal = async () => {
@@ -79,23 +112,15 @@ const PropostaPublicaPage = () => {
     try {
       const { error } = await supabase
         .from('proposals')
-        .update({ status: 'aceita' })
+        .update({ 
+          status: 'aceita',
+          updated_at: new Date().toISOString()
+        })
         .eq('id', proposal.id);
 
       if (error) throw error;
 
       toast.success('Proposta aceita com sucesso!');
-      
-      // Incrementar visualizações
-      await supabase
-        .from('proposals')
-        .update({ 
-          views: (proposal.views || 0) + 1,
-          last_viewed_at: new Date().toISOString()
-        })
-        .eq('id', proposal.id);
-
-      // Atualizar dados na tela
       refetch();
     } catch (error) {
       console.error('Erro ao aceitar proposta:', error);
@@ -112,23 +137,15 @@ const PropostaPublicaPage = () => {
     try {
       const { error } = await supabase
         .from('proposals')
-        .update({ status: 'perdida' })
+        .update({ 
+          status: 'perdida',
+          updated_at: new Date().toISOString()
+        })
         .eq('id', proposal.id);
 
       if (error) throw error;
 
       toast.success('Proposta rejeitada');
-      
-      // Incrementar visualizações
-      await supabase
-        .from('proposals')
-        .update({ 
-          views: (proposal.views || 0) + 1,
-          last_viewed_at: new Date().toISOString()
-        })
-        .eq('id', proposal.id);
-
-      // Atualizar dados na tela
       refetch();
     } catch (error) {
       console.error('Erro ao rejeitar proposta:', error);
@@ -172,6 +189,9 @@ const PropostaPublicaPage = () => {
             <p className="text-gray-600">
               O link pode estar expirado ou inválido.
             </p>
+            <p className="text-xs text-gray-500 mt-4">
+              Hash buscado: {hash}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -207,7 +227,7 @@ const PropostaPublicaPage = () => {
                 {proposal.title}
               </h2>
               <p className="text-sm text-gray-600 truncate">
-                De: {proposal.clients?.name}
+                Para: {proposal.clients?.name}
               </p>
               {proposal.status !== 'enviada' && (
                 <div className="mt-2">

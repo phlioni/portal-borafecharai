@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -112,13 +111,13 @@ export const useProposalSending = () => {
       console.log('Iniciando envio da proposta:', proposal.id);
       console.log('Dados do email:', emailData);
 
-      // Verificar se a proposta tem um hash público
+      // Verificar se a proposta tem um hash público válido
       let publicHash = proposal.public_hash;
       
-      if (!publicHash) {
-        console.log('Hash público não encontrado, gerando um novo...');
-        // Gerar um hash baseado no ID da proposta
-        publicHash = btoa(`${proposal.id}-${Date.now()}`).replace(/[+=\/]/g, '').substring(0, 16);
+      if (!publicHash || publicHash.length < 16) {
+        console.log('Hash público não encontrado ou inválido, gerando um novo...');
+        // Gerar um hash mais robusto baseado no ID da proposta
+        publicHash = btoa(`${proposal.id}-${Date.now()}-${Math.random()}`).replace(/[+=\/]/g, '').substring(0, 32);
         
         // Atualizar a proposta com o novo hash
         const { error: updateError } = await supabase
@@ -133,9 +132,11 @@ export const useProposalSending = () => {
           console.error('Erro ao atualizar hash público:', updateError);
           throw new Error('Erro ao gerar link público da proposta');
         }
+        
+        console.log('Novo hash público gerado:', publicHash);
       }
 
-      const publicUrl = `${window.location.origin}/proposta/${publicHash}`;
+      const publicUrl = `https://www.borafecharai.com/proposta/${publicHash}`;
       console.log('URL pública da proposta:', publicUrl);
 
       console.log('Enviando email via edge function...');
