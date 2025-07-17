@@ -167,7 +167,7 @@ serve(async (req) => {
       console.error('Erro ao deletar configurações:', settingsError)
     }
 
-    // 10. Deletar empresas
+    // 10. Deletar empresas (companies)
     const { error: companiesError } = await supabase
       .from('companies')
       .delete()
@@ -177,7 +177,17 @@ serve(async (req) => {
       console.error('Erro ao deletar empresas:', companiesError)
     }
 
-    // 11. Deletar perfil
+    // 11. Deletar user_companies (esta é a tabela que estava causando o erro)
+    const { error: userCompaniesError } = await supabase
+      .from('user_companies')
+      .delete()
+      .eq('user_id', userId)
+    
+    if (userCompaniesError) {
+      console.error('Erro ao deletar user_companies:', userCompaniesError)
+    }
+
+    // 12. Deletar perfil
     const { error: profileError } = await supabase
       .from('profiles')
       .delete()
@@ -187,7 +197,7 @@ serve(async (req) => {
       console.error('Erro ao deletar perfil:', profileError)
     }
 
-    // 12. Deletar assinante
+    // 13. Deletar assinante
     const { error: subscriberError } = await supabase
       .from('subscribers')
       .delete()
@@ -197,7 +207,7 @@ serve(async (req) => {
       console.error('Erro ao deletar subscriber:', subscriberError)
     }
 
-    // 13. Deletar roles do usuário
+    // 14. Deletar roles do usuário
     const { error: rolesError } = await supabase
       .from('user_roles')
       .delete()
@@ -205,6 +215,16 @@ serve(async (req) => {
     
     if (rolesError) {
       console.error('Erro ao deletar roles:', rolesError)
+    }
+
+    // 15. Deletar clientes
+    const { error: clientsError } = await supabase
+      .from('clients')
+      .delete()
+      .eq('user_id', userId)
+    
+    if (clientsError) {
+      console.error('Erro ao deletar clientes:', clientsError)
     }
 
     console.log('Dados relacionados deletados, deletando usuário da auth...')
