@@ -1,11 +1,12 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface User {
   id: string;
   email: string;
+  created_at: string;
   role?: string;
   subscriber?: {
     subscribed: boolean;
@@ -25,6 +26,10 @@ export const useAdminOperations = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
   const loadUsers = async () => {
     try {
       setLoading(true);
@@ -37,9 +42,40 @@ export const useAdminOperations = () => {
         throw error;
       }
 
-      console.log('useAdminOperations - Users loaded:', data?.users?.length || 0);
-      setUsers(data?.users || []);
-      return data?.users || [];
+      console.log('useAdminOperations - Users loaded:', data?.length || 0);
+      
+      // Buscar dados adicionais para cada usuário
+      const usersWithDetails = await Promise.all(
+        (data || []).map(async (user: any) => {
+          // Buscar subscriber data
+          const { data: subscriberData } = await supabase
+            .from('subscribers')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+
+          // Buscar trial limits para usuários em trial
+          let trialLimits = null;
+          if (subscriberData && !subscriberData.subscribed) {
+            const { data: limitsData } = await supabase
+              .from('trial_limits')
+              .select('*')
+              .eq('user_id', user.id)
+              .single();
+            
+            trialLimits = limitsData;
+          }
+
+          return {
+            ...user,
+            subscriber: subscriberData,
+            trial_limits: trialLimits
+          };
+        })
+      );
+
+      setUsers(usersWithDetails);
+      return usersWithDetails;
     } catch (error) {
       console.error('useAdminOperations - Error in loadUsers:', error);
       throw error;
@@ -140,11 +176,40 @@ export const useAdminOperations = () => {
     }
   };
 
+  const createAdminUser = async (email: string) => {
+    try {
+      console.log('useAdminOperations - Creating admin user:', email);
+      
+      const { data, error } = await supabase.functions.invoke('create-admin-user', {
+        body: { 
+          email, 
+          password: 'TempPassword123!' // Senha temporária que deve ser alterada
+        }
+      });
+
+      if (error) {
+        console.error('useAdminOperations - Error creating admin user:', error);
+        throw error;
+      }
+
+      console.log('useAdminOperations - Admin user created successfully:', email);
+      
+      // Recarregar dados dos usuários
+      await loadUsers();
+      
+      return data;
+    } catch (error) {
+      console.error('useAdminOperations - Error in createAdminUser:', error);
+      throw error;
+    }
+  };
+
   return {
     users,
     loading,
     loadUsers,
     resetUserData,
-    deleteUser
+    deleteUser,
+    createAdminUser
   };
 };

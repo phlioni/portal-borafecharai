@@ -92,7 +92,7 @@ serve(async (req) => {
 
     console.log('get-users: Successfully fetched', users.users.length, 'users')
 
-    // Retornar apenas os dados necessários
+    // Retornar os dados necessários incluindo created_at
     const userData = users.users.map(user => ({
       id: user.id,
       email: user.email,
