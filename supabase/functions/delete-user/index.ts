@@ -77,19 +77,27 @@ serve(async (req) => {
 
     // Deletar dados relacionados na ordem correta (das tabelas filhas para as pais)
     
-    // 1. Deletar itens de orçamento das propostas
-    const { error: budgetItemsError } = await supabase
-      .from('proposal_budget_items')
-      .delete()
-      .in('proposal_id', 
-        supabase.from('proposals').select('id').eq('user_id', userId)
-      )
+    // 1. Primeiro, buscar IDs das propostas do usuário
+    const { data: userProposals } = await supabase
+      .from('proposals')
+      .select('id')
+      .eq('user_id', userId)
     
-    if (budgetItemsError) {
-      console.error('Erro ao deletar itens de orçamento:', budgetItemsError)
+    const proposalIds = userProposals?.map(p => p.id) || []
+    
+    // 2. Deletar itens de orçamento das propostas
+    if (proposalIds.length > 0) {
+      const { error: budgetItemsError } = await supabase
+        .from('proposal_budget_items')
+        .delete()
+        .in('proposal_id', proposalIds)
+      
+      if (budgetItemsError) {
+        console.error('Erro ao deletar itens de orçamento:', budgetItemsError)
+      }
     }
 
-    // 2. Deletar notificações de propostas
+    // 3. Deletar notificações de propostas
     const { error: notificationsError } = await supabase
       .from('proposal_notifications')
       .delete()
@@ -99,7 +107,7 @@ serve(async (req) => {
       console.error('Erro ao deletar notificações:', notificationsError)
     }
 
-    // 3. Deletar propostas
+    // 4. Deletar propostas
     const { error: proposalsError } = await supabase
       .from('proposals')
       .delete()
@@ -109,7 +117,7 @@ serve(async (req) => {
       console.error('Erro ao deletar propostas:', proposalsError)
     }
 
-    // 4. Deletar templates personalizados
+    // 5. Deletar templates personalizados
     const { error: templatesError } = await supabase
       .from('custom_proposal_templates')
       .delete()
@@ -119,7 +127,7 @@ serve(async (req) => {
       console.error('Erro ao deletar templates:', templatesError)
     }
 
-    // 5. Deletar templates de email
+    // 6. Deletar templates de email
     const { error: emailTemplatesError } = await supabase
       .from('email_templates')
       .delete()
@@ -129,7 +137,7 @@ serve(async (req) => {
       console.error('Erro ao deletar templates de email:', emailTemplatesError)
     }
 
-    // 6. Deletar configurações do Telegram
+    // 7. Deletar configurações do Telegram
     const { error: telegramError } = await supabase
       .from('telegram_bot_settings')
       .delete()
@@ -139,7 +147,7 @@ serve(async (req) => {
       console.error('Erro ao deletar config Telegram:', telegramError)
     }
 
-    // 7. Deletar sessões do Telegram
+    // 8. Deletar sessões do Telegram
     const { error: sessionsError } = await supabase
       .from('telegram_sessions')
       .delete()
@@ -149,7 +157,7 @@ serve(async (req) => {
       console.error('Erro ao deletar sessões Telegram:', sessionsError)
     }
 
-    // 8. Deletar configurações do sistema
+    // 9. Deletar configurações do sistema
     const { error: settingsError } = await supabase
       .from('system_settings')
       .delete()
@@ -159,7 +167,7 @@ serve(async (req) => {
       console.error('Erro ao deletar configurações:', settingsError)
     }
 
-    // 9. Deletar empresas
+    // 10. Deletar empresas
     const { error: companiesError } = await supabase
       .from('companies')
       .delete()
@@ -169,7 +177,7 @@ serve(async (req) => {
       console.error('Erro ao deletar empresas:', companiesError)
     }
 
-    // 10. Deletar perfil
+    // 11. Deletar perfil
     const { error: profileError } = await supabase
       .from('profiles')
       .delete()
@@ -179,7 +187,7 @@ serve(async (req) => {
       console.error('Erro ao deletar perfil:', profileError)
     }
 
-    // 11. Deletar assinante
+    // 12. Deletar assinante
     const { error: subscriberError } = await supabase
       .from('subscribers')
       .delete()
@@ -189,7 +197,7 @@ serve(async (req) => {
       console.error('Erro ao deletar subscriber:', subscriberError)
     }
 
-    // 12. Deletar roles do usuário
+    // 13. Deletar roles do usuário
     const { error: rolesError } = await supabase
       .from('user_roles')
       .delete()
