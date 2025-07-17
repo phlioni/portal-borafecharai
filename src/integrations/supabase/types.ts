@@ -414,6 +414,7 @@ export type Database = {
       }
       subscribers: {
         Row: {
+          bonus_granted_at: string | null
           bonus_proposals_current_month: number | null
           cancel_at_period_end: boolean | null
           created_at: string
@@ -431,6 +432,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          bonus_granted_at?: string | null
           bonus_proposals_current_month?: number | null
           cancel_at_period_end?: boolean | null
           created_at?: string
@@ -448,6 +450,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          bonus_granted_at?: string | null
           bonus_proposals_current_month?: number | null
           cancel_at_period_end?: boolean | null
           created_at?: string
@@ -730,6 +733,10 @@ export type Database = {
       is_profile_complete: {
         Args: { _user_id: string }
         Returns: boolean
+      }
+      reset_monthly_bonus: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
     }
     Enums: {

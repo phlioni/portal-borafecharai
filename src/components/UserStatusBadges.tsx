@@ -13,6 +13,7 @@ interface UserStatusBadgesProps {
       trial_end_date?: string;
       trial_proposals_used?: number;
       trial_start_date?: string;
+      bonus_proposals_current_month?: number;
     };
   };
 }
@@ -36,17 +37,29 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
   // 2. OU se é role 'user' sem assinatura (mesmo sem dados de trial configurados)
   const isTrialActive = shouldBeInTrial && (!trialEndDate || trialEndDate > now);
   
-  // Usar dados do banco vindos do admin
+  // Calcular propostas restantes com o novo sistema de bônus
   const rawProposalsUsed = user.subscriber?.trial_proposals_used || 0;
-  const trialProposalsUsed = Math.min(rawProposalsUsed, 20);
-  const trialProposalsRemaining = Math.max(0, 20 - trialProposalsUsed);
+  const bonusProposals = user.subscriber?.bonus_proposals_current_month || 0;
+  
+  let trialProposalsRemaining = 0;
+  
+  if (isTrialActive) {
+    // Trial: 20 propostas base + bônus de 5 (aplicado apenas uma vez)
+    const totalLimit = 20 + bonusProposals;
+    trialProposalsRemaining = Math.max(0, totalLimit - rawProposalsUsed);
+  } else if (hasActiveSubscription && user.subscriber?.subscription_tier === 'basico') {
+    // Plano básico: 10 propostas + bônus do mês atual
+    const totalLimit = 10 + bonusProposals;
+    trialProposalsRemaining = Math.max(0, totalLimit - rawProposalsUsed);
+  }
 
   console.log('UserStatusBadges - calculated values:', {
     isTrialActive,
     shouldBeInTrial,
     isUserRole,
     hasActiveSubscription,
-    trialProposalsUsed,
+    rawProposalsUsed,
+    bonusProposals,
     trialProposalsRemaining,
     subscribed: user.subscriber?.subscribed,
     subscription_tier: user.subscriber?.subscription_tier,
@@ -76,7 +89,10 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
       {hasActiveSubscription ? (
         <Badge variant="default" className="text-xs">
           <CheckCircle className="h-3 w-3 mr-1" />
-          {user.subscriber.subscription_tier || 'Assinante'}
+          {user.subscriber.subscription_tier === 'basico' ? 
+            `Básico (${trialProposalsRemaining} restantes)` : 
+            user.subscriber.subscription_tier || 'Assinante'
+          }
         </Badge>
       ) : isUserRole ? (
         // Para usuários role 'user' sempre mostrar status de trial
