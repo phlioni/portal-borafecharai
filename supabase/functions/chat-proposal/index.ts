@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -19,6 +18,70 @@ serve(async (req) => {
 
   try {
     const { messages, action, user_id } = await req.json();
+    
+    // Verificar permissões do usuário antes de processar qualquer ação
+    if (user_id && action === 'generate') {
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      
+      // Verificar se o usuário pode criar propostas
+      const { data: canCreate, error: canCreateError } = await supabase.rpc('can_create_proposal', {
+        _user_id: user_id
+      });
+
+      if (canCreateError) {
+        console.error('Erro ao verificar permissão:', canCreateError);
+        return new Response(JSON.stringify({ 
+          error: 'Erro ao verificar permissão para criar proposta'
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (!canCreate) {
+        // Buscar informações sobre o limite para mostrar mensagem específica
+        const { data: subscriberData } = await supabase
+          .from('subscribers')
+          .select('subscribed, subscription_tier, trial_end_date, trial_proposals_used')
+          .eq('user_id', user_id)
+          .maybeSingle();
+
+        const { data: trialLimits } = await supabase
+          .from('trial_limits')
+          .select('trial_proposals_limit')
+          .eq('user_id', user_id)
+          .maybeSingle();
+
+        const isInTrial = subscriberData?.trial_end_date && new Date(subscriberData.trial_end_date) > new Date();
+        const proposalsUsed = subscriberData?.trial_proposals_used || 0;
+        const proposalsLimit = trialLimits?.trial_proposals_limit || 20;
+
+        let errorMessage = '';
+        if (isInTrial) {
+          if (proposalsUsed >= proposalsLimit) {
+            errorMessage = `Limite de ${proposalsLimit} propostas do trial atingido. Você já criou ${proposalsUsed} propostas. Faça upgrade para continuar criando propostas.`;
+          } else {
+            errorMessage = 'Trial expirado. Faça upgrade para continuar criando propostas.';
+          }
+        } else {
+          const currentMonth = new Date().toISOString().slice(0, 7);
+          const { data: monthlyCount } = await supabase.rpc('get_monthly_proposal_count', {
+            _user_id: user_id,
+            _month: currentMonth
+          });
+          
+          errorMessage = `Limite de 10 propostas por mês atingido. Você já criou ${monthlyCount || 0} propostas este mês. Faça upgrade para o plano Professional para ter propostas ilimitadas.`;
+        }
+
+        return new Response(JSON.stringify({ 
+          error: errorMessage,
+          limitReached: true
+        }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
     
     // Inicializar cliente Supabase se necessário
     const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
