@@ -79,11 +79,11 @@ const ProfileCompletionAlert = () => {
               <div className="flex flex-col sm:flex-row gap-2">
                 <div className="flex items-center gap-2 text-xs text-blue-600">
                   <User className="h-3 w-3" />
-                  <span>Campos obrigatórios do perfil: Nome e Telefone</span>
+                  <span>Perfil: Nome e Telefone</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-blue-600">
                   <Building2 className="h-3 w-3" />
-                  <span>Campos obrigatórios da empresa: Nome, Email, Telefone, Endereço, Cidade, Estado, CEP, Segmento e Tipo de Negócio</span>
+                  <span>Empresa: Nome, Email, Telefone, Endereço, Cidade, Segmento e Tipo de Negócio</span>
                 </div>
               </div>
             </div>

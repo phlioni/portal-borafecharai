@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -68,12 +67,16 @@ export const useProfiles = () => {
 
       if (success) {
         console.log('Bônus de perfil completo concedido!');
-        toast.success('🎉 Parabéns! Você ganhou 5 propostas extras por completar seu perfil!');
         
-        // Invalidar queries relacionadas
+        // Invalidar queries relacionadas para que a celebração apareça
         queryClient.invalidateQueries({ queryKey: ['profile-completion'] });
         queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
         queryClient.invalidateQueries({ queryKey: ['user-permissions'] });
+        
+        // Aguardar um pouco e mostrar celebração se estiver na página de configurações
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ['profile-completion'] });
+        }, 500);
       }
     } catch (error) {
       console.error('Erro ao verificar bônus:', error);

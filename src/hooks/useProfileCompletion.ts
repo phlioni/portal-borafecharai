@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
 
 interface ProfileCompletionStatus {
   isProfileComplete: boolean;
@@ -14,6 +15,7 @@ export const useProfileCompletion = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [showCelebration, setShowCelebration] = useState(false);
 
   const checkProfileCompletion = useQuery({
     queryKey: ['profile-completion', user?.id],
@@ -86,10 +88,8 @@ export const useProfileCompletion = () => {
       return success;
     },
     onSuccess: () => {
-      toast({
-        title: "Parabéns! 🎉",
-        description: "Você ganhou 5 propostas extras por completar seu perfil!",
-      });
+      // Mostrar celebração
+      setShowCelebration(true);
       
       // Invalidar queries relacionadas
       queryClient.invalidateQueries({ queryKey: ['profile-completion'] });
@@ -106,9 +106,19 @@ export const useProfileCompletion = () => {
     },
   });
 
+  const handleCelebrationComplete = () => {
+    setShowCelebration(false);
+    toast({
+      title: "🎉 Bônus concedido com sucesso!",
+      description: "Você ganhou 5 propostas extras para usar este mês!",
+    });
+  };
+
   return {
     ...checkProfileCompletion,
     claimBonus: claimBonus.mutate,
-    isClaiming: claimBonus.isPending
+    isClaiming: claimBonus.isPending,
+    showCelebration,
+    handleCelebrationComplete
   };
 };
