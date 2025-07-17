@@ -20,7 +20,10 @@ const EditarPropostaPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { data: proposal, isLoading } = useProposal(id);
+  
+  console.log('EditarPropostaPage - ID da proposta:', id);
+  
+  const { data: proposal, isLoading, error } = useProposal(id);
   const updateProposal = useUpdateProposal();
   const { data: clients } = useClients();
   const createBudgetItem = useCreateBudgetItem();
@@ -43,6 +46,7 @@ const EditarPropostaPage = () => {
 
   useEffect(() => {
     if (proposal) {
+      console.log('Proposta carregada:', proposal);
       setFormData({
         title: proposal.title || '',
         client_id: proposal.client_id || '',
@@ -99,11 +103,43 @@ const EditarPropostaPage = () => {
   }, [id, createBudgetItem, proposal, itemsProcessed]);
 
   if (isLoading) {
-    return <div>Carregando proposta...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+          <p className="mt-4 text-lg">Carregando proposta...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    console.error('Erro ao carregar proposta:', error);
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Erro ao carregar proposta</h2>
+          <p className="text-gray-600 mb-4">Não foi possível carregar os dados da proposta.</p>
+          <Button onClick={() => navigate('/propostas')}>
+            Voltar para Propostas
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   if (!proposal && !isLoading) {
-    return <div>Proposta não encontrada</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Proposta não encontrada</h2>
+          <p className="text-gray-600 mb-4">A proposta que você está procurando não foi encontrada.</p>
+          <Button onClick={() => navigate('/propostas')}>
+            Voltar para Propostas
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   const handleInputChange = (field: string, value: string) => {
@@ -284,7 +320,7 @@ const EditarPropostaPage = () => {
         </Card>
 
         {/* Budget Items Manager */}
-        <BudgetItemsManager proposalId={proposal.id} />
+        {proposal && <BudgetItemsManager proposalId={proposal.id} />}
       </div>
 
       {/* Preview Modal */}

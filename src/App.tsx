@@ -48,7 +48,9 @@ function App() {
                 <Route path="/propostas" element={<Propostas />} />
                 <Route path="/nova-proposta" element={<NovaPropostaPage />} />
                 <Route path="/propostas/nova" element={<NovaPropostaPage />} />
+                <Route path="/propostas/:id/editar" element={<EditarPropostaPage />} />
                 <Route path="/propostas/editar/:id" element={<EditarPropostaPage />} />
+                <Route path="/propostas/:id/visualizar" element={<VisualizarPropostaPage />} />
                 <Route path="/propostas/visualizar/:id" element={<VisualizarPropostaPage />} />
                 <Route path="/clientes" element={<ClientesPage />} />
                 <Route path="/configuracoes" element={<ConfiguracoesPage />} />
