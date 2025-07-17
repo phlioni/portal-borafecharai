@@ -96,8 +96,8 @@ const ProfileCompletionAlert = () => {
           </Button>
         </div>
       </CardContent>
-    );
-  }
+    </Card>
+  );
 };
 
 export default ProfileCompletionAlert;
