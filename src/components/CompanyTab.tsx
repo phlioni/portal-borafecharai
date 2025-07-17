@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -125,7 +126,7 @@ const CompanyTab = () => {
       <div className="space-y-4">
         <CompanyLogoUpload 
           currentLogoUrl={formData.logo_url} 
-          onLogoUpdate={(url) => handleChange('logo_url', url || '')}
+          onLogoChange={(url) => handleChange('logo_url', url)}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
