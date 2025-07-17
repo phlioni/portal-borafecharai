@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      business_segments: {
+        Row: {
+          created_at: string | null
+          id: string
+          segment_name: string
+          segment_order: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          segment_name: string
+          segment_order?: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          segment_name?: string
+          segment_order?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           address: string | null
