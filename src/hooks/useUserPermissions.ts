@@ -26,19 +26,29 @@ export const useUserPermissions = () => {
         setLoading(true);
         console.log('useUserPermissions - Checking permissions for user:', user.id);
 
-        // Check if user is admin
-        const { data: userRoles } = await supabase
+        // Check if user is admin - usar .maybeSingle() ao invés de .single()
+        const { data: userRoles, error: rolesError } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', user.id);
+
+        if (rolesError) {
+          console.error('useUserPermissions - Error fetching user roles:', rolesError);
+        }
 
         const adminRole = userRoles?.some(role => role.role === 'admin') || false;
         const guestRole = userRoles?.some(role => role.role === 'guest') || false;
         setIsAdmin(adminRole);
 
+        console.log('useUserPermissions - User roles:', { adminRole, guestRole, userRoles });
+
         // Get monthly proposal count
-        const { data: monthlyCount } = await supabase
+        const { data: monthlyCount, error: countError } = await supabase
           .rpc('get_monthly_proposal_count', { _user_id: user.id });
+
+        if (countError) {
+          console.error('useUserPermissions - Error getting monthly count:', countError);
+        }
 
         setMonthlyProposalCount(monthlyCount || 0);
 
@@ -54,11 +64,15 @@ export const useUserPermissions = () => {
         }
 
         // Verificar dados do subscriber para determinar limites e acessos
-        const { data: subscriber } = await supabase
+        const { data: subscriber, error: subscriberError } = await supabase
           .from('subscribers')
           .select('*')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle(); // Usar .maybeSingle() aqui também
+
+        if (subscriberError) {
+          console.error('useUserPermissions - Error fetching subscriber:', subscriberError);
+        }
 
         console.log('useUserPermissions - subscriber data:', subscriber);
         console.log('useUserPermissions - subscribed from hook:', subscribed);
