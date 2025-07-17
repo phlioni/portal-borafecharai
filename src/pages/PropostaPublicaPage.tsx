@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -21,7 +20,7 @@ const PropostaPublicaPage = () => {
       
       console.log('Buscando proposta com hash:', hash);
       
-      // Buscar pelo public_hash primeiro
+      // Buscar pelo public_hash primeiro com joins completos
       const { data: proposalData, error: proposalError } = await supabase
         .from('proposals')
         .select(`
@@ -51,6 +50,28 @@ const PropostaPublicaPage = () => {
 
       console.log('Proposta encontrada por hash:', proposalData);
       
+      // Buscar dados adicionais da empresa do usuário que criou a proposta
+      const { data: userCompany, error: companyError } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('user_id', proposalData.user_id)
+        .single();
+        
+      if (companyError) {
+        console.error('Erro ao buscar empresa:', companyError);
+      }
+      
+      // Buscar dados do perfil do usuário
+      const { data: userProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', proposalData.user_id)
+        .single();
+        
+      if (profileError) {
+        console.error('Erro ao buscar perfil:', profileError);
+      }
+      
       // Incrementar visualizações automaticamente
       const { error: updateError } = await supabase
         .from('proposals')
@@ -64,7 +85,12 @@ const PropostaPublicaPage = () => {
         console.error('Erro ao atualizar visualizações:', updateError);
       }
       
-      return proposalData;
+      // Retornar dados completos incluindo empresa e perfil
+      return {
+        ...proposalData,
+        companies: userCompany,
+        user_profile: userProfile
+      };
     },
     enabled: !!hash,
     retry: 2,
@@ -258,7 +284,7 @@ const PropostaPublicaPage = () => {
           <div className="bg-white rounded-lg shadow-sm">
             <ProposalTemplateRenderer 
               proposal={proposal} 
-              companyLogo="" 
+              companyLogo={proposal.companies?.logo_url || ""} 
             />
           </div>
         </div>

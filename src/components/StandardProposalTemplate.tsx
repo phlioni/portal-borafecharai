@@ -1,9 +1,6 @@
 
 import React from 'react';
 import { useBudgetItems } from '@/hooks/useBudgetItems';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface ProposalData {
   id: string;
@@ -11,6 +8,16 @@ interface ProposalData {
   companies?: {
     name: string;
     email?: string;
+    phone?: string;
+    logo_url?: string;
+  };
+  clients?: {
+    name: string;
+    email?: string;
+    phone?: string;
+  };
+  user_profile?: {
+    name?: string;
     phone?: string;
   };
   value?: number;
@@ -21,6 +28,7 @@ interface ProposalData {
   validity_date?: string;
   created_at: string;
   proposal_budget_items?: any[];
+  user_id?: string;
 }
 
 interface StandardProposalTemplateProps {
@@ -30,65 +38,16 @@ interface StandardProposalTemplateProps {
 }
 
 const StandardProposalTemplate = ({ proposal, className = "", companyLogo }: StandardProposalTemplateProps) => {
-  const { user } = useAuth();
   
-  // Usar hook apenas se não temos dados diretos da proposta
+  // Usar hook apenas se não temos dados diretos da proposta e se temos user_id
   const { data: hookBudgetItems = [] } = useBudgetItems(
-    proposal.id && proposal.id !== 'temp-id' ? proposal.id : ''
+    proposal.id && proposal.id !== 'temp-id' && proposal.user_id ? proposal.id : ''
   );
 
   // Usar dados diretos da proposta ou do hook
   const budgetItems = proposal.proposal_budget_items && proposal.proposal_budget_items.length > 0 
     ? proposal.proposal_budget_items 
     : hookBudgetItems;
-
-  // Buscar dados da empresa do usuário
-  const { data: userCompany } = useQuery({
-    queryKey: ['user-company', user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      
-      console.log('Buscando empresa do usuário:', user.id);
-      
-      const { data, error } = await supabase
-        .from('companies')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error) {
-        console.error('Erro ao buscar empresa:', error);
-        return null;
-      }
-      
-      console.log('Empresa encontrada:', data);
-      return data;
-    },
-    enabled: !!user,
-  });
-
-  // Buscar dados do perfil do usuário
-  const { data: userProfile } = useQuery({
-    queryKey: ['user-profile', user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error) {
-        console.error('Erro ao buscar perfil:', error);
-        return null;
-      }
-      
-      console.log('Perfil encontrado:', data);
-      return data;
-    },
-    enabled: !!user,
-  });
 
   const formatCurrency = (value?: number) => {
     if (!value && value !== 0) return 'R$ 0,00';
@@ -118,12 +77,12 @@ const StandardProposalTemplate = ({ proposal, className = "", companyLogo }: Sta
   const grandTotal = servicesTotal + materialsTotal;
 
   // Usar logo passada como prop ou da empresa
-  const logoToUse = companyLogo || userCompany?.logo_url;
+  const logoToUse = companyLogo || proposal.companies?.logo_url;
 
   console.log('Dados da empresa na proposta:', {
-    userCompany,
+    companies: proposal.companies,
     logoToUse,
-    companyName: userCompany?.name
+    companyName: proposal.companies?.name
   });
 
   return (
@@ -140,12 +99,12 @@ const StandardProposalTemplate = ({ proposal, className = "", companyLogo }: Sta
               />
             )}
             <h1 className="text-xl font-bold text-gray-900 mb-1">
-              {userCompany?.name || 'Nome da Empresa'}
+              {proposal.companies?.name || 'Nome da Empresa'}
             </h1>
             <div className="text-sm text-gray-600 space-y-1">
-              <p><strong>Responsável:</strong> {userProfile?.name || user?.email || 'Responsável'}</p>
-              <p><strong>E-mail:</strong> {userCompany?.email || user?.email || 'email@empresa.com'}</p>
-              <p><strong>Telefone:</strong> {userCompany?.phone || userProfile?.phone || 'Telefone não informado'}</p>
+              <p><strong>Responsável:</strong> {proposal.user_profile?.name || 'Responsável'}</p>
+              <p><strong>E-mail:</strong> {proposal.companies?.email || 'email@empresa.com'}</p>
+              <p><strong>Telefone:</strong> {proposal.companies?.phone || proposal.user_profile?.phone || 'Telefone não informado'}</p>
             </div>
           </div>
           <div className="text-right text-sm">
@@ -161,7 +120,7 @@ const StandardProposalTemplate = ({ proposal, className = "", companyLogo }: Sta
 
       {/* Cliente */}
       <div className="mb-6">
-        <h3 className="font-bold mb-2">Cliente: {proposal.companies?.name || 'Nome do Cliente'}</h3>
+        <h3 className="font-bold mb-2">Cliente: {proposal.clients?.name || 'Nome do Cliente'}</h3>
       </div>
 
       {/* Serviços */}
@@ -288,8 +247,8 @@ const StandardProposalTemplate = ({ proposal, className = "", companyLogo }: Sta
       {/* Footer */}
       <div className="text-center pt-6 mt-8 border-t border-gray-300">
         <div className="mt-8 pt-4 border-t border-gray-200">
-          <p className="font-bold">{userCompany?.name || 'Nome da Empresa'}</p>
-          <p className="text-sm">{userProfile?.name || user?.email || 'Responsável'}</p>
+          <p className="font-bold">{proposal.companies?.name || 'Nome da Empresa'}</p>
+          <p className="text-sm">{proposal.user_profile?.name || 'Responsável'}</p>
         </div>
       </div>
     </div>

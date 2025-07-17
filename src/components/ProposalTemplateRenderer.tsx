@@ -1,7 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import React from 'react';
 import StandardProposalTemplate from '@/components/StandardProposalTemplate';
 
 interface ProposalTemplateRendererProps {
@@ -9,13 +7,14 @@ interface ProposalTemplateRendererProps {
   companyLogo?: string;
 }
 
-const ProposalTemplateRenderer = ({ proposal }: ProposalTemplateRendererProps) => {
+const ProposalTemplateRenderer = ({ proposal, companyLogo }: ProposalTemplateRendererProps) => {
   console.log('ProposalTemplateRenderer - Dados da proposta:', proposal);
 
   // Usar sempre o novo template padrão
   return (
     <StandardProposalTemplate 
       proposal={proposal}
+      companyLogo={companyLogo}
       className="max-w-4xl mx-auto"
     />
   );
