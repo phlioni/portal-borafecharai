@@ -61,9 +61,9 @@ const Layout = ({ children }: LayoutProps) => {
   const menuItems = [
     { path: '/dashboard', icon: Home, label: 'Dashboard' },
     // Movemos o Chat Proposta para uma posição mais destacada
-    { path: '/propostas/chat', icon: MessageSquare, label: 'Chat Proposta', highlight: true },
+    { path: '/chat-proposta', icon: MessageSquare, label: 'Chat Proposta', highlight: true },
     { path: '/propostas', icon: FileText, label: 'Propostas' },
-    ...(canCreateProposal ? [{ path: '/propostas/nova', icon: PlusCircle, label: 'Nova Proposta' }] : []),
+    ...(canCreateProposal ? [{ path: '/nova-proposta', icon: PlusCircle, label: 'Nova Proposta' }] : []),
     { path: '/clientes', icon: Users, label: 'Clientes' },
     { path: '/analytics', icon: BarChart3, label: 'Analytics' },
     { path: '/configuracoes', icon: Settings, label: 'Configurações' },

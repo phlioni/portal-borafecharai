@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -130,7 +131,7 @@ const NovaPropostaPage = () => {
       
       toast.success('Proposta salva como rascunho!');
       setShowPreview(false);
-      navigate(`/propostas/visualizar/${newProposal.id}`);
+      navigate(`/propostas/${newProposal.id}`);
     } catch (error) {
       console.error('Erro ao salvar rascunho:', error);
       toast.error('Erro ao salvar rascunho');
@@ -175,7 +176,7 @@ const NovaPropostaPage = () => {
       if (success) {
         setShowSendModal(false);
         toast.success('Proposta criada e enviada com sucesso!');
-        navigate(`/propostas/visualizar/${newProposal.id}`);
+        navigate(`/propostas/${newProposal.id}`);
       }
     } catch (error) {
       console.error('Erro ao criar e enviar proposta:', error);
