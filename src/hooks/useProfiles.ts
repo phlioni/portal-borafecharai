@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,74 +52,16 @@ export const useProfiles = () => {
     }
   };
 
-  const checkAndGrantBonus = async () => {
-    if (!user?.id) {
-      console.log('Usuário não encontrado para verificar bônus');
-      return;
-    }
+  const checkAndTriggerBonus = async () => {
+    if (!user?.id) return;
 
     try {
-      console.log('Verificando elegibilidade para bônus de perfil completo');
+      console.log('Verificando se deve acionar bônus após atualização do perfil');
       
-      // Primeiro verificar se já reivindicou o bônus
-      const { data: subscriber, error: subscriberError } = await supabase
-        .from('subscribers')
-        .select('profile_completion_bonus_claimed')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      console.log('Dados do subscriber:', subscriber, 'Erro:', subscriberError);
-
-      if (subscriberError) {
-        console.error('Erro ao verificar subscriber:', subscriberError);
-        return;
-      }
-
-      if (subscriber?.profile_completion_bonus_claimed) {
-        console.log('Bônus já foi reivindicado anteriormente');
-        return;
-      }
-
-      // Verificar se o perfil está realmente completo
-      const { data: isComplete, error: completeError } = await supabase
-        .rpc('is_profile_complete', { _user_id: user.id });
-
-      console.log('Perfil completo?', isComplete, 'Erro:', completeError);
-
-      if (completeError) {
-        console.error('Erro ao verificar se perfil está completo:', completeError);
-        return;
-      }
-
-      if (!isComplete) {
-        console.log('Perfil não está completo ainda');
-        return;
-      }
-
-      // Tentar conceder o bônus
-      const { data: success, error } = await supabase
-        .rpc('grant_profile_completion_bonus', { _user_id: user.id });
-
-      console.log('Resultado do grant_profile_completion_bonus:', success, 'Erro:', error);
-
-      if (error) {
-        console.error('Erro ao conceder bônus:', error);
-        return;
-      }
-
-      if (success) {
-        console.log('Bônus de perfil completo concedido com sucesso!');
-        
-        // Invalidar queries relacionadas para que a celebração apareça
+      // Aguardar um pouco para garantir que os dados foram salvos
+      setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ['profile-completion'] });
-        queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
-        queryClient.invalidateQueries({ queryKey: ['user-permissions'] });
-        
-        // Mostrar toast de sucesso
-        toast.success('🎉 Parabéns! Você ganhou 5 propostas extras por completar seu perfil!');
-      } else {
-        console.log('Função retornou false - condições não atendidas para o bônus');
-      }
+      }, 1000);
     } catch (error) {
       console.error('Erro ao verificar bônus:', error);
     }
@@ -200,11 +143,8 @@ export const useProfiles = () => {
       console.log('Perfil atualizado com sucesso:', data);
       setProfile(data);
       
-      // Verificar e conceder bônus após atualização do perfil
-      console.log('Verificando bônus após atualização do perfil');
-      setTimeout(() => {
-        checkAndGrantBonus();
-      }, 1000); // Aguardar 1 segundo para garantir que os dados foram salvos
+      // Verificar bônus após atualização
+      checkAndTriggerBonus();
       
       return { data };
     } catch (error) {

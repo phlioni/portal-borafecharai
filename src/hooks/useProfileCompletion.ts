@@ -39,41 +39,77 @@ export const useProfileCompletion = () => {
       }
 
       const bonusAlreadyClaimed = subscriber?.profile_completion_bonus_claimed || false;
+      console.log('Bônus já reivindicado?', bonusAlreadyClaimed);
 
       // Se já reivindicou, não precisa verificar mais nada
       if (bonusAlreadyClaimed) {
         return {
-          isProfileComplete: true, // Assumir que está completo se já reivindicou
+          isProfileComplete: true,
           bonusAlreadyClaimed: true,
           canClaimBonus: false
         };
       }
 
-      // Verificar se perfil está completo usando a função do banco
-      const { data: isComplete, error: completeError } = await supabase
-        .rpc('is_profile_complete', { _user_id: user.id });
+      // Verificar perfil (nome e telefone)
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('name, phone')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      if (completeError) {
-        console.error('Erro ao verificar perfil completo:', completeError);
-        throw completeError;
+      if (profileError) {
+        console.error('Erro ao buscar perfil:', profileError);
+        throw profileError;
       }
 
+      const profileComplete = profile && 
+        profile.name && profile.name.trim() !== '' &&
+        profile.phone && profile.phone.trim() !== '';
+
+      console.log('Perfil completo?', profileComplete, profile);
+
+      // Verificar empresa (nome, email, telefone, endereço, cidade, segmento e tipo)
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .select('name, email, phone, address, city, business_segment, business_type_detail')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (companyError) {
+        console.error('Erro ao buscar empresa:', companyError);
+        throw companyError;
+      }
+
+      const companyComplete = company &&
+        company.name && company.name.trim() !== '' &&
+        company.email && company.email.trim() !== '' &&
+        company.phone && company.phone.trim() !== '' &&
+        company.address && company.address.trim() !== '' &&
+        company.city && company.city.trim() !== '' &&
+        company.business_segment && company.business_segment.trim() !== '' &&
+        company.business_type_detail && company.business_type_detail.trim() !== '';
+
+      console.log('Empresa completa?', companyComplete, company);
+
+      const isComplete = profileComplete && companyComplete;
       const canClaimBonus = isComplete && !bonusAlreadyClaimed;
 
-      console.log('Status do perfil atualizado:', {
+      console.log('Status final:', {
+        profileComplete,
+        companyComplete,
         isComplete,
         bonusAlreadyClaimed,
         canClaimBonus
       });
 
       return {
-        isProfileComplete: isComplete || false,
+        isProfileComplete: isComplete,
         bonusAlreadyClaimed,
         canClaimBonus
       };
     },
     enabled: !!user?.id,
-    refetchInterval: 3000, // Verificar a cada 3 segundos
+    refetchInterval: 2000, // Verificar a cada 2 segundos
   });
 
   const claimBonus = useMutation({
@@ -82,21 +118,40 @@ export const useProfileCompletion = () => {
         throw new Error('Usuário não autenticado');
       }
 
-      console.log('Tentando reivindicar bônus manualmente para usuário:', user.id);
+      console.log('Tentando reivindicar bônus para usuário:', user.id);
 
-      const { data: success, error } = await supabase
-        .rpc('grant_profile_completion_bonus', { _user_id: user.id });
+      // Primeiro verificar se realmente pode reivindicar
+      const currentStatus = await checkProfileCompletion.refetch();
+      if (!currentStatus.data?.canClaimBonus) {
+        console.log('Não pode reivindicar bônus no momento');
+        return false;
+      }
+
+      // Conceder o bônus diretamente
+      const { data: subscriber } = await supabase
+        .from('subscribers')
+        .select('bonus_proposals_current_month')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const currentBonus = subscriber?.bonus_proposals_current_month || 0;
+
+      const { error } = await supabase
+        .from('subscribers')
+        .update({
+          profile_completion_bonus_claimed: true,
+          bonus_proposals_current_month: currentBonus + 5,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id);
 
       if (error) {
-        console.error('Erro ao reivindicar bônus:', error);
+        console.error('Erro ao conceder bônus:', error);
         throw error;
       }
 
-      if (!success) {
-        throw new Error('Não foi possível reivindicar o bônus');
-      }
-
-      return success;
+      console.log('Bônus concedido com sucesso!');
+      return true;
     },
     onSuccess: () => {
       // Mostrar celebração

@@ -6,9 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Gift, User, Building2, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useProfileCompletion } from '@/hooks/useProfileCompletion';
+import BonusCelebration from './BonusCelebration';
 
 const ProfileCompletionAlert = () => {
-  const { data: status, isLoading, claimBonus, isClaiming } = useProfileCompletion();
+  const { data: status, isLoading, claimBonus, isClaiming, showCelebration, handleCelebrationComplete } = useProfileCompletion();
 
   // Reivindicar automaticamente quando o bônus estiver disponível
   useEffect(() => {
@@ -28,39 +29,45 @@ const ProfileCompletionAlert = () => {
     return null;
   }
 
-  // Se perfil está completo e pode reivindicar bônus (mas não deve aparecer aqui pois é reivindicado automaticamente)
+  // Se perfil está completo e pode reivindicar bônus
   if (status.canClaimBonus) {
     return (
-      <Card className="border-green-200 bg-green-50">
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <Gift className="h-5 w-5 text-green-600" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-semibold text-green-800">Parabéns! Seu perfil está completo!</h3>
-                  <Badge variant="secondary" className="bg-green-100 text-green-700">
-                    <Gift className="h-3 w-3 mr-1" />
-                    Bônus Disponível
-                  </Badge>
+      <>
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                  <Gift className="h-5 w-5 text-green-600" />
                 </div>
-                <p className="text-sm text-green-700">
-                  Você preencheu todas as informações importantes e ganhou <strong>5 propostas extras</strong> para usar este mês!
-                </p>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold text-green-800">Parabéns! Seu perfil está completo!</h3>
+                    <Badge variant="secondary" className="bg-green-100 text-green-700">
+                      <Gift className="h-3 w-3 mr-1" />
+                      Bônus Disponível
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-green-700">
+                    Você preencheu todas as informações importantes e ganhou <strong>5 propostas extras</strong> para usar este mês!
+                  </p>
+                </div>
               </div>
+              <Button 
+                onClick={() => claimBonus()}
+                disabled={isClaiming}
+                className="bg-green-600 hover:bg-green-700 text-white shrink-0"
+              >
+                {isClaiming ? 'Reivindicando...' : 'Resgatar Bônus'}
+              </Button>
             </div>
-            <Button 
-              onClick={() => claimBonus()}
-              disabled={isClaiming}
-              className="bg-green-600 hover:bg-green-700 text-white shrink-0"
-            >
-              {isClaiming ? 'Reivindicando...' : 'Resgatar Bônus'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+        <BonusCelebration 
+          show={showCelebration} 
+          onComplete={handleCelebrationComplete} 
+        />
+      </>
     );
   }
 
