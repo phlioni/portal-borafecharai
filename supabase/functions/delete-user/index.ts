@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
@@ -72,24 +73,154 @@ serve(async (req) => {
       })
     }
 
-    // Excluir usuário usando o service key
+    console.log('Iniciando exclusão do usuário:', userId)
+
+    // Deletar dados relacionados na ordem correta (das tabelas filhas para as pais)
+    
+    // 1. Deletar itens de orçamento das propostas
+    const { error: budgetItemsError } = await supabase
+      .from('proposal_budget_items')
+      .delete()
+      .in('proposal_id', 
+        supabase.from('proposals').select('id').eq('user_id', userId)
+      )
+    
+    if (budgetItemsError) {
+      console.error('Erro ao deletar itens de orçamento:', budgetItemsError)
+    }
+
+    // 2. Deletar notificações de propostas
+    const { error: notificationsError } = await supabase
+      .from('proposal_notifications')
+      .delete()
+      .eq('user_id', userId)
+    
+    if (notificationsError) {
+      console.error('Erro ao deletar notificações:', notificationsError)
+    }
+
+    // 3. Deletar propostas
+    const { error: proposalsError } = await supabase
+      .from('proposals')
+      .delete()
+      .eq('user_id', userId)
+    
+    if (proposalsError) {
+      console.error('Erro ao deletar propostas:', proposalsError)
+    }
+
+    // 4. Deletar templates personalizados
+    const { error: templatesError } = await supabase
+      .from('custom_proposal_templates')
+      .delete()
+      .eq('user_id', userId)
+    
+    if (templatesError) {
+      console.error('Erro ao deletar templates:', templatesError)
+    }
+
+    // 5. Deletar templates de email
+    const { error: emailTemplatesError } = await supabase
+      .from('email_templates')
+      .delete()
+      .eq('user_id', userId)
+    
+    if (emailTemplatesError) {
+      console.error('Erro ao deletar templates de email:', emailTemplatesError)
+    }
+
+    // 6. Deletar configurações do Telegram
+    const { error: telegramError } = await supabase
+      .from('telegram_bot_settings')
+      .delete()
+      .eq('user_id', userId)
+    
+    if (telegramError) {
+      console.error('Erro ao deletar config Telegram:', telegramError)
+    }
+
+    // 7. Deletar sessões do Telegram
+    const { error: sessionsError } = await supabase
+      .from('telegram_sessions')
+      .delete()
+      .eq('user_id', userId)
+    
+    if (sessionsError) {
+      console.error('Erro ao deletar sessões Telegram:', sessionsError)
+    }
+
+    // 8. Deletar configurações do sistema
+    const { error: settingsError } = await supabase
+      .from('system_settings')
+      .delete()
+      .eq('user_id', userId)
+    
+    if (settingsError) {
+      console.error('Erro ao deletar configurações:', settingsError)
+    }
+
+    // 9. Deletar empresas
+    const { error: companiesError } = await supabase
+      .from('companies')
+      .delete()
+      .eq('user_id', userId)
+    
+    if (companiesError) {
+      console.error('Erro ao deletar empresas:', companiesError)
+    }
+
+    // 10. Deletar perfil
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('user_id', userId)
+    
+    if (profileError) {
+      console.error('Erro ao deletar perfil:', profileError)
+    }
+
+    // 11. Deletar assinante
+    const { error: subscriberError } = await supabase
+      .from('subscribers')
+      .delete()
+      .eq('user_id', userId)
+    
+    if (subscriberError) {
+      console.error('Erro ao deletar subscriber:', subscriberError)
+    }
+
+    // 12. Deletar roles do usuário
+    const { error: rolesError } = await supabase
+      .from('user_roles')
+      .delete()
+      .eq('user_id', userId)
+    
+    if (rolesError) {
+      console.error('Erro ao deletar roles:', rolesError)
+    }
+
+    console.log('Dados relacionados deletados, deletando usuário da auth...')
+
+    // Por último, deletar usuário usando o service key
     const { error } = await supabase.auth.admin.deleteUser(userId)
     
     if (error) {
-      console.error('Erro ao excluir usuário:', error)
-      return new Response(JSON.stringify({ error: 'Failed to delete user' }), {
+      console.error('Erro ao excluir usuário da auth:', error)
+      return new Response(JSON.stringify({ error: 'Failed to delete user from auth', details: error.message }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    return new Response(JSON.stringify({ success: true }), {
+    console.log('Usuário deletado com sucesso:', userId)
+
+    return new Response(JSON.stringify({ success: true, message: 'User and related data deleted successfully' }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   } catch (error) {
-    console.error('Erro geral:', error)
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+    console.error('Erro geral ao deletar usuário:', error)
+    return new Response(JSON.stringify({ error: 'Internal server error', details: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })

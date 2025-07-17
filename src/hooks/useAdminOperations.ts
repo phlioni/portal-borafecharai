@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -117,29 +118,45 @@ export const useAdminOperations = () => {
 
   const deleteUser = async (userId: string) => {
     try {
-      // Deletar dados relacionados
-      await supabase.from('proposals').delete().eq('user_id', userId);
-      await supabase.from('companies').delete().eq('user_id', userId);
-      await supabase.from('subscribers').delete().eq('user_id', userId);
-      await supabase.from('user_roles').delete().eq('user_id', userId);
-
-      // Deletar usuário via edge function
-      const { error: deleteError } = await supabase.functions.invoke('delete-user', {
+      console.log('Iniciando exclusão do usuário:', userId);
+      
+      // Deletar usuário via edge function (que já cuida de todos os dados relacionados)
+      const { data, error: deleteError } = await supabase.functions.invoke('delete-user', {
         body: { userId }
       });
 
       if (deleteError) {
         console.error('Erro ao excluir usuário:', deleteError);
+        
+        // Mensagens de erro mais específicas
+        if (deleteError.message?.includes('403') || deleteError.message?.includes('Access denied')) {
+          toast.error('Acesso negado. Apenas administradores podem deletar usuários.');
+        } else if (deleteError.message?.includes('401') || deleteError.message?.includes('Unauthorized')) {
+          toast.error('Erro de autorização. Faça login novamente.');
+        } else {
+          toast.error(`Erro ao excluir usuário: ${deleteError.message || 'Erro desconhecido'}`);
+        }
+        return false;
+      }
+
+      if (data && !data.success) {
+        console.error('Edge function retornou erro:', data);
         toast.error('Erro ao excluir usuário');
         return false;
       }
 
+      console.log('Usuário excluído com sucesso');
       toast.success('Usuário excluído com sucesso!');
-      await loadUsers(); // Recarregar lista
+      
+      // Recarregar lista após um pequeno delay para garantir que a exclusão foi processada
+      setTimeout(() => {
+        loadUsers();
+      }, 1000);
+      
       return true;
     } catch (error) {
       console.error('Erro ao deletar usuário:', error);
-      toast.error('Erro ao deletar usuário');
+      toast.error('Erro inesperado ao deletar usuário');
       return false;
     }
   };
