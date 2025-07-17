@@ -1,38 +1,25 @@
 
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { Resend } from "npm:resend@2.0.0";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
+import { corsHeaders } from '../_shared/cors.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
-};
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
-serve(async (req) => {
+const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+const resendApiKey = Deno.env.get('RESEND_API_KEY')!
+
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: corsHeaders
-    });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    console.log('=== Iniciando processamento de envio de email ===');
-    
-    const body = await req.text();
-    console.log('Body raw:', body);
-    const bodyData = JSON.parse(body);
-    console.log('Body parsed:', bodyData);
+    const { proposalId, emailData } = await req.json()
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    console.log('Enviando proposta por email:', { proposalId, emailData })
 
-    console.log('Conectando ao Supabase...');
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    const { proposalId, recipientEmail, recipientName, emailSubject, emailMessage, publicUrl } = bodyData;
-
-    console.log('Buscando proposta completa:', proposalId);
+    // Buscar proposta com cliente
     const { data: proposal, error: proposalError } = await supabase
       .from('proposals')
       .select(`
@@ -42,134 +29,138 @@ serve(async (req) => {
           name,
           email,
           phone
+        ),
+        proposal_budget_items (
+          id,
+          description,
+          quantity,
+          unit_price,
+          total_price,
+          type
         )
       `)
       .eq('id', proposalId)
-      .single();
+      .single()
 
     if (proposalError) {
-      console.error('Erro ao buscar proposta:', proposalError);
-      throw proposalError;
+      console.error('Erro ao buscar proposta:', proposalError)
+      return new Response(
+        JSON.stringify({ error: 'Proposta não encontrada' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
-
-    console.log('Proposta encontrada:', proposal.title);
 
     // Buscar dados da empresa do usuário
-    console.log('Buscando dados da empresa do usuário...');
-    const { data: userCompany, error: companyError } = await supabase
-      .from('companies')
+    const { data: userCompany } = await supabase
+      .from('user_companies')
       .select('*')
       .eq('user_id', proposal.user_id)
-      .single();
+      .single()
 
-    if (companyError) {
-      console.error('Erro ao buscar empresa do usuário:', companyError);
-    }
-
-    // Buscar perfil do usuário
-    const { data: userProfile, error: profileError } = await supabase
-      .from('profiles')
+    // Buscar template de email personalizado
+    const { data: emailTemplate } = await supabase
+      .from('email_templates')
       .select('*')
       .eq('user_id', proposal.user_id)
-      .single();
+      .single()
 
-    if (profileError) {
-      console.error('Erro ao buscar perfil do usuário:', profileError);
+    // Calcular valor total da proposta
+    const totalValue = proposal.proposal_budget_items?.reduce((total: number, item: any) => {
+      return total + (item.quantity * item.unit_price)
+    }, 0) || proposal.value || 0
+
+    // Gerar link público da proposta
+    const publicLink = `https://pakrraqbjbkkbdnwkkbt.supabase.co/proposta/${proposal.public_hash}`
+
+    // Montar dados para o template
+    const templateData = {
+      proposalTitle: proposal.title,
+      proposalValue: totalValue,
+      clientName: proposal.clients?.name || 'Cliente',
+      companyName: userCompany?.name || 'Empresa',
+      publicLink,
+      deliveryTime: proposal.delivery_time,
+      validityDate: proposal.validity_date,
+      serviceDescription: proposal.service_description,
+      detailedDescription: proposal.detailed_description,
+      observations: proposal.observations,
+      companyEmail: userCompany?.email,
+      companyPhone: userCompany?.phone,
+      companyAddress: userCompany?.address
     }
 
-    // Preparar dados para o template de email
-    const companyName = userCompany?.name || 'Nome da Empresa';
-    const companyLogo = userCompany?.logo_url || '';
-    const responsibleName = userProfile?.name || proposal.user_id;
-    const companyEmail = userCompany?.email || '';
-    const companyPhone = userCompany?.phone || userProfile?.phone || '';
+    // Usar template personalizado se disponível
+    let emailSubject = emailTemplate?.email_subject_template || 'Proposta Comercial: {{proposalTitle}}'
+    let emailMessage = emailTemplate?.email_message_template || `
+Olá {{clientName}},
 
-    const resend = new Resend(resendApiKey);
+Segue em anexo nossa proposta comercial para o projeto "{{proposalTitle}}".
 
-    console.log('URL pública final:', publicUrl);
-    console.log('Payload do email preparado');
+Valor: R$ {{proposalValue}}
+Prazo de entrega: {{deliveryTime}}
+Validade: {{validityDate}}
 
-    // Processar a mensagem para melhorar espaçamento e remover link
-    const processedMessage = emailMessage
-      .replace(/\[LINK_DA_PROPOSTA\]/g, '') // Remove o placeholder do link
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => line.length > 0) // Remove linhas vazias
-      .join('<br><br>'); // Adiciona quebras de linha duplas para melhor espaçamento
+Você pode visualizar e responder a proposta através do link:
+{{publicLink}}
 
-    const emailPayload = {
-      from: `Propostas <proposta@borafecharai.com>`,
-      to: [recipientEmail],
-      subject: emailSubject,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6;">
-          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px; text-align: center; color: white;">
-            <h1 style="margin: 0; font-size: 32px; font-weight: bold;">${proposal.title}</h1>
-            <p style="margin: 10px 0 0 0; font-size: 18px; opacity: 0.9;">Proposta Comercial</p>
-          </div>
-          
-          <div style="padding: 40px 30px;">
-            <div style="color: #333; margin-bottom: 40px; font-size: 16px;">
-              ${processedMessage}
-            </div>
-            
-            <div style="text-align: center; margin: 40px 0;">
-              <a href="${publicUrl}" 
-                 style="display: inline-block; background-color: #007bff; color: white; text-decoration: none; padding: 15px 35px; border-radius: 8px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-                📄 Visualizar Proposta Completa
-              </a>
-            </div>
-          </div>
-          
-          <div style="background-color: #f8f9fa; padding: 30px 20px; text-align: center; color: #666; font-size: 14px; border-top: 1px solid #eee;">
-            <p style="margin: 0 0 10px 0; font-weight: bold; font-size: 16px;">${companyName}</p>
-            <p style="margin: 5px 0;">${responsibleName}</p>
-            ${companyEmail ? `<p style="margin: 8px 0;">📧 ${companyEmail}</p>` : ''}
-            ${companyPhone ? `<p style="margin: 8px 0;">📱 ${companyPhone}</p>` : ''}
-          </div>
-        </div>
-      `
-    };
+Atenciosamente,
+{{companyName}}
+`
 
-    console.log('Enviando email via Resend...');
-    const emailResponse = await resend.emails.send(emailPayload);
+    // Substituir variáveis no template
+    Object.entries(templateData).forEach(([key, value]) => {
+      const placeholder = `{{${key}}}`
+      emailSubject = emailSubject.replace(new RegExp(placeholder, 'g'), value?.toString() || '')
+      emailMessage = emailMessage.replace(new RegExp(placeholder, 'g'), value?.toString() || '')
+    })
 
-    console.log('Status da resposta do Resend:', emailResponse ? 200 : 'Error');
-    console.log('Email enviado com sucesso:', emailResponse);
+    // Adicionar assinatura se disponível
+    if (emailTemplate?.email_signature) {
+      emailMessage += `\n\n${emailTemplate.email_signature}`
+    }
 
-    console.log('Atualizando status da proposta...');
+    // Enviar email via Resend
+    const emailResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: emailData.from || 'noreply@borafecharai.com',
+        to: [emailData.to],
+        subject: emailSubject,
+        html: emailMessage.replace(/\n/g, '<br>')
+      })
+    })
+
+    if (!emailResponse.ok) {
+      const errorText = await emailResponse.text()
+      console.error('Erro ao enviar email via Resend:', errorText)
+      return new Response(
+        JSON.stringify({ error: 'Erro ao enviar email' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Atualizar status da proposta para 'enviada'
     await supabase
       .from('proposals')
-      .update({
-        status: 'enviada',
-        views: (proposal.views || 0) + 1,
-        last_viewed_at: new Date().toISOString()
-      })
-      .eq('id', proposalId);
+      .update({ status: 'enviada' })
+      .eq('id', proposalId)
 
-    console.log('=== Processo finalizado com sucesso ===');
+    console.log('Email enviado com sucesso para:', emailData.to)
 
-    return new Response(JSON.stringify({
-      success: true,
-      emailId: emailResponse.id
-    }), {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json'
-      },
-      status: 200
-    });
+    return new Response(
+      JSON.stringify({ success: true, message: 'Email enviado com sucesso' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
 
   } catch (error) {
-    console.error('Erro no processamento:', error);
-    return new Response(JSON.stringify({
-      error: error.message
-    }), {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json'
-      },
-      status: 500
-    });
+    console.error('Erro no envio de email:', error)
+    return new Response(
+      JSON.stringify({ error: 'Erro interno do servidor' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
   }
-});
+})

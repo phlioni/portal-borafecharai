@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Save, Eye } from 'lucide-react';
+import { ArrowLeft, Save, Eye, Plus } from 'lucide-react';
 import { useCreateProposal } from '@/hooks/useProposals';
 import { useClients } from '@/hooks/useClients';
 import { useUserCompany } from '@/hooks/useUserCompany';
@@ -17,12 +16,13 @@ import ProposalCreatePreviewModal from '@/components/ProposalCreatePreviewModal'
 import SendProposalModal from '@/components/SendProposalModal';
 import BudgetItemsManager from '@/components/BudgetItemsManager';
 import { useProposalSending } from '@/hooks/useProposalSending';
+import QuickClientModal from '@/components/QuickClientModal';
 
 const NovaPropostaPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const createProposal = useCreateProposal();
-  const { data: clients } = useClients();
+  const { data: clients, refetch: refetchClients } = useClients();
   const { data: userCompany } = useUserCompany();
   const { sendProposal, isSending } = useProposalSending();
 
@@ -38,6 +38,7 @@ const NovaPropostaPage = () => {
 
   const [showPreview, setShowPreview] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
+  const [showQuickClientModal, setShowQuickClientModal] = useState(false);
   const [previewProposal, setPreviewProposal] = useState(null);
   const [companyLogo, setCompanyLogo] = useState('');
   const [budgetItems, setBudgetItems] = useState<any[]>([]);
@@ -51,6 +52,15 @@ const NovaPropostaPage = () => {
 
   const handleBudgetItemsChange = (items: any[]) => {
     setBudgetItems(items);
+  };
+
+  const handleClientCreated = (newClient: any) => {
+    refetchClients();
+    setFormData(prev => ({
+      ...prev,
+      client_id: newClient.id
+    }));
+    setShowQuickClientModal(false);
   };
 
   const prepareProposalForPreview = () => {
@@ -229,22 +239,34 @@ const NovaPropostaPage = () => {
             </div>
             <div>
               <Label htmlFor="client">Cliente</Label>
-              <Select 
-                value={formData.client_id} 
-                onValueChange={(value) => handleInputChange('client_id', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhum cliente selecionado</SelectItem>
-                  {clients?.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                <Select 
+                  value={formData.client_id} 
+                  onValueChange={(value) => handleInputChange('client_id', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum cliente selecionado</SelectItem>
+                    {clients?.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowQuickClientModal(true)}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Criar novo cliente
+                </Button>
+              </div>
             </div>
             <div>
               <Label htmlFor="service_description">Resumo do Serviço</Label>
@@ -338,6 +360,13 @@ const NovaPropostaPage = () => {
           isLoading={isSending || createProposal.isPending}
         />
       )}
+
+      {/* Quick Client Modal */}
+      <QuickClientModal
+        isOpen={showQuickClientModal}
+        onClose={() => setShowQuickClientModal(false)}
+        onClientCreated={handleClientCreated}
+      />
     </div>
   );
 };
