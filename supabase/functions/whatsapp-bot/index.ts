@@ -77,6 +77,35 @@ serve(async (req) => {
   }
 });
 
+// Função para converter data DD/MM/YYYY para formato ISO
+function convertDateToISO(dateString: string): string | null {
+  try {
+    // Verificar se está no formato DD/MM/YYYY
+    const dateRegex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+    const match = dateString.match(dateRegex);
+    
+    if (!match) {
+      return null;
+    }
+    
+    const [, day, month, year] = match;
+    
+    // Criar data no formato ISO (YYYY-MM-DD)
+    const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    
+    // Validar se a data é válida
+    const date = new Date(isoDate);
+    if (isNaN(date.getTime())) {
+      return null;
+    }
+    
+    return isoDate;
+  } catch (error) {
+    console.error('Error converting date:', error);
+    return null;
+  }
+}
+
 async function processMessage(message: TwilioMessage, supabase: any, accountSid: string, authToken: string) {
   // Extract phone number from WhatsApp format (whatsapp:+5511999999999)
   const phoneNumber = message.From.replace('whatsapp:', '');
@@ -442,7 +471,19 @@ async function handleUserFlow(phoneNumber: string, messageText: string, session:
 
     case 'collect_validity_date':
       const sessionData9 = session.session_data || {};
-      sessionData9.validity_date = messageText;
+      
+      // Converter data do formato DD/MM/YYYY para ISO
+      const convertedDate = convertDateToISO(messageText);
+      
+      if (!convertedDate) {
+        await sendMessage(phoneNumber, 
+          `❌ Data inválida. Use o formato DD/MM/AAAA (ex: 20/07/2025):`, 
+          accountSid, authToken
+        );
+        return;
+      }
+      
+      sessionData9.validity_date = convertedDate;
       
       await sendMessage(phoneNumber, 
         `📝 *Observações (Opcional)*\n\n` +
@@ -751,6 +792,8 @@ async function sendMessage(phoneNumber: string, message: string, accountSid: str
 
 async function createProposal(phoneNumber: string, sessionData: any, userId: string, supabase: any, accountSid: string, authToken: string) {
   try {
+    console.log('Creating proposal with session data:', sessionData);
+    
     // Create client if doesn't exist
     let clientId = sessionData.client?.id;
     
@@ -767,13 +810,14 @@ async function createProposal(phoneNumber: string, sessionData: any, userId: str
         .single();
 
       if (clientError) {
+        console.error('Error creating client:', clientError);
         throw clientError;
       }
       
       clientId = newClient.id;
     }
 
-    // Create proposal
+    // Preparar dados da proposta
     const proposalData = {
       user_id: userId,
       client_id: clientId,
@@ -782,11 +826,13 @@ async function createProposal(phoneNumber: string, sessionData: any, userId: str
       detailed_description: sessionData.detailed_description,
       value: sessionData.value,
       delivery_time: sessionData.delivery_time,
-      validity_date: sessionData.validity_date,
+      validity_date: sessionData.validity_date, // Já está no formato ISO
       observations: sessionData.observations || null,
       status: 'rascunho',
       template_id: 'moderno'
     };
+
+    console.log('Proposal data to insert:', proposalData);
 
     const { data: proposal, error: proposalError } = await supabase
       .from('proposals')
@@ -795,8 +841,11 @@ async function createProposal(phoneNumber: string, sessionData: any, userId: str
       .single();
 
     if (proposalError) {
+      console.error('Error creating proposal:', proposalError);
       throw proposalError;
     }
+
+    console.log('Proposal created successfully:', proposal);
 
     await sendMessage(phoneNumber, 
       `✅ *Proposta Criada com Sucesso!*\n\n` +
@@ -816,7 +865,7 @@ async function createProposal(phoneNumber: string, sessionData: any, userId: str
   } catch (error) {
     console.error('Error creating proposal:', error);
     await sendMessage(phoneNumber, 
-      `❌ Erro ao criar proposta. Tente novamente.`, 
+      `❌ Erro ao criar proposta: ${error.message || 'Erro desconhecido'}. Tente novamente.`, 
       accountSid, authToken
     );
     await updateSession(phoneNumber, { step: 'start' }, supabase);
