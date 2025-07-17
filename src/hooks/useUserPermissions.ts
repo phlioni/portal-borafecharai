@@ -80,7 +80,7 @@ export const useUserPermissions = () => {
           .from('subscribers')
           .select('*')
           .eq('user_id', user.id)
-          .maybeSingle(); // Usar .maybeSingle() aqui também
+          .maybeSingle();
 
         if (subscriberError) {
           console.error('useUserPermissions - Error fetching subscriber:', subscriberError);
@@ -104,7 +104,9 @@ export const useUserPermissions = () => {
           setCanAccessPremiumTemplates(true);
         } else if (subscribed) {
           if (subscription_tier === 'basico') {
-            proposalLimit = 10;
+            // Plano básico: 10 propostas + bônus
+            const bonusProposals = subscriber?.bonus_proposals_current_month || 0;
+            proposalLimit = 10 + bonusProposals;
             setCanAccessAnalytics(false);
             setCanAccessPremiumTemplates(false);
           } else if (subscription_tier === 'profissional') {
@@ -115,8 +117,10 @@ export const useUserPermissions = () => {
         } else {
           // Trial ou sem acesso
           if (subscriber?.trial_end_date && new Date(subscriber.trial_end_date) >= new Date()) {
-            proposalLimit = 20;
-            console.log('useUserPermissions - User in trial, limit 20 proposals');
+            // Trial: 20 propostas + bônus
+            const bonusProposals = subscriber?.bonus_proposals_current_month || 0;
+            proposalLimit = 20 + bonusProposals;
+            console.log('useUserPermissions - User in trial, limit:', proposalLimit, 'proposals (20 base +', bonusProposals, 'bonus)');
           } else {
             proposalLimit = 0;
             console.log('useUserPermissions - User trial expired, no access');
