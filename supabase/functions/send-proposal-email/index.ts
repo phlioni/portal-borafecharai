@@ -81,8 +81,72 @@ Deno.serve(async (req) => {
       return total + (item.quantity * item.unit_price)
     }, 0) || proposal.value || 0
 
-    // Preparar mensagem final substituindo o placeholder
-    const finalMessage = emailMessage.replace('[LINK_DA_PROPOSTA]', publicUrl || `${supabaseUrl}/proposta/${proposal.public_hash}`)
+    // Gerar HTML bem formatado com o botão
+    const generateEmailHTML = (message: string, proposalUrl: string) => {
+      // Converter quebras de linha em parágrafos
+      const paragraphs = message.split('\n\n').filter(p => p.trim());
+      
+      // Processar cada parágrafo
+      const htmlContent = paragraphs.map(paragraph => {
+        if (paragraph.includes('[LINK_DA_PROPOSTA]')) {
+          // Substituir o placeholder pelo botão
+          const beforeButton = paragraph.split('[LINK_DA_PROPOSTA]')[0];
+          const afterButton = paragraph.split('[LINK_DA_PROPOSTA]')[1];
+          
+          return `
+            ${beforeButton ? `<p style="margin: 0 0 16px 0; line-height: 1.6; color: #374151;">${beforeButton.replace(/\n/g, '<br>')}</p>` : ''}
+            <div style="text-align: center; margin: 24px 0;">
+              <a href="${proposalUrl}" 
+                 style="display: inline-block; 
+                        background-color: #2563eb; 
+                        color: #ffffff; 
+                        padding: 14px 28px; 
+                        text-decoration: none; 
+                        border-radius: 8px; 
+                        font-weight: 600; 
+                        font-size: 16px; 
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                        transition: background-color 0.2s ease;">
+                📄 Visualizar Proposta
+              </a>
+            </div>
+            ${afterButton ? `<p style="margin: 16px 0 0 0; line-height: 1.6; color: #374151;">${afterButton.replace(/\n/g, '<br>')}</p>` : ''}
+          `;
+        } else {
+          // Parágrafo normal
+          return `<p style="margin: 0 0 16px 0; line-height: 1.6; color: #374151;">${paragraph.replace(/\n/g, '<br>')}</p>`;
+        }
+      }).join('');
+
+      return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>${emailSubject}</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f9fafb;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+            <div style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); padding: 32px; text-align: center;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">
+                📋 Proposta Comercial
+              </h1>
+            </div>
+            <div style="padding: 32px;">
+              ${htmlContent}
+              <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 14px;">
+                <p style="margin: 0;">Esta é uma mensagem automática. Não responda a este email.</p>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+    };
+
+    const emailHTML = generateEmailHTML(emailMessage, publicUrl || `${supabaseUrl}/proposta/${proposal.public_hash}`);
 
     // Enviar email via Resend
     const emailResponse = await fetch('https://api.resend.com/emails', {
@@ -95,7 +159,7 @@ Deno.serve(async (req) => {
         from: 'noreply@borafecharai.com',
         to: [recipientEmail],
         subject: emailSubject,
-        html: finalMessage.replace(/\n/g, '<br>')
+        html: emailHTML
       })
     })
 

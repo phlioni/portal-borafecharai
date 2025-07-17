@@ -121,26 +121,37 @@ const SendProposalModal = ({
 
   const isFormValid = formData.recipientEmail.trim() && formData.recipientName.trim();
 
-  // Função para gerar preview do email com botão azul e texto branco
+  // Função melhorada para gerar preview do email com formatação adequada
   const generatePreviewMessage = () => {
-    return formData.emailMessage.replace(
-      '[LINK_DA_PROPOSTA]',
-      `<div style="text-align: center; margin: 20px 0;">
-        <a href="#" style="
-          display: inline-block;
-          background-color: #2563eb;
-          color: #ffffff;
-          padding: 12px 24px;
-          text-decoration: none;
-          border-radius: 8px;
-          font-weight: 600;
-          font-size: 16px;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        ">
-          📄 Visualizar Proposta
-        </a>
-      </div>`
-    );
+    const paragraphs = formData.emailMessage.split('\n\n').filter(p => p.trim());
+    
+    const htmlContent = paragraphs.map(paragraph => {
+      if (paragraph.includes('[LINK_DA_PROPOSTA]')) {
+        const beforeButton = paragraph.split('[LINK_DA_PROPOSTA]')[0];
+        const afterButton = paragraph.split('[LINK_DA_PROPOSTA]')[1];
+        
+        return `
+          ${beforeButton ? `<p style="margin: 0 0 12px 0; line-height: 1.5;">${beforeButton.replace(/\n/g, '<br>')}</p>` : ''}
+          <div style="text-align: center; margin: 16px 0;">
+            <div style="display: inline-block; 
+                        background-color: #2563eb; 
+                        color: #ffffff; 
+                        padding: 10px 20px; 
+                        border-radius: 6px; 
+                        font-weight: 600; 
+                        font-size: 14px; 
+                        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+              📄 Visualizar Proposta
+            </div>
+          </div>
+          ${afterButton ? `<p style="margin: 12px 0 0 0; line-height: 1.5;">${afterButton.replace(/\n/g, '<br>')}</p>` : ''}
+        `;
+      } else {
+        return `<p style="margin: 0 0 12px 0; line-height: 1.5;">${paragraph.replace(/\n/g, '<br>')}</p>`;
+      }
+    }).join('');
+
+    return htmlContent || 'Mensagem do email aparecerá aqui...';
   };
 
   return (
@@ -203,24 +214,27 @@ const SendProposalModal = ({
                 disabled={isLoading}
               />
               <p className="text-sm text-gray-500 mt-1">
-                O link da proposta será inserido automaticamente onde estiver escrito [LINK_DA_PROPOSTA]
+                O botão "Visualizar Proposta" será inserido automaticamente onde estiver escrito [LINK_DA_PROPOSTA]
               </p>
             </div>
           </div>
 
-          {/* Pré-visualização */}
+          {/* Pré-visualização melhorada */}
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
             <h4 className="font-medium text-blue-900 mb-3">Pré-visualização do Email:</h4>
             <div className="bg-white p-4 rounded border text-sm space-y-2">
-              <div className="border-b pb-2">
+              <div className="border-b pb-2 mb-3">
                 <p><strong>Para:</strong> {formData.recipientEmail || 'email@cliente.com'}</p>
                 <p><strong>Assunto:</strong> {formData.emailSubject || 'Assunto do email'}</p>
               </div>
-              <div className="max-h-48 overflow-y-auto">
+              <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-3 rounded-t text-center">
+                <h5 className="font-semibold">📋 Proposta Comercial</h5>
+              </div>
+              <div className="max-h-48 overflow-y-auto p-3 bg-gray-50 rounded-b">
                 <div
                   className="text-sm leading-relaxed"
                   dangerouslySetInnerHTML={{
-                    __html: generatePreviewMessage().replace(/\n/g, '<br>') || 'Mensagem do email aparecerá aqui...'
+                    __html: generatePreviewMessage()
                   }}
                 />
               </div>
