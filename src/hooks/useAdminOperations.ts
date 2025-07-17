@@ -101,6 +101,48 @@ export const useAdminOperations = () => {
     }
   };
 
+  const changeUserRole = async (userId: string, newRole: 'user' | 'guest' | 'admin') => {
+    try {
+      console.log(`useAdminOperations - Changing role for user ${userId} to ${newRole}`);
+
+      // Primeiro, remover todas as roles existentes
+      const { error: deleteError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId);
+
+      if (deleteError) {
+        console.error('useAdminOperations - Error deleting existing roles:', deleteError);
+        throw deleteError;
+      }
+
+      // Inserir a nova role
+      const { error: insertError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: userId,
+          role: newRole
+        });
+
+      if (insertError) {
+        console.error('useAdminOperations - Error inserting new role:', insertError);
+        throw insertError;
+      }
+
+      console.log(`useAdminOperations - Successfully changed role for user ${userId} to ${newRole}`);
+      
+      // Recarregar dados dos usuários
+      await loadUsers();
+      
+      toast.success(`Role do usuário alterada para ${newRole} com sucesso!`);
+
+    } catch (error) {
+      console.error(`useAdminOperations - Error changing user role:`, error);
+      toast.error('Erro ao alterar role do usuário');
+      throw error;
+    }
+  };
+
   const resetUserData = async (userId: string, type: 'proposals' | 'trial' | 'both') => {
     try {
       console.log(`useAdminOperations - Resetting ${type} for user:`, userId);
@@ -225,6 +267,7 @@ export const useAdminOperations = () => {
     users,
     loading,
     loadUsers,
+    changeUserRole,
     resetUserData,
     deleteUser,
     createAdminUser

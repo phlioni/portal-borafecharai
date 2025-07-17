@@ -1,79 +1,63 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { User, Mail, Calendar, UserX } from 'lucide-react';
-import UserActionsDropdown from '@/components/UserActionsDropdown';
+import { Badge } from '@/components/ui/badge';
 import UserStatusBadges from '@/components/UserStatusBadges';
-import UserTrialEndDate from '@/components/UserTrialEndDate';
+import UserActionsDropdown from '@/components/UserActionsDropdown';
 
-interface MobileUserCardProps {
-  user: {
-    id: string;
-    email: string;
-    created_at: string;
-    role?: string;
-    subscriber?: {
-      subscribed: boolean;
-      subscription_tier?: string;
-      trial_end_date?: string;
-      trial_proposals_used?: number;
-    };
+interface User {
+  id: string;
+  email: string;
+  created_at: string;
+  role?: string;
+  subscriber?: {
+    subscribed: boolean;
+    subscription_tier?: string;
+    trial_end_date?: string;
+    trial_proposals_used?: number;
+    trial_start_date?: string;
+    bonus_proposals_current_month?: number;
   };
-  onDeleteUser: (userId: string) => void;
-  isDeleting: boolean;
+  trial_limits?: {
+    trial_proposals_limit: number;
+    trial_days_limit: number;
+  };
 }
 
-const MobileUserCard = ({ user, onDeleteUser, isDeleting }: MobileUserCardProps) => {
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
-  };
+interface MobileUserCardProps {
+  user: User;
+  onResetProposals: (userId: string) => Promise<void>;
+  onResetTrial: (userId: string) => Promise<void>;
+  onDeleteUser: (userId: string) => Promise<void>;
+  onChangeRole: (userId: string, role: 'user' | 'guest' | 'admin') => Promise<void>;
+}
 
+const MobileUserCard = ({ 
+  user, 
+  onResetProposals, 
+  onResetTrial, 
+  onDeleteUser,
+  onChangeRole 
+}: MobileUserCardProps) => {
   return (
-    <Card className="w-full">
-      <CardContent className="p-4 space-y-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <User className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium text-sm">ID: {user.id.slice(0, 8)}...</span>
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex justify-between items-start mb-3">
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-sm truncate">{user.email}</p>
+            <p className="text-xs text-muted-foreground">
+              {new Date(user.created_at).toLocaleDateString('pt-BR')}
+            </p>
           </div>
-          <div className="flex items-center gap-2">
-            <UserActionsDropdown user={user} />
-          </div>
+          <UserActionsDropdown
+            user={user}
+            onResetProposals={onResetProposals}
+            onResetTrial={onResetTrial}
+            onDeleteUser={onDeleteUser}
+            onChangeRole={onChangeRole}
+          />
         </div>
-
-        <div className="flex items-center gap-2">
-          <Mail className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">{user.email}</span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">
-            Criado em: {formatDate(user.created_at)}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <UserStatusBadges user={user} />
-        </div>
-
-        <div className="flex items-center gap-2">
-          <UserTrialEndDate user={user} />
-        </div>
-
-        <div className="flex justify-end pt-2">
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => onDeleteUser(user.id)}
-            disabled={isDeleting}
-            className="w-full"
-          >
-            <UserX className="h-4 w-4 mr-2" />
-            {isDeleting ? 'Deletando...' : 'Deletar Usuário'}
-          </Button>
-        </div>
+        <UserStatusBadges user={user} />
       </CardContent>
     </Card>
   );

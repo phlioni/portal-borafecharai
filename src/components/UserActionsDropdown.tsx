@@ -1,126 +1,100 @@
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import React from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, RotateCcw, Clock, FileText, UserCog } from 'lucide-react';
-import { useAdminOperations } from '@/hooks/useAdminOperations';
-import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { MoreHorizontal, RotateCcw, Clock, Trash2, UserCog, Shield, Users, User } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface UserActionsDropdownProps {
-  user: {
-    id: string;
-    email: string;
-    role?: string;
-    subscriber?: {
-      trial_end_date?: string;
-      trial_proposals_used?: number;
-    };
+interface User {
+  id: string;
+  email: string;
+  created_at: string;
+  role?: string;
+  subscriber?: {
+    subscribed: boolean;
+    subscription_tier?: string;
+    trial_end_date?: string;
+    trial_proposals_used?: number;
+    trial_start_date?: string;
+    bonus_proposals_current_month?: number;
+  };
+  trial_limits?: {
+    trial_proposals_limit: number;
+    trial_days_limit: number;
   };
 }
 
-const UserActionsDropdown = ({ user }: UserActionsDropdownProps) => {
-  const { resetUserData, loadUsers } = useAdminOperations();
-  const [isResetting, setIsResetting] = useState(false);
-  const [isUpdatingRole, setIsUpdatingRole] = useState(false);
+interface UserActionsDropdownProps {
+  user: User;
+  onResetProposals: (userId: string) => Promise<void>;
+  onResetTrial: (userId: string) => Promise<void>;
+  onDeleteUser: (userId: string) => Promise<void>;
+  onChangeRole: (userId: string, role: 'user' | 'guest' | 'admin') => Promise<void>;
+}
 
+const UserActionsDropdown = ({ 
+  user, 
+  onResetProposals, 
+  onResetTrial, 
+  onDeleteUser,
+  onChangeRole 
+}: UserActionsDropdownProps) => {
   const handleResetProposals = async () => {
-    setIsResetting(true);
     try {
-      await resetUserData(user.id, 'proposals');
+      await onResetProposals(user.id);
       toast.success('Propostas resetadas com sucesso!');
     } catch (error) {
-      console.error('Erro ao resetar propostas:', error);
       toast.error('Erro ao resetar propostas');
-    } finally {
-      setIsResetting(false);
     }
   };
 
   const handleResetTrial = async () => {
-    setIsResetting(true);
     try {
-      await resetUserData(user.id, 'trial');
+      await onResetTrial(user.id);
       toast.success('Trial resetado com sucesso!');
     } catch (error) {
-      console.error('Erro ao resetar trial:', error);
       toast.error('Erro ao resetar trial');
-    } finally {
-      setIsResetting(false);
     }
   };
 
-  const handleResetBoth = async () => {
-    setIsResetting(true);
-    try {
-      await resetUserData(user.id, 'both');
-      toast.success('Dados do usuário resetados com sucesso!');
-    } catch (error) {
-      console.error('Erro ao resetar dados:', error);
-      toast.error('Erro ao resetar dados do usuário');
-    } finally {
-      setIsResetting(false);
+  const handleDeleteUser = async () => {
+    if (window.confirm(`Tem certeza que deseja deletar o usuário ${user.email}?`)) {
+      try {
+        await onDeleteUser(user.id);
+        toast.success('Usuário deletado com sucesso!');
+      } catch (error) {
+        toast.error('Erro ao deletar usuário');
+      }
     }
   };
 
-  const handleRoleChange = async (newRole: 'admin' | 'user' | 'guest') => {
+  const handleChangeRole = async (newRole: 'user' | 'guest' | 'admin') => {
     // Não permitir alterar role do admin principal
     if (user.email === 'admin@borafecharai.com') {
       toast.error('Não é possível alterar a role do administrador principal');
       return;
     }
 
-    setIsUpdatingRole(true);
-    try {
-      console.log(`Alterando role de ${user.email} para ${newRole}`);
-      
-      // Primeiro, remover todas as roles existentes do usuário
-      const { error: deleteError } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', user.id);
-
-      if (deleteError) {
-        console.error('Erro ao remover roles existentes:', deleteError);
-        toast.error('Erro ao remover roles existentes');
-        return;
+    if (window.confirm(`Tem certeza que deseja alterar a role de ${user.email} para ${newRole}?`)) {
+      try {
+        await onChangeRole(user.id, newRole);
+      } catch (error) {
+        // O erro já é tratado no hook
       }
-
-      // Inserir nova role
-      const { error } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: user.id,
-          role: newRole
-        });
-
-      if (error) {
-        console.error('Erro ao atualizar role:', error);
-        toast.error('Erro ao atualizar role do usuário');
-        return;
-      }
-
-      toast.success(`Role alterada para ${newRole} com sucesso!`);
-      
-      // Aguardar um pouco e recarregar dados dos usuários
-      await new Promise(resolve => setTimeout(resolve, 500));
-      await loadUsers();
-    } catch (error) {
-      console.error('Erro ao alterar role:', error);
-      toast.error('Erro ao alterar role do usuário');
-    } finally {
-      setIsUpdatingRole(false);
     }
   };
+
+  const isMainAdmin = user.email === 'admin@borafecharai.com';
 
   return (
     <DropdownMenu>
@@ -131,45 +105,68 @@ const UserActionsDropdown = ({ user }: UserActionsDropdownProps) => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={handleResetProposals} disabled={isResetting}>
-          <FileText className="mr-2 h-4 w-4" />
-          Resetar Propostas
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleResetTrial} disabled={isResetting}>
-          <Clock className="mr-2 h-4 w-4" />
-          Resetar Trial
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleResetBoth} disabled={isResetting}>
+        <DropdownMenuLabel>Ações</DropdownMenuLabel>
+        
+        {!isMainAdmin && (
+          <>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <UserCog className="mr-2 h-4 w-4" />
+                <span>Alterar Role</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                <DropdownMenuItem 
+                  onClick={() => handleChangeRole('user')}
+                  disabled={user.role === 'user'}
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  <span>User</span>
+                  {user.role === 'user' && <span className="ml-auto text-xs text-muted-foreground">atual</span>}
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => handleChangeRole('guest')}
+                  disabled={user.role === 'guest'}
+                >
+                  <Users className="mr-2 h-4 w-4" />
+                  <span>Guest</span>
+                  {user.role === 'guest' && <span className="ml-auto text-xs text-muted-foreground">atual</span>}
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => handleChangeRole('admin')}
+                  disabled={user.role === 'admin'}
+                >
+                  <Shield className="mr-2 h-4 w-4" />
+                  <span>Admin</span>
+                  {user.role === 'admin' && <span className="ml-auto text-xs text-muted-foreground">atual</span>}
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+            <DropdownMenuSeparator />
+          </>
+        )}
+        
+        <DropdownMenuItem onClick={handleResetProposals}>
           <RotateCcw className="mr-2 h-4 w-4" />
-          Resetar Tudo
+          <span>Resetar Propostas</span>
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger disabled={isUpdatingRole || user.email === 'admin@borafecharai.com'}>
-            <UserCog className="mr-2 h-4 w-4" />
-            Alterar Role
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
+        
+        <DropdownMenuItem onClick={handleResetTrial}>
+          <Clock className="mr-2 h-4 w-4" />
+          <span>Resetar Trial</span>
+        </DropdownMenuItem>
+        
+        {!isMainAdmin && (
+          <>
+            <DropdownMenuSeparator />
             <DropdownMenuItem 
-              onClick={() => handleRoleChange('admin')}
-              disabled={isUpdatingRole || user.role === 'admin' || user.email === 'admin@borafecharai.com'}
+              onClick={handleDeleteUser}
+              className="text-destructive"
             >
-              Admin
+              <Trash2 className="mr-2 h-4 w-4" />
+              <span>Deletar Usuário</span>
             </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={() => handleRoleChange('user')}
-              disabled={isUpdatingRole || user.role === 'user' || user.email === 'admin@borafecharai.com'}
-            >
-              User
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={() => handleRoleChange('guest')}
-              disabled={isUpdatingRole || user.role === 'guest' || user.email === 'admin@borafecharai.com'}
-            >
-              Guest
-            </DropdownMenuItem>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

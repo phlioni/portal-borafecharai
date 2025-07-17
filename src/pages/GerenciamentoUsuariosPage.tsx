@@ -1,259 +1,245 @@
 
 import React, { useState } from 'react';
+import { useUserPermissions } from '@/hooks/useUserPermissions';
+import { useAdminOperations } from '@/hooks/useAdminOperations';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useAdminOperations } from '@/hooks/useAdminOperations';
 import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Trash2, Users, UserPlus, Search } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { useIsMobile } from '@/hooks/use-mobile';
-import MobileUserCard from '@/components/MobileUserCard';
-import UserActionsDropdown from '@/components/UserActionsDropdown';
+import { Plus, Users, RefreshCw } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import UserStatusBadges from '@/components/UserStatusBadges';
-import UserTrialEndDate from '@/components/UserTrialEndDate';
+import UserActionsDropdown from '@/components/UserActionsDropdown';
+import MobileUserCard from '@/components/MobileUserCard';
+import { useMobile } from '@/hooks/use-mobile';
 
 const GerenciamentoUsuariosPage = () => {
-  const { users, loading, deleteUser, createAdminUser } = useAdminOperations();
-  const [email, setEmail] = useState('');
+  const { isAdmin, loading: permissionsLoading } = useUserPermissions();
+  const { 
+    users, 
+    loading, 
+    loadUsers, 
+    resetUserData, 
+    deleteUser, 
+    createAdminUser,
+    changeUserRole 
+  } = useAdminOperations();
+  const [newAdminEmail, setNewAdminEmail] = useState('');
   const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
-  const isMobile = useIsMobile();
+  const [showCreateAdminDialog, setShowCreateAdminDialog] = useState(false);
+  const isMobile = useMobile();
 
   const handleCreateAdmin = async () => {
-    if (!email.trim()) {
+    if (!newAdminEmail) {
       toast.error('Por favor, insira um email válido');
       return;
     }
 
     setIsCreatingAdmin(true);
     try {
-      await createAdminUser(email);
-      setEmail('');
-      toast.success('Usuário administrador criado com sucesso!');
+      await createAdminUser(newAdminEmail);
+      setNewAdminEmail('');
+      setShowCreateAdminDialog(false);
+      toast.success('Usuário admin criado com sucesso!');
     } catch (error) {
-      console.error('Erro ao criar admin:', error);
-      toast.error('Erro ao criar usuário administrador');
+      console.error('Erro ao criar usuário admin:', error);
+      toast.error('Erro ao criar usuário admin');
     } finally {
       setIsCreatingAdmin(false);
     }
   };
 
-  const handleDeleteUser = async (userId: string) => {
-    setDeletingUserId(userId);
+  const handleResetProposals = async (userId: string) => {
+    await resetUserData(userId, 'proposals');
+  };
+
+  const handleResetTrial = async (userId: string) => {
+    await resetUserData(userId, 'trial');
+  };
+
+  const handleRefresh = async () => {
     try {
-      await deleteUser(userId);
-      toast.success('Usuário deletado com sucesso!');
+      await loadUsers();
+      toast.success('Lista de usuários atualizada!');
     } catch (error) {
-      console.error('Erro ao deletar usuário:', error);
-      toast.error('Erro ao deletar usuário');
-    } finally {
-      setDeletingUserId(null);
+      toast.error('Erro ao atualizar lista de usuários');
     }
   };
 
-  const filteredUsers = users.filter(user =>
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.id.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const activeSubscribers = users.filter(user => user.subscriber?.subscribed).length;
-  const activeTrials = users.filter(user => {
-    const trialEndDate = user.subscriber?.trial_end_date;
-    return trialEndDate && new Date(trialEndDate) > new Date() && !user.subscriber?.subscribed;
-  }).length;
-
-  if (loading) {
+  if (permissionsLoading) {
     return (
-      <div className="p-6 space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Gerenciamento de Usuários</h1>
-          <p className="text-muted-foreground">Carregando...</p>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Verificando permissões...</p>
         </div>
       </div>
     );
   }
 
+  if (!isAdmin) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-destructive mb-2">Acesso Negado</h2>
+              <p className="text-muted-foreground">
+                Você não tem permissão para acessar esta página. 
+                Apenas administradores podem gerenciar usuários.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className={`${isMobile ? 'p-4' : 'p-6'} space-y-6`}>
-      <div>
-        <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold flex items-center gap-2`}>
-          <Users className={`${isMobile ? 'h-6 w-6' : 'h-8 w-8'}`} />
-          Gerenciamento de Usuários
-        </h1>
-        <p className="text-muted-foreground">Painel administrativo completo</p>
+    <div className="container mx-auto px-4 py-8 space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Gerenciamento de Usuários</h1>
+          <p className="text-muted-foreground">
+            Gerencie usuários, roles e permissões do sistema
+          </p>
+        </div>
+        
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button 
+            onClick={handleRefresh} 
+            variant="outline"
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
+          
+          <Dialog open={showCreateAdminDialog} onOpenChange={setShowCreateAdminDialog}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Criar Admin
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Criar Novo Usuário Admin</DialogTitle>
+                <DialogDescription>
+                  Crie um novo usuário com privilégios de administrador. 
+                  Uma senha temporária será gerada.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="admin-email">Email do novo admin</Label>
+                  <Input
+                    id="admin-email"
+                    type="email"
+                    placeholder="admin@exemplo.com"
+                    value={newAdminEmail}
+                    onChange={(e) => setNewAdminEmail(e.target.value)}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  onClick={handleCreateAdmin}
+                  disabled={isCreatingAdmin || !newAdminEmail}
+                >
+                  {isCreatingAdmin ? 'Criando...' : 'Criar Admin'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      {/* Estatísticas */}
-      <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-3'} gap-4`}>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Usuários</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{users.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Assinantes Ativos</CardTitle>
-            <Badge className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeSubscribers}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Trials Ativos</CardTitle>
-            <Badge className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeTrials}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Criar Admin */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5" />
-            Criar Usuário Administrador
+            <Users className="h-5 w-5" />
+            Usuários do Sistema
           </CardTitle>
           <CardDescription>
-            Adicione um novo usuário com privilégios de administrador
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="admin-email">Email do usuário</Label>
-            <Input
-              id="admin-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="usuario@exemplo.com"
-            />
-          </div>
-          <Button
-            onClick={handleCreateAdmin}
-            disabled={isCreatingAdmin}
-            className="w-full"
-          >
-            {isCreatingAdmin ? 'Criando...' : 'Criar Administrador'}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Lista de Usuários */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Usuários do Sistema</CardTitle>
-          <CardDescription>
-            Gerencie todos os usuários cadastrados no sistema
+            Total de {users.length} usuários cadastrados
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Busca */}
-          <div className="mb-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Buscar usuários..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-2 text-muted-foreground">Carregando usuários...</p>
+              </div>
             </div>
-          </div>
-
-          {isMobile ? (
-            /* Cards para Mobile */
-            <div className="space-y-3">
-              {filteredUsers.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Nenhum usuário encontrado
-                </div>
-              ) : (
-                filteredUsers.map((user) => (
-                  <MobileUserCard
-                    key={user.id}
-                    user={user}
-                    onDeleteUser={handleDeleteUser}
-                    isDeleting={deletingUserId === user.id}
-                  />
-                ))
-              )}
+          ) : users.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">Nenhum usuário encontrado</p>
             </div>
           ) : (
-            /* Tabela para Desktop */
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Data de Criação</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Trial</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      Nenhum usuário encontrado
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredUsers.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-mono text-sm">
-                        {user.id.slice(0, 8)}...
-                      </TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
-                        {new Date(user.created_at).toLocaleDateString('pt-BR')}
-                      </TableCell>
-                      <TableCell>
-                        <UserStatusBadges user={user} />
-                      </TableCell>
-                      <TableCell>
-                        <UserTrialEndDate user={user} />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <UserActionsDropdown user={user} />
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDeleteUser(user.id)}
-                            disabled={deletingUserId === user.id}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            {deletingUserId === user.id ? 'Deletando...' : 'Deletar'}
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+            <>
+              {isMobile ? (
+                <div className="space-y-4">
+                  {users.map((user) => (
+                    <MobileUserCard
+                      key={user.id}
+                      user={{
+                        id: user.id,
+                        email: user.email,
+                        created_at: user.created_at,
+                        role: user.role,
+                        subscriber: user.subscriber
+                      }}
+                      onResetProposals={handleResetProposals}
+                      onResetTrial={handleResetTrial}
+                      onDeleteUser={deleteUser}
+                      onChangeRole={changeUserRole}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Data de Cadastro</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {users.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell className="font-medium">
+                            {user.email}
+                          </TableCell>
+                          <TableCell>
+                            <UserStatusBadges user={user} />
+                          </TableCell>
+                          <TableCell>
+                            {new Date(user.created_at).toLocaleDateString('pt-BR')}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <UserActionsDropdown
+                              user={user}
+                              onResetProposals={handleResetProposals}
+                              onResetTrial={handleResetTrial}
+                              onDeleteUser={deleteUser}
+                              onChangeRole={changeUserRole}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
