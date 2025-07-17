@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ModernLoader } from '@/components/ModernLoader';
 import { TrialCallToActionWrapper } from '@/components/TrialCallToActionWrapper';
+import ProfileCompletionAlert from '@/components/ProfileCompletionAlert';
 
 const Dashboard = () => {
   const { data, isLoading, error } = useDashboardData();
@@ -114,6 +114,9 @@ const Dashboard = () => {
           </Link>
         </Button>
       </div>
+
+      {/* Profile Completion Alert - novo componente */}
+      <ProfileCompletionAlert />
 
       {/* Trial Call to Action - agora com verificação otimizada */}
       <TrialCallToActionWrapper />

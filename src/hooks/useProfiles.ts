@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface Profile {
   id: string;
@@ -18,6 +18,7 @@ export const useProfiles = () => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   const fetchProfile = async () => {
     if (!user) {
@@ -47,6 +48,34 @@ export const useProfiles = () => {
       toast.error('Erro ao carregar perfil');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkAndGrantBonus = async () => {
+    if (!user?.id) return;
+
+    try {
+      console.log('Verificando elegibilidade para bônus de perfil completo');
+      
+      const { data: success, error } = await supabase
+        .rpc('grant_profile_completion_bonus', { _user_id: user.id });
+
+      if (error) {
+        console.error('Erro ao verificar bônus:', error);
+        return;
+      }
+
+      if (success) {
+        console.log('Bônus de perfil completo concedido!');
+        toast.success('🎉 Parabéns! Você ganhou 5 propostas extras por completar seu perfil!');
+        
+        // Invalidar queries relacionadas
+        queryClient.invalidateQueries({ queryKey: ['profile-completion'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
+        queryClient.invalidateQueries({ queryKey: ['user-permissions'] });
+      }
+    } catch (error) {
+      console.error('Erro ao verificar bônus:', error);
     }
   };
 
@@ -119,6 +148,12 @@ export const useProfiles = () => {
       console.log('Perfil atualizado:', data);
       setProfile(data);
       toast.success('Perfil atualizado com sucesso!');
+      
+      // Verificar e conceder bônus após atualização do perfil
+      setTimeout(() => {
+        checkAndGrantBonus();
+      }, 1000);
+      
       return { data };
     } catch (error) {
       console.error('Error updating profile:', error);

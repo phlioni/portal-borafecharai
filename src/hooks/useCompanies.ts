@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -63,6 +62,37 @@ export const useUpdateCompany = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { toast } = useToast();
+
+  const checkAndGrantBonus = async () => {
+    if (!user?.id) return;
+
+    try {
+      console.log('Verificando elegibilidade para bônus de perfil completo após atualizar empresa');
+      
+      const { data: success, error } = await supabase
+        .rpc('grant_profile_completion_bonus', { _user_id: user.id });
+
+      if (error) {
+        console.error('Erro ao verificar bônus:', error);
+        return;
+      }
+
+      if (success) {
+        console.log('Bônus de perfil completo concedido!');
+        toast({
+          title: "Parabéns! 🎉",
+          description: "Você ganhou 5 propostas extras por completar seu perfil!",
+        });
+        
+        // Invalidar queries relacionadas
+        queryClient.invalidateQueries({ queryKey: ['profile-completion'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
+        queryClient.invalidateQueries({ queryKey: ['user-permissions'] });
+      }
+    } catch (error) {
+      console.error('Erro ao verificar bônus:', error);
+    }
+  };
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
@@ -137,6 +167,11 @@ export const useUpdateCompany = () => {
         description: "Informações da empresa atualizadas com sucesso!",
       });
       queryClient.invalidateQueries({ queryKey: ['companies'] });
+      
+      // Verificar e conceder bônus após atualização da empresa
+      setTimeout(() => {
+        checkAndGrantBonus();
+      }, 1000);
     },
     onError: (error: any) => {
       console.error('Error updating company:', error);

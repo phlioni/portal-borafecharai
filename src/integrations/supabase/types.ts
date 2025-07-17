@@ -384,10 +384,12 @@ export type Database = {
       }
       subscribers: {
         Row: {
+          bonus_proposals_current_month: number | null
           cancel_at_period_end: boolean | null
           created_at: string
           email: string
           id: string
+          profile_completion_bonus_claimed: boolean | null
           stripe_customer_id: string | null
           subscribed: boolean
           subscription_end: string | null
@@ -399,10 +401,12 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          bonus_proposals_current_month?: number | null
           cancel_at_period_end?: boolean | null
           created_at?: string
           email: string
           id?: string
+          profile_completion_bonus_claimed?: boolean | null
           stripe_customer_id?: string | null
           subscribed?: boolean
           subscription_end?: string | null
@@ -414,10 +418,12 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          bonus_proposals_current_month?: number | null
           cancel_at_period_end?: boolean | null
           created_at?: string
           email?: string
           id?: string
+          profile_completion_bonus_claimed?: boolean | null
           stripe_customer_id?: string | null
           subscribed?: boolean
           subscription_end?: string | null
@@ -584,11 +590,19 @@ export type Database = {
         Args: { _user_id: string; _month?: string }
         Returns: number
       }
+      grant_profile_completion_bonus: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
         }
+        Returns: boolean
+      }
+      is_profile_complete: {
+        Args: { _user_id: string }
         Returns: boolean
       }
     }
