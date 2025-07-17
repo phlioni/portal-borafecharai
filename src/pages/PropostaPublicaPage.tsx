@@ -26,7 +26,7 @@ const PropostaPublicaPage = () => {
         .from('proposals')
         .select(`
           *,
-          companies (
+          clients (
             id,
             name,
             email,
@@ -50,7 +50,7 @@ const PropostaPublicaPage = () => {
           .from('proposals')
           .select(`
             *,
-            companies (
+            clients (
               id,
               name,
               email,
@@ -207,7 +207,7 @@ const PropostaPublicaPage = () => {
                 {proposal.title}
               </h2>
               <p className="text-sm text-gray-600 truncate">
-                De: {proposal.companies?.name}
+                De: {proposal.clients?.name}
               </p>
               {proposal.status !== 'enviada' && (
                 <div className="mt-2">

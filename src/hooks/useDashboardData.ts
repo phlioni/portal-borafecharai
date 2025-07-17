@@ -13,7 +13,7 @@ interface DashboardData {
     id: string;
     title: string;
     validity_date: string;
-    companies: {
+    clients: {
       name: string;
     } | null;
   }>;
@@ -46,7 +46,7 @@ export const useDashboardData = () => {
 
       // Get total clients
       const { count: totalClients } = await supabase
-        .from('companies')
+        .from('clients')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
 
@@ -76,7 +76,7 @@ export const useDashboardData = () => {
           id,
           title,
           validity_date,
-          companies:company_id (
+          clients:client_id (
             name
           )
         `)

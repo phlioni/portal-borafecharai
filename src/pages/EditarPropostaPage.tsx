@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Save, Eye } from 'lucide-react';
 import { useProposals, useUpdateProposal } from '@/hooks/useProposals';
-import { useCompanies } from '@/hooks/useCompanies';
+import { useClients } from '@/hooks/useClients';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import ProposalPreviewModal from '@/components/ProposalPreviewModal';
@@ -21,14 +21,14 @@ const EditarPropostaPage = () => {
   const { user } = useAuth();
   const { data: proposals } = useProposals();
   const updateProposal = useUpdateProposal();
-  const { data: companies } = useCompanies();
+  const { data: clients } = useClients();
   const createBudgetItem = useCreateBudgetItem();
 
   const proposal = proposals?.find(p => p.id === id);
 
   const [formData, setFormData] = useState({
     title: '',
-    company_id: '',
+    client_id: '',
     service_description: '',
     detailed_description: '',
     value: '',
@@ -46,7 +46,7 @@ const EditarPropostaPage = () => {
     if (proposal) {
       setFormData({
         title: proposal.title || '',
-        company_id: proposal.company_id || '',
+        client_id: proposal.client_id || '',
         service_description: proposal.service_description || '',
         detailed_description: proposal.detailed_description || '',
         value: proposal.value ? proposal.value.toString() : '',
@@ -119,17 +119,17 @@ const EditarPropostaPage = () => {
     try {
       // Buscar logo da empresa se selecionada
       let logoUrl = '';
-      if (formData.company_id && companies) {
-        const selectedCompany = companies.find(c => c.id === formData.company_id);
-        logoUrl = selectedCompany?.logo_url || '';
+      if (formData.client_id && clients) {
+        const selectedClient = clients.find(c => c.id === formData.client_id);
+        logoUrl = ''; // Clientes não têm logo
       }
 
       const proposalForPreview = {
         ...proposal,
         ...formData,
         value: formData.value ? parseFloat(formData.value.replace(/[^\d,]/g, '').replace(',', '.')) : null,
-        companies: formData.company_id && companies ? 
-          companies.find(c => c.id === formData.company_id) : null
+        clients: formData.client_id && clients ? 
+          clients.find(c => c.id === formData.client_id) : null
       };
 
       setPreviewProposal(proposalForPreview);
@@ -150,7 +150,7 @@ const EditarPropostaPage = () => {
     try {
       const updates = {
         title: formData.title,
-        company_id: formData.company_id || null,
+        client_id: formData.client_id || null,
         service_description: formData.service_description || null,
         detailed_description: formData.detailed_description || null,
         value: formData.value ? parseFloat(formData.value.replace(/[^\d,]/g, '').replace(',', '.')) : null,
@@ -211,18 +211,18 @@ const EditarPropostaPage = () => {
               />
             </div>
             <div>
-              <Label htmlFor="company">Cliente</Label>
+              <Label htmlFor="client">Cliente</Label>
               <Select 
-                value={formData.company_id || undefined}
-                onValueChange={(value) => handleInputChange('company_id', value || '')}
+                value={formData.client_id || undefined}
+                onValueChange={(value) => handleInputChange('client_id', value || '')}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione um cliente" />
                 </SelectTrigger>
                 <SelectContent>
-                  {companies?.map((company) => (
-                    <SelectItem key={company.id} value={company.id}>
-                      {company.name}
+                  {clients?.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

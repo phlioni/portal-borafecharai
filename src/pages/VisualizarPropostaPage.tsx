@@ -32,7 +32,7 @@ const VisualizarPropostaPage = () => {
         .from('proposals')
         .select(`
           *,
-          companies (
+          clients (
             id,
             name,
             email,
@@ -184,8 +184,8 @@ const VisualizarPropostaPage = () => {
         onClose={() => setShowSendModal(false)}
         onSend={handleSendProposal}
         proposalTitle={proposal.title}
-        clientName={proposal.companies?.name}
-        clientEmail={proposal.companies?.email}
+        clientName={proposal.clients?.name}
+        clientEmail={proposal.clients?.email}
         isLoading={isSending}
       />
     </div>

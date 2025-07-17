@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -99,7 +98,7 @@ const Propostas = () => {
   // Filtrar propostas com base no termo de busca
   const filteredProposals = proposals?.filter(proposal =>
     proposal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    proposal.companies?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    proposal.clients?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     proposal.service_description?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
@@ -129,7 +128,7 @@ const Propostas = () => {
         <div className="space-y-1 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
             <Building className="h-3 w-3" />
-            <span className="truncate">{proposal.companies?.name || 'Cliente não informado'}</span>
+            <span className="truncate">{proposal.clients?.name || 'Cliente não informado'}</span>
           </div>
           
           <div className="flex items-center gap-1">
@@ -297,7 +296,7 @@ const Propostas = () => {
                           {proposal.title}
                         </TableCell>
                         <TableCell>
-                          {proposal.companies?.name || 'Cliente não informado'}
+                          {proposal.clients?.name || 'Cliente não informado'}
                         </TableCell>
                         <TableCell>
                           {proposal.value 
@@ -421,7 +420,7 @@ const Propostas = () => {
               <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Cliente</p>
-                  <p>{selectedProposal.companies?.name || 'Não informado'}</p>
+                  <p>{selectedProposal.clients?.name || 'Não informado'}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Status</p>

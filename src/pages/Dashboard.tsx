@@ -214,7 +214,7 @@ const Dashboard = () => {
                   <div className="min-w-0 flex-1">
                     <h4 className="font-medium truncate">{proposal.title}</h4>
                     <p className="text-sm text-muted-foreground">
-                      {proposal.companies?.name || 'Cliente não definido'} • {formatDate(proposal.created_at)}
+                      {proposal.clients?.name || 'Cliente não definido'} • {formatDate(proposal.created_at)}
                     </p>
                   </div>
                 </div>
