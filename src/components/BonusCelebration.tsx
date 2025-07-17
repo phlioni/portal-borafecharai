@@ -1,8 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Gift, Sparkles, Trophy, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Gift, Sparkles, Trophy } from 'lucide-react';
 
 interface BonusCelebrationProps {
   show: boolean;
@@ -15,13 +14,14 @@ const BonusCelebration: React.FC<BonusCelebrationProps> = ({ show, onComplete })
   useEffect(() => {
     if (show) {
       setIsVisible(true);
-    }
-  }, [show]);
+      const timer = setTimeout(() => {
+        setIsVisible(false);
+        setTimeout(onComplete, 500); // Aguarda a animação de saída
+      }, 5000); // Aumentar para 5 segundos
 
-  const handleClose = () => {
-    setIsVisible(false);
-    setTimeout(onComplete, 300); // Aguarda a animação de saída
-  };
+      return () => clearTimeout(timer);
+    }
+  }, [show, onComplete]);
 
   if (!show && !isVisible) return null;
 
@@ -56,20 +56,10 @@ const BonusCelebration: React.FC<BonusCelebrationProps> = ({ show, onComplete })
 
       {/* Modal de celebração */}
       <div
-        className={`bg-gradient-to-br from-white to-green-50 rounded-3xl p-10 max-w-lg mx-4 text-center shadow-2xl border-2 border-green-200 transform transition-all duration-700 relative ${
+        className={`bg-gradient-to-br from-white to-green-50 rounded-3xl p-10 max-w-lg mx-4 text-center shadow-2xl border-2 border-green-200 transform transition-all duration-700 ${
           isVisible ? 'scale-100 rotate-0' : 'scale-75 rotate-12'
         }`}
       >
-        {/* Botão de fechar */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleClose}
-          className="absolute top-4 right-4 h-8 w-8 rounded-full hover:bg-gray-100"
-        >
-          <X className="h-4 w-4" />
-        </Button>
-
         <div className="relative">
           <div className="w-24 h-24 bg-gradient-to-r from-green-400 via-blue-500 to-purple-600 rounded-full mx-auto mb-6 flex items-center justify-center animate-bounce shadow-lg">
             <Trophy className="h-12 w-12 text-white" />
@@ -97,15 +87,11 @@ const BonusCelebration: React.FC<BonusCelebrationProps> = ({ show, onComplete })
             </p>
           </div>
           
-          <div className="flex items-center justify-center gap-3 text-sm text-gray-500 bg-white/50 rounded-full px-4 py-2 mb-4">
+          <div className="flex items-center justify-center gap-3 text-sm text-gray-500 bg-white/50 rounded-full px-4 py-2">
             <Sparkles className="h-4 w-4 animate-pulse" />
             <span className="font-medium">Suas propostas extras já estão disponíveis!</span>
             <Sparkles className="h-4 w-4 animate-pulse" />
           </div>
-
-          <Button onClick={handleClose} className="w-full">
-            Resgatar Bônus
-          </Button>
         </div>
       </div>
     </div>,
