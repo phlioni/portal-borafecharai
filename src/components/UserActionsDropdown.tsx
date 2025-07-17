@@ -73,20 +73,26 @@ const UserActionsDropdown = ({ user }: UserActionsDropdownProps) => {
   };
 
   const handleRoleChange = async (newRole: 'admin' | 'user' | 'guest') => {
+    // Não permitir alterar role do admin principal
+    if (user.email === 'admin@borafecharai.com') {
+      toast.error('Não é possível alterar a role do administrador principal');
+      return;
+    }
+
     setIsUpdatingRole(true);
     try {
       console.log(`Alterando role de ${user.email} para ${newRole}`);
       
-      // Primeiro, remover role existente
-      if (user.role) {
-        const { error: deleteError } = await supabase
-          .from('user_roles')
-          .delete()
-          .eq('user_id', user.id);
+      // Primeiro, remover todas as roles existentes do usuário
+      const { error: deleteError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', user.id);
 
-        if (deleteError) {
-          console.error('Erro ao remover role existente:', deleteError);
-        }
+      if (deleteError) {
+        console.error('Erro ao remover roles existentes:', deleteError);
+        toast.error('Erro ao remover roles existentes');
+        return;
       }
 
       // Inserir nova role
@@ -139,26 +145,26 @@ const UserActionsDropdown = ({ user }: UserActionsDropdownProps) => {
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuSub>
-          <DropdownMenuSubTrigger disabled={isUpdatingRole}>
+          <DropdownMenuSubTrigger disabled={isUpdatingRole || user.email === 'admin@borafecharai.com'}>
             <UserCog className="mr-2 h-4 w-4" />
             Alterar Role
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             <DropdownMenuItem 
               onClick={() => handleRoleChange('admin')}
-              disabled={isUpdatingRole || user.role === 'admin'}
+              disabled={isUpdatingRole || user.role === 'admin' || user.email === 'admin@borafecharai.com'}
             >
               Admin
             </DropdownMenuItem>
             <DropdownMenuItem 
               onClick={() => handleRoleChange('user')}
-              disabled={isUpdatingRole || user.role === 'user'}
+              disabled={isUpdatingRole || user.role === 'user' || user.email === 'admin@borafecharai.com'}
             >
               User
             </DropdownMenuItem>
             <DropdownMenuItem 
               onClick={() => handleRoleChange('guest')}
-              disabled={isUpdatingRole || user.role === 'guest'}
+              disabled={isUpdatingRole || user.role === 'guest' || user.email === 'admin@borafecharai.com'}
             >
               Guest
             </DropdownMenuItem>

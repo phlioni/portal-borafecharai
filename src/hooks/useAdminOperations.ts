@@ -47,6 +47,22 @@ export const useAdminOperations = () => {
       // Buscar dados adicionais para cada usuário
       const usersWithDetails = await Promise.all(
         (data || []).map(async (user: any) => {
+          // Buscar role do usuário
+          const { data: userRoles } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', user.id);
+
+          // Determinar role principal (prioridade: admin > guest > user)
+          let primaryRole = 'user';
+          if (userRoles && userRoles.length > 0) {
+            if (userRoles.some(r => r.role === 'admin')) {
+              primaryRole = 'admin';
+            } else if (userRoles.some(r => r.role === 'guest')) {
+              primaryRole = 'guest';
+            }
+          }
+
           // Buscar subscriber data
           const { data: subscriberData } = await supabase
             .from('subscribers')
@@ -68,6 +84,7 @@ export const useAdminOperations = () => {
 
           return {
             ...user,
+            role: primaryRole,
             subscriber: subscriberData,
             trial_limits: trialLimits
           };

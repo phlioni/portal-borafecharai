@@ -26,7 +26,10 @@ export const useUserPermissions = () => {
         setLoading(true);
         console.log('useUserPermissions - Checking permissions for user:', user.id);
 
-        // Check if user has roles - se não tiver nenhuma role, atribuir 'user' por padrão
+        // Verificar se é o admin principal
+        const isMainAdmin = user.email === 'admin@borafecharai.com';
+
+        // Buscar roles do usuário
         const { data: userRoles, error: rolesError } = await supabase
           .from('user_roles')
           .select('role')
@@ -36,8 +39,19 @@ export const useUserPermissions = () => {
           console.error('useUserPermissions - Error fetching user roles:', rolesError);
         }
 
-        // Se não encontrou roles para o usuário, criar a role 'user' automaticamente
-        if (!userRoles || userRoles.length === 0) {
+        // Se é o admin principal, garantir que tenha role admin
+        if (isMainAdmin) {
+          const hasAdminRole = userRoles?.some(role => role.role === 'admin');
+          if (!hasAdminRole) {
+            console.log('useUserPermissions - Creating admin role for main admin');
+            await supabase
+              .from('user_roles')
+              .insert({ user_id: user.id, role: 'admin' });
+          }
+        }
+
+        // Se não encontrou roles para o usuário comum, criar a role 'user'
+        if (!isMainAdmin && (!userRoles || userRoles.length === 0)) {
           console.log('useUserPermissions - No roles found, creating user role');
           const { error: insertError } = await supabase
             .from('user_roles')
@@ -48,7 +62,7 @@ export const useUserPermissions = () => {
           }
         }
 
-        const adminRole = userRoles?.some(role => role.role === 'admin') || false;
+        const adminRole = isMainAdmin || userRoles?.some(role => role.role === 'admin') || false;
         const guestRole = userRoles?.some(role => role.role === 'guest') || false;
         setIsAdmin(adminRole);
 
