@@ -5,19 +5,17 @@ import {
   ArrowRight, 
   CheckCircle, 
   FileText, 
-  Zap, 
-  BarChart3, 
   MessageCircle,
-  Mail,
   Bot,
+  Settings,
   Clock,
   Target,
-  TrendingUp,
-  Eye,
-  Users,
-  Settings,
   Sparkles,
-  Send
+  Eye,
+  Mail,
+  BarChart3,
+  Users,
+  Crown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -34,7 +32,7 @@ const LandingPage = () => {
               <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
                 <FileText className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-gray-900">Bora Fechar</span>
+              <span className="text-xl font-bold text-gray-900">BoraFecharAI</span>
             </div>
             <div className="flex items-center space-x-4">
               <Button variant="ghost" asChild>
@@ -53,25 +51,26 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-blue-100 text-blue-800 hover:bg-blue-100">
-              🚀 Acelere suas vendas
+              🚀 Acelere suas vendas com IA
             </Badge>
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
               Propostas Profissionais 
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"> em Minutos</span>
             </h1>
             <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              A ferramenta definitiva para PMEs e autônomos criarem propostas comerciais 
-              impressionantes através de 3 canais inteligentes: Chat IA, Telegram e Interface Manual.
+              Transforme a forma como você cria propostas comerciais. 
+              Com 3 canais inteligentes, analytics avançado e automação completa 
+              para PMEs e profissionais autônomos.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" className="text-lg px-8 py-6" asChild>
                 <Link to="/login">
-                  Teste Grátis - 20 Propostas
+                  Experimente Grátis - 20 Propostas
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
               <Button size="lg" variant="outline" className="text-lg px-8 py-6">
-                <a href="#recursos" className="flex items-center">
+                <a href="#canais" className="flex items-center">
                   Conhecer Recursos
                   <Sparkles className="ml-2 h-5 w-5" />
                 </a>
@@ -82,7 +81,7 @@ const LandingPage = () => {
       </section>
 
       {/* 3 Canais Principais */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
+      <section id="canais" className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
@@ -94,14 +93,14 @@ const LandingPage = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="p-8 hover:shadow-lg transition-shadow border-2 hover:border-blue-200">
+            <Card className="p-8 hover:shadow-lg transition-shadow border-2 hover:border-green-200">
               <CardContent className="p-0 text-center">
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6 mx-auto">
                   <MessageCircle className="h-8 w-8 text-green-600" />
                 </div>
                 <h3 className="text-2xl font-semibold text-gray-900 mb-4">Telegram</h3>
                 <p className="text-gray-600 mb-6">
-                  Crie propostas diretamente pelo Telegram, onde você está todos os dias. 
+                  Crie propostas diretamente pelo Telegram, onde você já está todos os dias. 
                   Rápido, prático e sem sair do aplicativo.
                 </p>
                 <div className="flex items-center justify-center text-green-600 font-medium">
@@ -116,10 +115,10 @@ const LandingPage = () => {
                 <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-6 mx-auto">
                   <Bot className="h-8 w-8 text-purple-600" />
                 </div>
-                <h3 className="text-2xl font-semibold text-gray-900 mb-4">Chat IA</h3>
+                <h3 className="text-2xl font-semibold text-gray-900 mb-4">Chat com IA</h3>
                 <p className="text-gray-600 mb-6">
-                  Converse com nossa IA e descreva seu projeto. Ela cria a proposta 
-                  completa com linguagem profissional adaptada ao seu negócio.
+                  Converse com nossa IA especializada e descreva seu projeto. 
+                  Ela cria a proposta completa com linguagem profissional.
                 </p>
                 <div className="flex items-center justify-center text-purple-600 font-medium">
                   <Sparkles className="h-4 w-4 mr-2" />
@@ -149,14 +148,14 @@ const LandingPage = () => {
       </section>
 
       {/* Recursos Principais */}
-      <section id="recursos" className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Recursos que Fazem a Diferença
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Tudo que você precisa para profissionalizar suas propostas e aumentar suas vendas
+              Ferramentas profissionais que ajudam você a acompanhar, personalizar e acelerar suas vendas
             </p>
           </div>
 
@@ -170,7 +169,7 @@ const LandingPage = () => {
                   <div>
                     <h3 className="text-xl font-semibold text-gray-900 mb-2">Analytics Inteligente</h3>
                     <p className="text-gray-600">
-                      Veja quando o cliente abriu sua proposta, quanto tempo leu cada seção 
+                      Veja quando o cliente abriu sua proposta, quanto tempo passou lendo cada seção 
                       e identifique o melhor momento para fazer o follow-up.
                     </p>
                   </div>
@@ -237,10 +236,10 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Feito para PMEs e Autônomos
+              Ideal para PMEs e Profissionais Autônomos
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Entendemos os desafios únicos de pequenas empresas e profissionais independentes
+              Uma solução pensada especificamente para as necessidades de pequenas empresas e freelancers
             </p>
           </div>
 
@@ -251,8 +250,8 @@ const LandingPage = () => {
                 <div>
                   <h3 className="text-xl font-semibold mb-2">Economize Tempo Valioso</h3>
                   <p className="text-gray-600">
-                    Pare de gastar horas no Word. Crie propostas profissionais em minutos 
-                    e foque no que realmente importa: seus clientes.
+                    Pare de gastar horas criando propostas no Word. Crie propostas profissionais 
+                    em minutos e foque no que realmente importa: seus clientes.
                   </p>
                 </div>
               </div>
@@ -263,7 +262,7 @@ const LandingPage = () => {
                   <h3 className="text-xl font-semibold mb-2">Aparência Profissional</h3>
                   <p className="text-gray-600">
                     Templates modernos que transmitem credibilidade e seriedade, 
-                    mesmo para negócios que estão começando.
+                    ajudando você a se destacar da concorrência.
                   </p>
                 </div>
               </div>
@@ -271,10 +270,10 @@ const LandingPage = () => {
               <div className="flex items-start space-x-4">
                 <CheckCircle className="h-6 w-6 text-green-500 mt-1 flex-shrink-0" />
                 <div>
-                  <h3 className="text-xl font-semibold mb-2">Preço Acessível</h3>
+                  <h3 className="text-xl font-semibold mb-2">Controle Completo</h3>
                   <p className="text-gray-600">
-                    Solução pensada para o orçamento de pequenas empresas, 
-                    com resultado de grandes corporações.
+                    Acompanhe o status de todas as suas propostas, organize clientes 
+                    e tenha insights sobre seu processo de vendas.
                   </p>
                 </div>
               </div>
@@ -282,10 +281,10 @@ const LandingPage = () => {
               <div className="flex items-start space-x-4">
                 <CheckCircle className="h-6 w-6 text-green-500 mt-1 flex-shrink-0" />
                 <div>
-                  <h3 className="text-xl font-semibold mb-2">Organização Completa</h3>
+                  <h3 className="text-xl font-semibold mb-2">Automação Inteligente</h3>
                   <p className="text-gray-600">
-                    Controle total sobre suas propostas, clientes e histórico de vendas. 
-                    Tudo organizado e acessível.
+                    Use IA para criar conteúdo, Telegram para agilidade e analytics 
+                    para tomar decisões mais assertivas.
                   </p>
                 </div>
               </div>
@@ -293,10 +292,12 @@ const LandingPage = () => {
 
             <div className="text-center">
               <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-8">
-                <TrendingUp className="h-16 w-16 text-blue-600 mx-auto mb-4" />
+                <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Sparkles className="h-8 w-8 text-white" />
+                </div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-2">Acelere Suas Vendas</h3>
                 <p className="text-gray-600">
-                  Propostas mais rápidas, profissionais e organizadas = mais tempo para vender
+                  Propostas mais rápidas e profissionais = mais tempo para vender e crescer seu negócio
                 </p>
               </div>
             </div>
@@ -309,97 +310,100 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Comece Gratuitamente
+              Escolha o plano que melhor atende às suas necessidades
             </h2>
             <p className="text-xl text-gray-600">
-              Teste nossa solução sem compromisso
+              Comece gratuitamente e evolua conforme seu negócio cresce
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* Plano Gratuito */}
-            <Card className="p-8 border-2 border-gray-200">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            {/* Plano Essencial */}
+            <Card className="p-8 border-2 border-gray-200 hover:shadow-lg transition-shadow">
               <CardContent className="p-0">
                 <div className="text-center mb-6">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Teste Grátis</h3>
-                  <div className="text-4xl font-bold text-gray-900 mb-1">R$ 0</div>
-                  <div className="text-gray-500">20 propostas para testar</div>
-                </div>
-                
-                <ul className="space-y-3 mb-8">
-                  <li className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span>20 propostas gratuitas</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span>3 canais de criação</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span>Templates profissionais</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span>Analytics básico</span>
-                  </li>
-                </ul>
-                
-                <Button className="w-full" size="lg" asChild>
-                  <Link to="/login">Começar Agora</Link>
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Plano Profissional */}
-            <Card className="p-8 border-2 border-blue-500 relative">
-              <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-blue-500">
-                Mais Popular
-              </Badge>
-              <CardContent className="p-0">
-                <div className="text-center mb-6">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Profissional</h3>
-                  <div className="text-4xl font-bold text-gray-900 mb-1">R$ 47</div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Essencial</h3>
+                  <p className="text-gray-600 mb-4">Ideal para freelancers e pequenos projetos</p>
+                  <div className="mb-1">
+                    <span className="text-4xl font-bold text-blue-600">R$ 39,90</span>
+                  </div>
                   <div className="text-gray-500">por mês</div>
                 </div>
                 
                 <ul className="space-y-3 mb-8">
                   <li className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span>Propostas ilimitadas</span>
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                    <span className="text-gray-900">Até 10 propostas por mês</span>
                   </li>
                   <li className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span>Todos os canais + IA avançada</span>
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                    <span className="text-gray-900">Chat com IA para criação de propostas</span>
                   </li>
                   <li className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span>Analytics completo</span>
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                    <span className="text-gray-900">Bot do Telegram para consultas</span>
                   </li>
                   <li className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span>Email personalizado</span>
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                    <span className="text-gray-900">Gestão de clientes</span>
                   </li>
                   <li className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span>Notificações Telegram</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span>Suporte prioritário</span>
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                    <span className="text-gray-900">Suporte por email</span>
                   </li>
                 </ul>
+              </CardContent>
+            </Card>
+
+            {/* Plano Profissional */}
+            <Card className="p-8 border-2 border-blue-500 relative hover:shadow-lg transition-shadow">
+              <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white flex items-center gap-1">
+                <Crown className="w-3 h-3" />
+                Mais Popular
+              </Badge>
+              <CardContent className="p-0">
+                <div className="text-center mb-6">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Profissional</h3>
+                  <p className="text-gray-600 mb-4">Para empresas que precisam de mais recursos</p>
+                  <div className="mb-1">
+                    <span className="text-4xl font-bold text-blue-600">R$ 79,90</span>
+                  </div>
+                  <div className="text-gray-500">por mês</div>
+                </div>
                 
-                <Button className="w-full bg-blue-600 hover:bg-blue-700" size="lg" asChild>
-                  <Link to="/login">Começar Grátis</Link>
-                </Button>
+                <ul className="space-y-3 mb-8">
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                    <span className="text-gray-900">Propostas ilimitadas</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                    <span className="text-gray-900">Chat com IA para criação avançada</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                    <span className="text-gray-900">Bot do Telegram com recursos completos</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                    <span className="text-gray-900">Gestão avançada de clientes</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                    <span className="text-gray-900">Analytics completo</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                    <span className="text-gray-900">Suporte prioritário</span>
+                  </li>
+                </ul>
               </CardContent>
             </Card>
           </div>
 
           <div className="text-center mt-8">
             <p className="text-gray-600">
-              💡 Teste grátis primeiro, faça upgrade quando precisar de mais recursos
+              💡 Comece com 20 propostas gratuitas para testar nossa solução
             </p>
           </div>
         </div>
@@ -413,13 +417,13 @@ const LandingPage = () => {
           </h2>
           <p className="text-xl text-blue-100 mb-8">
             Junte-se aos empresários que já descobriram como criar propostas profissionais 
-            em minutos e acelerar suas vendas.
+            em minutos e acelerar suas vendas com BoraFecharAI.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
             <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-6" asChild>
               <Link to="/login">
-                Teste Grátis - 20 Propostas
+                Começar Gratuitamente
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
@@ -428,11 +432,11 @@ const LandingPage = () => {
           <div className="flex items-center justify-center space-x-8 text-blue-200 text-sm">
             <div className="flex items-center">
               <CheckCircle className="h-4 w-4 mr-2" />
-              Sem cartão de crédito
+              20 propostas gratuitas
             </div>
             <div className="flex items-center">
               <CheckCircle className="h-4 w-4 mr-2" />
-              Setup em 2 minutos
+              Setup em minutos
             </div>
             <div className="flex items-center">
               <CheckCircle className="h-4 w-4 mr-2" />
@@ -451,17 +455,17 @@ const LandingPage = () => {
                 <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
                   <FileText className="h-5 w-5 text-white" />
                 </div>
-                <span className="text-xl font-bold">Bora Fechar</span>
+                <span className="text-xl font-bold">BoraFecharAI</span>
               </div>
               <p className="text-gray-400">
-                A ferramenta definitiva para PMEs criarem propostas profissionais e acelerarem suas vendas.
+                A solução definitiva para PMEs criarem propostas profissionais e acelerarem suas vendas.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold mb-4">Produto</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#recursos" className="hover:text-white">Recursos</a></li>
+                <li><a href="#canais" className="hover:text-white">Recursos</a></li>
                 <li><Link to="/login" className="hover:text-white">Preços</Link></li>
               </ul>
             </div>
@@ -487,7 +491,7 @@ const LandingPage = () => {
           </div>
 
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 Bora Fechar. Todos os direitos reservados.</p>
+            <p>&copy; 2024 BoraFecharAI. Todos os direitos reservados.</p>
           </div>
         </div>
       </footer>
