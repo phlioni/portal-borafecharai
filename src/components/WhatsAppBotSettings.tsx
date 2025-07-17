@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -100,11 +99,11 @@ const WhatsAppBotSettings = () => {
           </div>
           <Button 
             onClick={handleSaveConfig}
-            disabled={updateConfig.isLoading}
+            disabled={updateConfig.isPending}
             className="w-full md:w-auto"
           >
             <Webhook className="h-4 w-4 mr-2" />
-            {updateConfig.isLoading ? 'Salvando...' : 'Salvar Configuração'}
+            {updateConfig.isPending ? 'Salvando...' : 'Salvar Configuração'}
           </Button>
         </CardContent>
       </Card>
@@ -143,11 +142,11 @@ const WhatsAppBotSettings = () => {
           </div>
           <Button 
             onClick={handleTestBot}
-            disabled={testBot.isLoading || !testPhone || !testMessage}
+            disabled={testBot.isPending || !testPhone || !testMessage}
             className="w-full md:w-auto"
           >
             <Send className="h-4 w-4 mr-2" />
-            {testBot.isLoading ? 'Enviando...' : 'Testar Bot'}
+            {testBot.isPending ? 'Enviando...' : 'Testar Bot'}
           </Button>
         </CardContent>
       </Card>
