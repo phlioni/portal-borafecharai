@@ -36,7 +36,7 @@ export const useBusinessSegments = () => {
       }
 
       console.log('Business segments data:', data);
-      return data as BusinessSegment[];
+      return data;
     },
   });
 };
@@ -52,11 +52,9 @@ export const useBusinessTypes = (segmentId?: string) => {
 
       console.log('Fetching business types for segment:', segmentId);
 
+      // Use rpc to call the function or raw query
       const { data, error } = await supabase
-        .from('business_types')
-        .select('*')
-        .eq('segment_id', segmentId)
-        .order('type_order');
+        .rpc('get_business_types_by_segment', { segment_id: segmentId });
 
       if (error) {
         console.error('Error fetching business types:', error);
@@ -64,7 +62,7 @@ export const useBusinessTypes = (segmentId?: string) => {
       }
 
       console.log('Business types data:', data);
-      return data as BusinessType[];
+      return data;
     },
     enabled: !!segmentId,
   });

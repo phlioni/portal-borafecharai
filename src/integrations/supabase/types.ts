@@ -38,6 +38,41 @@ export type Database = {
         }
         Relationships: []
       }
+      business_types: {
+        Row: {
+          created_at: string | null
+          id: string
+          segment_id: string | null
+          type_name: string
+          type_order: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          segment_id?: string | null
+          type_name: string
+          type_order?: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          segment_id?: string | null
+          type_name?: string
+          type_order?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_types_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "business_segments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           address: string | null
