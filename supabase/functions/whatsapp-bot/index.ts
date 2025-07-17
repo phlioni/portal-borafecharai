@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
@@ -7,23 +6,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
 };
 
-interface WhatsAppMessage {
-  from: string;
-  text?: {
-    body: string;
-  };
-  type: string;
-}
-
-interface WhatsAppWebhookData {
-  entry: Array<{
-    changes: Array<{
-      value: {
-        messages?: WhatsAppMessage[];
-        statuses?: any[];
-      };
-    }>;
-  }>;
+interface TwilioMessage {
+  From: string;
+  Body: string;
+  MessageSid: string;
+  AccountSid: string;
+  MessagingServiceSid?: string;
+  To: string;
 }
 
 interface UserSession {
@@ -40,13 +29,14 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  console.log('=== WhatsApp Bot Webhook Triggered ===');
+  console.log('=== WhatsApp Bot Webhook (Twilio) Triggered ===');
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  const whatsappToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
+  const twilioAccountSid = Deno.env.get('ACCOUNT_ID_TWILIO');
+  const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
   
-  if (!supabaseUrl || !supabaseServiceKey || !whatsappToken) {
+  if (!supabaseUrl || !supabaseServiceKey || !twilioAccountSid || !twilioAuthToken) {
     console.error('Missing required environment variables');
     return new Response('Configuration error', { status: 500 });
   }
@@ -54,33 +44,20 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    if (req.method === 'GET') {
-      // Webhook verification
-      const url = new URL(req.url);
-      const mode = url.searchParams.get('hub.mode');
-      const token = url.searchParams.get('hub.verify_token');
-      const challenge = url.searchParams.get('hub.challenge');
-
-      if (mode === 'subscribe' && token === 'whatsapp_verify_token') {
-        console.log('Webhook verified successfully');
-        return new Response(challenge, { status: 200 });
-      }
-
-      return new Response('Verification failed', { status: 403 });
-    }
-
     if (req.method === 'POST') {
-      const body: WhatsAppWebhookData = await req.json();
-      console.log('Webhook payload:', JSON.stringify(body, null, 2));
+      const formData = await req.formData();
+      const twilioMessage: TwilioMessage = {
+        From: formData.get('From') as string,
+        Body: formData.get('Body') as string,
+        MessageSid: formData.get('MessageSid') as string,
+        AccountSid: formData.get('AccountSid') as string,
+        To: formData.get('To') as string,
+      };
 
-      for (const entry of body.entry) {
-        for (const change of entry.changes) {
-          if (change.value.messages) {
-            for (const message of change.value.messages) {
-              await processMessage(message, supabase, whatsappToken);
-            }
-          }
-        }
+      console.log('Twilio webhook payload:', twilioMessage);
+
+      if (twilioMessage.From && twilioMessage.Body) {
+        await processMessage(twilioMessage, supabase, twilioAccountSid, twilioAuthToken);
       }
 
       return new Response('OK', { 
@@ -100,13 +77,10 @@ serve(async (req) => {
   }
 });
 
-async function processMessage(message: WhatsAppMessage, supabase: any, whatsappToken: string) {
-  if (message.type !== 'text' || !message.text?.body) {
-    return;
-  }
-
-  const phoneNumber = message.from;
-  const messageText = message.text.body.toLowerCase().trim();
+async function processMessage(message: TwilioMessage, supabase: any, accountSid: string, authToken: string) {
+  // Extract phone number from WhatsApp format (whatsapp:+5511999999999)
+  const phoneNumber = message.From.replace('whatsapp:', '');
+  const messageText = message.Body.toLowerCase().trim();
 
   console.log(`Processing message from ${phoneNumber}: ${messageText}`);
 
@@ -122,10 +96,10 @@ async function processMessage(message: WhatsAppMessage, supabase: any, whatsappT
   
   if (user) {
     // User flow
-    await handleUserFlow(phoneNumber, messageText, session, user, supabase, whatsappToken);
+    await handleUserFlow(phoneNumber, messageText, session, user, supabase, accountSid, authToken);
   } else {
     // Client flow (proposal recipient)
-    await handleClientFlow(phoneNumber, messageText, session, supabase, whatsappToken);
+    await handleClientFlow(phoneNumber, messageText, session, supabase, accountSid, authToken);
   }
 }
 
@@ -207,7 +181,7 @@ async function getUserByPhone(phoneNumber: string, supabase: any) {
   return null;
 }
 
-async function handleUserFlow(phoneNumber: string, messageText: string, session: UserSession, user: any, supabase: any, whatsappToken: string) {
+async function handleUserFlow(phoneNumber: string, messageText: string, session: UserSession, user: any, supabase: any, accountSid: string, authToken: string) {
   console.log(`Handling user flow. Step: ${session.step}, Message: ${messageText}`);
 
   switch (session.step) {
@@ -219,7 +193,7 @@ async function handleUserFlow(phoneNumber: string, messageText: string, session:
         `2️⃣ Ver minhas propostas\n` +
         `3️⃣ Enviar proposta por email\n\n` +
         `Digite o número da opção desejada.`, 
-        whatsappToken
+        accountSid, authToken
       );
       await updateSession(phoneNumber, { step: 'menu' }, supabase);
       break;
@@ -230,25 +204,25 @@ async function handleUserFlow(phoneNumber: string, messageText: string, session:
           `📝 *Nova Proposta*\n\n` +
           `Vamos criar uma nova proposta!\n\n` +
           `Primeiro, me informe o *nome completo* do cliente:`, 
-          whatsappToken
+          accountSid, authToken
         );
         await updateSession(phoneNumber, { 
           step: 'collect_client_name',
           session_data: { user_id: user.user_id }
         }, supabase);
       } else if (messageText === '2') {
-        await handleViewProposals(phoneNumber, user.user_id, supabase, whatsappToken);
+        await handleViewProposals(phoneNumber, user.user_id, supabase, accountSid, authToken);
       } else if (messageText === '3') {
         await sendMessage(phoneNumber, 
           `📧 *Enviar Proposta*\n\n` +
           `Digite o ID da proposta que deseja enviar por email:`, 
-          whatsappToken
+          accountSid, authToken
         );
         await updateSession(phoneNumber, { step: 'send_proposal_id' }, supabase);
       } else {
         await sendMessage(phoneNumber, 
           `❌ Opção inválida. Digite 1, 2 ou 3.`, 
-          whatsappToken
+          accountSid, authToken
         );
       }
       break;
@@ -274,7 +248,7 @@ async function handleUserFlow(phoneNumber: string, messageText: string, session:
           `*Email:* ${existingClient.email || 'Não informado'}\n` +
           `*Telefone:* ${existingClient.phone || 'Não informado'}\n\n` +
           `É este cliente? (sim/não)`, 
-          whatsappToken
+          accountSid, authToken
         );
         sessionData.existing_client = existingClient;
         await updateSession(phoneNumber, { 
@@ -285,7 +259,7 @@ async function handleUserFlow(phoneNumber: string, messageText: string, session:
         await sendMessage(phoneNumber, 
           `📱 Cliente não encontrado. Será criado um novo cadastro.\n\n` +
           `Agora me informe o *telefone* do cliente:`, 
-          whatsappToken
+          accountSid, authToken
         );
         await updateSession(phoneNumber, { 
           step: 'collect_client_phone',
@@ -302,7 +276,7 @@ async function handleUserFlow(phoneNumber: string, messageText: string, session:
         await sendMessage(phoneNumber, 
           `📋 *Título da Proposta*\n\n` +
           `Digite o título/nome da proposta:`, 
-          whatsappToken
+          accountSid, authToken
         );
         await updateSession(phoneNumber, { 
           step: 'collect_proposal_title',
@@ -311,7 +285,7 @@ async function handleUserFlow(phoneNumber: string, messageText: string, session:
       } else {
         await sendMessage(phoneNumber, 
           `📱 Me informe o *telefone* do cliente:`, 
-          whatsappToken
+          accountSid, authToken
         );
         await updateSession(phoneNumber, { step: 'collect_client_phone' }, supabase);
       }
@@ -323,7 +297,7 @@ async function handleUserFlow(phoneNumber: string, messageText: string, session:
       
       await sendMessage(phoneNumber, 
         `📧 Agora me informe o *email* do cliente:`, 
-        whatsappToken
+        accountSid, authToken
       );
       await updateSession(phoneNumber, { 
         step: 'collect_client_email',
@@ -338,7 +312,7 @@ async function handleUserFlow(phoneNumber: string, messageText: string, session:
       await sendMessage(phoneNumber, 
         `📋 *Título da Proposta*\n\n` +
         `Digite o título/nome da proposta:`, 
-        whatsappToken
+        accountSid, authToken
       );
       await updateSession(phoneNumber, { 
         step: 'collect_proposal_title',
@@ -353,7 +327,7 @@ async function handleUserFlow(phoneNumber: string, messageText: string, session:
       await sendMessage(phoneNumber, 
         `📝 *Descrição do Serviço*\n\n` +
         `Descreva brevemente o serviço/produto:`, 
-        whatsappToken
+        accountSid, authToken
       );
       await updateSession(phoneNumber, { 
         step: 'collect_service_description',
@@ -368,7 +342,7 @@ async function handleUserFlow(phoneNumber: string, messageText: string, session:
       await sendMessage(phoneNumber, 
         `📋 *Descrição Detalhada*\n\n` +
         `Forneça uma descrição mais detalhada do que será entregue:`, 
-        whatsappToken
+        accountSid, authToken
       );
       await updateSession(phoneNumber, { 
         step: 'collect_detailed_description',
@@ -383,7 +357,7 @@ async function handleUserFlow(phoneNumber: string, messageText: string, session:
       await sendMessage(phoneNumber, 
         `💰 *Valor da Proposta*\n\n` +
         `Digite o valor (apenas números, ex: 1500.00):`, 
-        whatsappToken
+        accountSid, authToken
       );
       await updateSession(phoneNumber, { 
         step: 'collect_value',
@@ -398,7 +372,7 @@ async function handleUserFlow(phoneNumber: string, messageText: string, session:
       if (isNaN(value)) {
         await sendMessage(phoneNumber, 
           `❌ Valor inválido. Digite apenas números (ex: 1500.00):`, 
-          whatsappToken
+          accountSid, authToken
         );
         return;
       }
@@ -408,7 +382,7 @@ async function handleUserFlow(phoneNumber: string, messageText: string, session:
       await sendMessage(phoneNumber, 
         `⏰ *Prazo de Entrega*\n\n` +
         `Digite o prazo de entrega (ex: "15 dias", "2 semanas"):`, 
-        whatsappToken
+        accountSid, authToken
       );
       await updateSession(phoneNumber, { 
         step: 'collect_delivery_time',
@@ -423,7 +397,7 @@ async function handleUserFlow(phoneNumber: string, messageText: string, session:
       await sendMessage(phoneNumber, 
         `📅 *Validade da Proposta*\n\n` +
         `Digite a data de validade (formato DD/MM/AAAA):`, 
-        whatsappToken
+        accountSid, authToken
       );
       await updateSession(phoneNumber, { 
         step: 'collect_validity_date',
@@ -438,7 +412,7 @@ async function handleUserFlow(phoneNumber: string, messageText: string, session:
       await sendMessage(phoneNumber, 
         `📝 *Observações (Opcional)*\n\n` +
         `Digite observações adicionais ou "pular" para continuar:`, 
-        whatsappToken
+        accountSid, authToken
       );
       await updateSession(phoneNumber, { 
         step: 'collect_observations',
@@ -453,23 +427,288 @@ async function handleUserFlow(phoneNumber: string, messageText: string, session:
       }
       
       // Create proposal
-      await createProposal(phoneNumber, sessionData10, user.user_id, supabase, whatsappToken);
+      await createProposal(phoneNumber, sessionData10, user.user_id, supabase, accountSid, authToken);
+      break;
+
+    case 'send_proposal_confirm':
+      if (messageText === 'sim' || messageText === 's') {
+        const sessionData = session.session_data;
+        await handleSendProposal(phoneNumber, sessionData.proposal_id, user.user_id, supabase, accountSid, authToken);
+      } else {
+        await sendMessage(phoneNumber, 
+          `Ok, retornando ao menu principal.`, 
+          accountSid, authToken
+        );
+        await updateSession(phoneNumber, { step: 'start' }, supabase);
+      }
       break;
 
     case 'send_proposal_id':
-      await handleSendProposal(phoneNumber, messageText, user.user_id, supabase, whatsappToken);
+      await handleSendProposal(phoneNumber, messageText, user.user_id, supabase, accountSid, authToken);
       break;
 
     default:
       await sendMessage(phoneNumber, 
         `❌ Algo deu errado. Digite "menu" para voltar ao início.`, 
-        whatsappToken
+        accountSid, authToken
       );
       await updateSession(phoneNumber, { step: 'start' }, supabase);
   }
 }
 
-async function createProposal(phoneNumber: string, sessionData: any, userId: string, supabase: any, whatsappToken: string) {
+async function handleClientFlow(phoneNumber: string, messageText: string, session: UserSession, supabase: any, accountSid: string, authToken: string) {
+  console.log(`Handling client flow. Step: ${session.step}, Message: ${messageText}`);
+
+  // Check if there are proposals for this phone number
+  const { data: clientProposals } = await supabase
+    .from('clients')
+    .select(`
+      *,
+      proposals (
+        id,
+        title,
+        status,
+        public_hash,
+        created_at
+      )
+    `)
+    .eq('phone', phoneNumber)
+    .limit(1);
+
+  if (!clientProposals || clientProposals.length === 0) {
+    await sendMessage(phoneNumber, 
+      `👋 Olá! Não encontrei propostas para este número.\n\n` +
+      `Se você é cliente e recebeu uma proposta, verifique se o número está correto.`, 
+      accountSid, authToken
+    );
+    return;
+  }
+
+  const client = clientProposals[0];
+  const recentProposals = client.proposals?.filter((p: any) => p.status === 'enviada') || [];
+
+  if (recentProposals.length === 0) {
+    await sendMessage(phoneNumber, 
+      `📋 Olá ${client.name}!\n\n` +
+      `Não há propostas pendentes para você no momento.`, 
+      accountSid, authToken
+    );
+    return;
+  }
+
+  if (messageText === 'aceitar' || messageText === 'aceito') {
+    await handleProposalResponse(phoneNumber, 'aceita', recentProposals[0].id, supabase, accountSid, authToken);
+  } else if (messageText === 'recusar' || messageText === 'rejeitada') {
+    await handleProposalResponse(phoneNumber, 'rejeitada', recentProposals[0].id, supabase, accountSid, authToken);
+  } else {
+    // Show proposal details
+    const proposal = recentProposals[0];
+    await sendMessage(phoneNumber, 
+      `📋 *${proposal.title}*\n\n` +
+      `Olá ${client.name}!\n\n` +
+      `Você tem uma proposta pendente.\n\n` +
+      `Para visualizar todos os detalhes, acesse: ` +
+      `${Deno.env.get('SUPABASE_URL')}/proposta/${proposal.public_hash || btoa(proposal.id)}\n\n` +
+      `Responda com:\n` +
+      `• *aceitar* - para aceitar a proposta\n` +
+      `• *recusar* - para recusar a proposta`, 
+      accountSid, authToken
+    );
+  }
+}
+
+async function handleProposalResponse(phoneNumber: string, status: string, proposalId: string, supabase: any, accountSid: string, authToken: string) {
+  try {
+    const { error } = await supabase
+      .from('proposals')
+      .update({ 
+        status: status,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', proposalId);
+
+    if (error) {
+      throw error;
+    }
+
+    const statusText = status === 'aceita' ? 'aceita' : 'recusada';
+    const emoji = status === 'aceita' ? '✅' : '❌';
+
+    await sendMessage(phoneNumber, 
+      `${emoji} *Proposta ${statusText}!*\n\n` +
+      `Obrigado pela sua resposta. O responsável foi notificado.`, 
+      accountSid, authToken
+    );
+
+  } catch (error) {
+    console.error('Error updating proposal status:', error);
+    await sendMessage(phoneNumber, 
+      `❌ Erro ao processar resposta. Tente novamente.`, 
+      accountSid, authToken
+    );
+  }
+}
+
+async function handleViewProposals(phoneNumber: string, userId: string, supabase: any, accountSid: string, authToken: string) {
+  try {
+    const { data: proposals, error } = await supabase
+      .from('proposals')
+      .select(`
+        *,
+        clients (
+          name,
+          email,
+          phone
+        )
+      `)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (error) {
+      throw error;
+    }
+
+    if (!proposals || proposals.length === 0) {
+      await sendMessage(phoneNumber, 
+        `📋 Você ainda não possui propostas cadastradas.`, 
+        accountSid, authToken
+      );
+      await updateSession(phoneNumber, { step: 'start' }, supabase);
+      return;
+    }
+
+    let message = `📋 *Suas Últimas Propostas*\n\n`;
+    
+    proposals.forEach((proposal: any, index: number) => {
+      const clientName = proposal.clients?.name || 'Cliente não informado';
+      const value = proposal.value ? 
+        `R$ ${proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 
+        'Valor não informado';
+      const status = proposal.status || 'rascunho';
+      const date = new Date(proposal.created_at).toLocaleDateString('pt-BR');
+      
+      message += `${index + 1}. *${proposal.title}*\n`;
+      message += `   Cliente: ${clientName}\n`;
+      message += `   Valor: ${value}\n`;
+      message += `   Status: ${status}\n`;
+      message += `   Data: ${date}\n`;
+      message += `   ID: ${proposal.id}\n\n`;
+    });
+
+    message += `Digite "menu" para voltar ao menu principal.`;
+
+    await sendMessage(phoneNumber, message, accountSid, authToken);
+    await updateSession(phoneNumber, { step: 'start' }, supabase);
+
+  } catch (error) {
+    console.error('Error viewing proposals:', error);
+    await sendMessage(phoneNumber, 
+      `❌ Erro ao buscar propostas. Tente novamente.`, 
+      accountSid, authToken
+    );
+    await updateSession(phoneNumber, { step: 'start' }, supabase);
+  }
+}
+
+async function handleSendProposal(phoneNumber: string, proposalId: string, userId: string, supabase: any, accountSid: string, authToken: string) {
+  try {
+    const { data: proposal, error } = await supabase
+      .from('proposals')
+      .select(`
+        *,
+        clients (
+          name,
+          email,
+          phone
+        )
+      `)
+      .eq('id', proposalId)
+      .eq('user_id', userId)
+      .single();
+
+    if (error || !proposal) {
+      await sendMessage(phoneNumber, 
+        `❌ Proposta não encontrada. Verifique o ID.`, 
+        accountSid, authToken
+      );
+      await updateSession(phoneNumber, { step: 'start' }, supabase);
+      return;
+    }
+
+    if (!proposal.clients?.email) {
+      await sendMessage(phoneNumber, 
+        `❌ Cliente não possui email cadastrado.`, 
+        accountSid, authToken
+      );
+      await updateSession(phoneNumber, { step: 'start' }, supabase);
+      return;
+    }
+
+    // Call send-proposal-email function
+    const { data, error: emailError } = await supabase.functions.invoke('send-proposal-email', {
+      body: {
+        proposalId: proposal.id,
+        recipientEmail: proposal.clients.email,
+        recipientName: proposal.clients.name,
+        emailSubject: `Proposta: ${proposal.title}`,
+        emailMessage: `Olá ${proposal.clients.name},\n\nSegue em anexo a proposta solicitada.\n\nAtenciosamente,\nEquipe`,
+        publicUrl: `${Deno.env.get('SUPABASE_URL')}/proposta/${proposal.public_hash || btoa(proposal.id)}`
+      }
+    });
+
+    if (emailError) {
+      throw emailError;
+    }
+
+    await sendMessage(phoneNumber, 
+      `✅ *Proposta Enviada!*\n\n` +
+      `A proposta "${proposal.title}" foi enviada para ${proposal.clients.email}`, 
+      accountSid, authToken
+    );
+
+    await updateSession(phoneNumber, { step: 'start' }, supabase);
+
+  } catch (error) {
+    console.error('Error sending proposal:', error);
+    await sendMessage(phoneNumber, 
+      `❌ Erro ao enviar proposta. Tente novamente.`, 
+      accountSid, authToken
+    );
+    await updateSession(phoneNumber, { step: 'start' }, supabase);
+  }
+}
+
+async function sendMessage(phoneNumber: string, message: string, accountSid: string, authToken: string) {
+  const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
+  
+  const params = new URLSearchParams();
+  params.append('From', 'whatsapp:+14155238886'); // Twilio sandbox number
+  params.append('To', `whatsapp:${phoneNumber}`);
+  params.append('Body', message);
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${btoa(`${accountSid}:${authToken}`)}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: params
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('Error sending Twilio message:', error);
+    } else {
+      console.log('Message sent successfully to:', phoneNumber);
+    }
+  } catch (error) {
+    console.error('Error sending Twilio message:', error);
+  }
+}
+
+async function createProposal(phoneNumber: string, sessionData: any, userId: string, supabase: any, accountSid: string, authToken: string) {
   try {
     // Create client if doesn't exist
     let clientId = sessionData.client?.id;
@@ -525,7 +764,7 @@ async function createProposal(phoneNumber: string, sessionData: any, userId: str
       `*Cliente:* ${sessionData.client_name}\n` +
       `*Valor:* R$ ${proposal.value?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n\n` +
       `Deseja enviar por email agora? (sim/não)`, 
-      whatsappToken
+      accountSid, authToken
     );
 
     await updateSession(phoneNumber, { 
@@ -537,271 +776,8 @@ async function createProposal(phoneNumber: string, sessionData: any, userId: str
     console.error('Error creating proposal:', error);
     await sendMessage(phoneNumber, 
       `❌ Erro ao criar proposta. Tente novamente.`, 
-      whatsappToken
+      accountSid, authToken
     );
     await updateSession(phoneNumber, { step: 'start' }, supabase);
-  }
-}
-
-async function handleViewProposals(phoneNumber: string, userId: string, supabase: any, whatsappToken: string) {
-  try {
-    const { data: proposals, error } = await supabase
-      .from('proposals')
-      .select(`
-        *,
-        clients (
-          name,
-          email,
-          phone
-        )
-      `)
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(10);
-
-    if (error) {
-      throw error;
-    }
-
-    if (!proposals || proposals.length === 0) {
-      await sendMessage(phoneNumber, 
-        `📋 Você ainda não possui propostas cadastradas.`, 
-        whatsappToken
-      );
-      await updateSession(phoneNumber, { step: 'start' }, supabase);
-      return;
-    }
-
-    let message = `📋 *Suas Últimas Propostas*\n\n`;
-    
-    proposals.forEach((proposal: any, index: number) => {
-      const clientName = proposal.clients?.name || 'Cliente não informado';
-      const value = proposal.value ? 
-        `R$ ${proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 
-        'Valor não informado';
-      const status = proposal.status || 'rascunho';
-      const date = new Date(proposal.created_at).toLocaleDateString('pt-BR');
-      
-      message += `${index + 1}. *${proposal.title}*\n`;
-      message += `   Cliente: ${clientName}\n`;
-      message += `   Valor: ${value}\n`;
-      message += `   Status: ${status}\n`;
-      message += `   Data: ${date}\n`;
-      message += `   ID: ${proposal.id}\n\n`;
-    });
-
-    message += `Digite "menu" para voltar ao menu principal.`;
-
-    await sendMessage(phoneNumber, message, whatsappToken);
-    await updateSession(phoneNumber, { step: 'start' }, supabase);
-
-  } catch (error) {
-    console.error('Error viewing proposals:', error);
-    await sendMessage(phoneNumber, 
-      `❌ Erro ao buscar propostas. Tente novamente.`, 
-      whatsappToken
-    );
-    await updateSession(phoneNumber, { step: 'start' }, supabase);
-  }
-}
-
-async function handleSendProposal(phoneNumber: string, proposalId: string, userId: string, supabase: any, whatsappToken: string) {
-  try {
-    const { data: proposal, error } = await supabase
-      .from('proposals')
-      .select(`
-        *,
-        clients (
-          name,
-          email,
-          phone
-        )
-      `)
-      .eq('id', proposalId)
-      .eq('user_id', userId)
-      .single();
-
-    if (error || !proposal) {
-      await sendMessage(phoneNumber, 
-        `❌ Proposta não encontrada. Verifique o ID.`, 
-        whatsappToken
-      );
-      await updateSession(phoneNumber, { step: 'start' }, supabase);
-      return;
-    }
-
-    if (!proposal.clients?.email) {
-      await sendMessage(phoneNumber, 
-        `❌ Cliente não possui email cadastrado.`, 
-        whatsappToken
-      );
-      await updateSession(phoneNumber, { step: 'start' }, supabase);
-      return;
-    }
-
-    // Call send-proposal-email function
-    const { data, error: emailError } = await supabase.functions.invoke('send-proposal-email', {
-      body: {
-        proposalId: proposal.id,
-        recipientEmail: proposal.clients.email,
-        recipientName: proposal.clients.name,
-        emailSubject: `Proposta: ${proposal.title}`,
-        emailMessage: `Olá ${proposal.clients.name},\n\nSegue em anexo a proposta solicitada.\n\nAtenciosamente,\nEquipe`,
-        publicUrl: `${Deno.env.get('SUPABASE_URL')}/proposta/${proposal.public_hash || btoa(proposal.id)}`
-      }
-    });
-
-    if (emailError) {
-      throw emailError;
-    }
-
-    await sendMessage(phoneNumber, 
-      `✅ *Proposta Enviada!*\n\n` +
-      `A proposta "${proposal.title}" foi enviada para ${proposal.clients.email}`, 
-      whatsappToken
-    );
-
-    await updateSession(phoneNumber, { step: 'start' }, supabase);
-
-  } catch (error) {
-    console.error('Error sending proposal:', error);
-    await sendMessage(phoneNumber, 
-      `❌ Erro ao enviar proposta. Tente novamente.`, 
-      whatsappToken
-    );
-    await updateSession(phoneNumber, { step: 'start' }, supabase);
-  }
-}
-
-async function handleClientFlow(phoneNumber: string, messageText: string, session: UserSession, supabase: any, whatsappToken: string) {
-  console.log(`Handling client flow. Step: ${session.step}, Message: ${messageText}`);
-
-  // Check if there are proposals for this phone number
-  const { data: clientProposals } = await supabase
-    .from('clients')
-    .select(`
-      *,
-      proposals (
-        id,
-        title,
-        status,
-        public_hash,
-        created_at
-      )
-    `)
-    .eq('phone', phoneNumber)
-    .limit(1);
-
-  if (!clientProposals || clientProposals.length === 0) {
-    await sendMessage(phoneNumber, 
-      `👋 Olá! Não encontrei propostas para este número.\n\n` +
-      `Se você é cliente e recebeu uma proposta, verifique se o número está correto.`, 
-      whatsappToken
-    );
-    return;
-  }
-
-  const client = clientProposals[0];
-  const recentProposals = client.proposals?.filter((p: any) => p.status === 'enviada') || [];
-
-  if (recentProposals.length === 0) {
-    await sendMessage(phoneNumber, 
-      `📋 Olá ${client.name}!\n\n` +
-      `Não há propostas pendentes para você no momento.`, 
-      whatsappToken
-    );
-    return;
-  }
-
-  if (messageText === 'aceitar' || messageText === 'aceito') {
-    await handleProposalResponse(phoneNumber, 'aceita', recentProposals[0].id, supabase, whatsappToken);
-  } else if (messageText === 'recusar' || messageText === 'rejeitada') {
-    await handleProposalResponse(phoneNumber, 'rejeitada', recentProposals[0].id, supabase, whatsappToken);
-  } else {
-    // Show proposal details
-    const proposal = recentProposals[0];
-    await sendMessage(phoneNumber, 
-      `📋 *${proposal.title}*\n\n` +
-      `Olá ${client.name}!\n\n` +
-      `Você tem uma proposta pendente.\n\n` +
-      `Para visualizar todos os detalhes, acesse: ` +
-      `${Deno.env.get('SUPABASE_URL')}/proposta/${proposal.public_hash || btoa(proposal.id)}\n\n` +
-      `Responda com:\n` +
-      `• *aceitar* - para aceitar a proposta\n` +
-      `• *recusar* - para recusar a proposta`, 
-      whatsappToken
-    );
-  }
-}
-
-async function handleProposalResponse(phoneNumber: string, status: string, proposalId: string, supabase: any, whatsappToken: string) {
-  try {
-    const { error } = await supabase
-      .from('proposals')
-      .update({ 
-        status: status,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', proposalId);
-
-    if (error) {
-      throw error;
-    }
-
-    const statusText = status === 'aceita' ? 'aceita' : 'recusada';
-    const emoji = status === 'aceita' ? '✅' : '❌';
-
-    await sendMessage(phoneNumber, 
-      `${emoji} *Proposta ${statusText}!*\n\n` +
-      `Obrigado pela sua resposta. O responsável foi notificado.`, 
-      whatsappToken
-    );
-
-  } catch (error) {
-    console.error('Error updating proposal status:', error);
-    await sendMessage(phoneNumber, 
-      `❌ Erro ao processar resposta. Tente novamente.`, 
-      whatsappToken
-    );
-  }
-}
-
-async function sendMessage(phoneNumber: string, message: string, whatsappToken: string) {
-  const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
-  
-  if (!phoneNumberId) {
-    console.error('WHATSAPP_PHONE_NUMBER_ID not configured');
-    return;
-  }
-
-  const url = `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`;
-  
-  const payload = {
-    messaging_product: "whatsapp",
-    to: phoneNumber,
-    type: "text",
-    text: {
-      body: message
-    }
-  };
-
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${whatsappToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('Error sending WhatsApp message:', error);
-    } else {
-      console.log('Message sent successfully to:', phoneNumber);
-    }
-  } catch (error) {
-    console.error('Error sending WhatsApp message:', error);
   }
 }

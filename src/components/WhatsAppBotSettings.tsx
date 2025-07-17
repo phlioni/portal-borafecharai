@@ -21,21 +21,10 @@ import { useWhatsAppConfig, useTestWhatsAppBot, useWhatsAppSessions } from '@/ho
 const WhatsAppBotSettings = () => {
   const [testPhone, setTestPhone] = useState('');
   const [testMessage, setTestMessage] = useState('');
-  const [webhookUrl, setWebhookUrl] = useState('');
-  const [verifyToken, setVerifyToken] = useState('');
-  const [accessToken, setAccessToken] = useState('');
 
   const { updateConfig } = useWhatsAppConfig();
   const { testBot } = useTestWhatsAppBot();
   const { data: sessions, isLoading } = useWhatsAppSessions();
-
-  const handleSaveConfig = () => {
-    updateConfig.mutate({
-      webhook_url: webhookUrl,
-      verify_token: verifyToken,
-      access_token: accessToken
-    });
-  };
 
   const handleTestBot = () => {
     if (!testPhone || !testMessage) {
@@ -52,59 +41,44 @@ const WhatsAppBotSettings = () => {
     <div className="space-y-6">
       <div className="flex items-center gap-2">
         <MessageSquare className="h-6 w-6 text-green-600" />
-        <h2 className="text-2xl font-bold">Bot WhatsApp</h2>
+        <h2 className="text-2xl font-bold">Bot WhatsApp - Twilio</h2>
       </div>
 
-      {/* Configuration Card */}
+      {/* Status Card */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            Configuração
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            Status da Integração
           </CardTitle>
           <CardDescription>
-            Configure as credenciais do WhatsApp Business API
+            Status atual da configuração do bot WhatsApp com Twilio
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="webhook-url">Webhook URL</Label>
-              <Input
-                id="webhook-url"
-                placeholder="https://sua-url.com/whatsapp-bot"
-                value={webhookUrl}
-                onChange={(e) => setWebhookUrl(e.target.value)}
-              />
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-center gap-3 p-3 border rounded-lg">
+              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              <div>
+                <div className="font-medium">Twilio Account ID</div>
+                <div className="text-sm text-gray-500">Configurado</div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="verify-token">Verify Token</Label>
-              <Input
-                id="verify-token"
-                placeholder="whatsapp_verify_token"
-                value={verifyToken}
-                onChange={(e) => setVerifyToken(e.target.value)}
-              />
+            <div className="flex items-center gap-3 p-3 border rounded-lg">
+              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              <div>
+                <div className="font-medium">Auth Token</div>
+                <div className="text-sm text-gray-500">Configurado</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 border rounded-lg">
+              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+              <div>
+                <div className="font-medium">Webhook</div>
+                <div className="text-sm text-gray-500">Ativo</div>
+              </div>
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="access-token">Access Token</Label>
-            <Input
-              id="access-token"
-              type="password"
-              placeholder="Seu token de acesso do WhatsApp"
-              value={accessToken}
-              onChange={(e) => setAccessToken(e.target.value)}
-            />
-          </div>
-          <Button 
-            onClick={handleSaveConfig}
-            disabled={updateConfig.isPending}
-            className="w-full md:w-auto"
-          >
-            <Webhook className="h-4 w-4 mr-2" />
-            {updateConfig.isPending ? 'Salvando...' : 'Salvar Configuração'}
-          </Button>
         </CardContent>
       </Card>
 
@@ -113,16 +87,25 @@ const WhatsAppBotSettings = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TestTube className="h-5 w-5" />
-            Testar Bot
+            Testar Bot (Ambiente Sandbox)
           </CardTitle>
           <CardDescription>
-            Simule uma conversa com o bot para testar as funcionalidades
+            Teste o bot usando o número sandbox do Twilio
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h4 className="font-semibold text-blue-800 mb-2">Para testar no Sandbox:</h4>
+            <ol className="text-sm text-blue-700 space-y-1">
+              <li>1. Envie "join {{seu-codigo-sandbox}}" para +1 415 523-8886 no WhatsApp</li>
+              <li>2. Aguarde a confirmação do Twilio</li>
+              <li>3. Use o formulário abaixo para testar</li>
+            </ol>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="test-phone">Número de Teste</Label>
+              <Label htmlFor="test-phone">Número de Teste (com código do país)</Label>
               <Input
                 id="test-phone"
                 placeholder="+5511999999999"
@@ -156,7 +139,7 @@ const WhatsAppBotSettings = () => {
         <CardHeader>
           <CardTitle>Funcionalidades do Bot</CardTitle>
           <CardDescription>
-            Recursos disponíveis no bot do WhatsApp
+            Recursos disponíveis no bot do WhatsApp via Twilio
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -262,28 +245,38 @@ const WhatsAppBotSettings = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertCircle className="h-5 w-5" />
-            Instruções de Configuração
+            Configuração do Twilio WhatsApp
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="prose prose-sm max-w-none">
-            <h4 className="font-semibold">1. Configurar Webhook no WhatsApp Business API</h4>
+            <h4 className="font-semibold">1. Configurar Webhook no Twilio Console</h4>
             <p className="text-sm text-gray-600 mb-3">
-              Configure a URL do webhook no painel do WhatsApp Business API:
+              No painel do Twilio, configure a URL do webhook para:
             </p>
             <code className="block p-2 bg-gray-100 rounded text-xs mb-4">
               https://pakrraqbjbkkbdnwkkbt.supabase.co/functions/v1/whatsapp-bot
             </code>
 
-            <h4 className="font-semibold">2. Variáveis de Ambiente Necessárias</h4>
+            <h4 className="font-semibold">2. Credenciais Configuradas</h4>
             <ul className="text-sm text-gray-600 space-y-1 mb-4">
-              <li>• <code>WHATSAPP_ACCESS_TOKEN</code> - Token de acesso do WhatsApp</li>
-              <li>• <code>WHATSAPP_PHONE_NUMBER_ID</code> - ID do número do WhatsApp Business</li>
+              <li>• <code>ACCOUNT_ID_TWILIO</code> - Account SID do Twilio ✅</li>
+              <li>• <code>TWILIO_AUTH_TOKEN</code> - Auth Token do Twilio ✅</li>
             </ul>
 
-            <h4 className="font-semibold">3. Como Usar</h4>
+            <h4 className="font-semibold">3. Ambiente de Produção</h4>
+            <p className="text-sm text-gray-600 mb-2">
+              Para usar em produção, você precisa:
+            </p>
+            <ul className="text-sm text-gray-600 space-y-1 mb-4">
+              <li>• Solicitar aprovação do WhatsApp Business API</li>
+              <li>• Configurar um número de telefone verificado</li>
+              <li>• Atualizar o número "From" na função sendMessage</li>
+            </ul>
+
+            <h4 className="font-semibold">4. Como Usar</h4>
             <p className="text-sm text-gray-600">
-              Os usuários podem enviar mensagens diretamente para o número do WhatsApp Business configurado. 
+              Os usuários podem enviar mensagens para o número do WhatsApp configurado no Twilio. 
               O bot identificará automaticamente se é um usuário cadastrado ou um cliente e direcionará 
               para o fluxo apropriado.
             </p>
