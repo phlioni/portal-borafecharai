@@ -77,6 +77,8 @@ export const useProposals = () => {
       return data as Proposal[];
     },
     enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -127,6 +129,8 @@ export const useProposal = (id: string | undefined) => {
       return data as Proposal;
     },
     enabled: !!user?.id && !!id && id !== 'nova' && id !== 'temp-proposal',
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    refetchOnWindowFocus: false,
   });
 };
 

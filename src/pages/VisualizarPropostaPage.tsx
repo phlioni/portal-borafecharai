@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -74,6 +75,8 @@ const VisualizarPropostaPage = () => {
     const success = await sendProposal(proposal, emailData);
     if (success) {
       setShowSendModal(false);
+      // Atualizar dados da proposta após envio
+      refetch();
     }
   };
 
@@ -121,7 +124,7 @@ const VisualizarPropostaPage = () => {
           onBack={() => navigate('/propostas')}
           onViewPublic={handleViewPublic}
           onDownloadPDF={handleDownloadPDF}
-          onEdit={() => navigate(`/propostas/editar/${proposal.id}`)}
+          onEdit={() => navigate(`/propostas/${proposal.id}/editar`)}
           onSend={() => setShowPreviewModal(true)}
         />
 

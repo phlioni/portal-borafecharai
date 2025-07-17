@@ -37,7 +37,7 @@ serve(async (req) => {
       .from('proposals')
       .select(`
         *,
-        companies (
+        clients (
           id,
           name,
           email,

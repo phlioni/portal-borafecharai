@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -116,6 +117,10 @@ const Propostas = () => {
     navigate(`/propostas/${proposalId}/editar`);
   };
 
+  const handleViewFullProposal = (proposalId: string) => {
+    navigate(`/propostas/${proposalId}/visualizar`);
+  };
+
   // Mobile Card Component
   const ProposalCard = ({ proposal }: { proposal: any }) => (
     <Card className="mb-4" onClick={() => handleViewProposal(proposal)}>
@@ -157,13 +162,13 @@ const Propostas = () => {
             variant="outline"
             size="sm"
             className="flex-1 text-xs"
-            asChild
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleViewFullProposal(proposal.id);
+            }}
           >
-            <Link to={`/propostas/${proposal.id}`}>
-              <Eye className="h-3 w-3 mr-1" />
-              Ver
-            </Link>
+            <Eye className="h-3 w-3 mr-1" />
+            Ver
           </Button>
           <Button
             variant="outline"
@@ -318,12 +323,12 @@ const Propostas = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              asChild
-                              onClick={(e) => e.stopPropagation()}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewFullProposal(proposal.id);
+                              }}
                             >
-                              <Link to={`/propostas/${proposal.id}`}>
-                                <Eye className="h-4 w-4" />
-                              </Link>
+                              <Eye className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
@@ -461,16 +466,24 @@ const Propostas = () => {
               )}
               
               <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-2 pt-4`}>
-                <Button asChild className={isMobile ? 'w-full' : ''}>
-                  <Link to={`/propostas/${selectedProposal.id}`}>
-                    <Eye className="h-4 w-4 mr-2" />
-                    Visualizar Completa
-                  </Link>
+                <Button 
+                  className={isMobile ? 'w-full' : ''}
+                  onClick={() => {
+                    setIsViewModalOpen(false);
+                    handleViewFullProposal(selectedProposal.id);
+                  }}
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Visualizar Completa
                 </Button>
-                <Button variant="outline" className={isMobile ? 'w-full' : ''} onClick={() => {
-                  setIsViewModalOpen(false);
-                  handleEditProposal(selectedProposal.id);
-                }}>
+                <Button 
+                  variant="outline" 
+                  className={isMobile ? 'w-full' : ''} 
+                  onClick={() => {
+                    setIsViewModalOpen(false);
+                    handleEditProposal(selectedProposal.id);
+                  }}
+                >
                   <Edit className="h-4 w-4 mr-2" />
                   Editar
                 </Button>
