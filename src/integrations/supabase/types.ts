@@ -574,6 +574,33 @@ export type Database = {
         }
         Relationships: []
       }
+      trial_limits: {
+        Row: {
+          created_at: string
+          id: string
+          trial_days_limit: number
+          trial_proposals_limit: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          trial_days_limit?: number
+          trial_proposals_limit?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          trial_days_limit?: number
+          trial_proposals_limit?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_companies: {
         Row: {
           address: string | null

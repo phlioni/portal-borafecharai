@@ -37,7 +37,26 @@ export const useProposalSending = () => {
           _month: currentMonth
         });
 
-        const limit = isInTrial ? 20 : 10;
+        // Buscar limite da tabela trial_limits se em trial
+        let limit = 10; // padrão para plano básico
+        if (isInTrial) {
+          const { data: trialLimits } = await supabase
+            .from('trial_limits')
+            .select('trial_proposals_limit')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          
+          const { data: subscriber } = await supabase
+            .from('subscribers')
+            .select('bonus_proposals_current_month')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          
+          const baseLimit = trialLimits?.trial_proposals_limit || 20;
+          const bonusProposals = subscriber?.bonus_proposals_current_month || 0;
+          limit = baseLimit + bonusProposals;
+        }
+
         return { 
           canCreate: false, 
           remaining: 0,
@@ -53,7 +72,26 @@ export const useProposalSending = () => {
         _month: currentMonth
       });
 
-      const limit = isInTrial ? 20 : 10;
+      // Buscar limite da tabela trial_limits se em trial
+      let limit = 10; // padrão para plano básico
+      if (isInTrial) {
+        const { data: trialLimits } = await supabase
+          .from('trial_limits')
+          .select('trial_proposals_limit')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        const { data: subscriber } = await supabase
+          .from('subscribers')
+          .select('bonus_proposals_current_month')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        const baseLimit = trialLimits?.trial_proposals_limit || 20;
+        const bonusProposals = subscriber?.bonus_proposals_current_month || 0;
+        limit = baseLimit + bonusProposals;
+      }
+
       const remaining = limit - (monthlyCount || 0);
 
       return { 

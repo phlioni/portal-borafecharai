@@ -104,6 +104,17 @@ export const useTrialStatus = () => {
 
       console.log('useTrialStatus - Subscriber data:', subscriberData);
 
+      // Buscar dados da tabela trial_limits
+      const { data: trialLimits, error: trialLimitsError } = await supabase
+        .from('trial_limits')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (trialLimitsError) {
+        console.error('useTrialStatus - Error fetching trial limits:', trialLimitsError);
+      }
+
       const now = new Date();
       const trialStartDate = subscriberData.trial_start_date ? new Date(subscriberData.trial_start_date) : null;
       const trialEndDate = subscriberData.trial_end_date ? new Date(subscriberData.trial_end_date) : null;
@@ -115,18 +126,20 @@ export const useTrialStatus = () => {
       // 1. É role 'user' E não tem assinatura ativa E tem data de fim do trial válida E ainda não expirou
       const isInTrial = isUserRole && !hasActiveSubscription && trialEndDate && trialEndDate >= now;
       
-      // Calcular dias usados desde o início do trial
+      // Calcular dias usados e total baseado na tabela trial_limits
+      const totalTrialDays = trialLimits?.trial_days_limit || 15;
       let daysUsed = 0;
       if (trialStartDate && trialEndDate) {
         const timeDiff = now.getTime() - trialStartDate.getTime();
         const daysPassed = Math.floor(timeDiff / (1000 * 3600 * 24));
-        daysUsed = Math.min(15, Math.max(0, daysPassed));
+        daysUsed = Math.min(totalTrialDays, Math.max(0, daysPassed));
       }
 
-      // Para trial: 20 propostas base + bônus de 5 (aplicado apenas uma vez)
+      // Calcular propostas baseado na tabela trial_limits + bônus
       const proposalsUsed = subscriberData.trial_proposals_used || 0;
       const bonusProposals = subscriberData.bonus_proposals_current_month || 0;
-      const totalLimit = 20 + bonusProposals; // Trial base + bônus
+      const baseLimit = trialLimits?.trial_proposals_limit || 20;
+      const totalLimit = baseLimit + bonusProposals;
       const proposalsRemaining = Math.max(0, totalLimit - proposalsUsed);
 
       console.log('useTrialStatus - Calculated status:', {
@@ -134,8 +147,10 @@ export const useTrialStatus = () => {
         isUserRole,
         hasActiveSubscription,
         daysUsed,
+        totalTrialDays,
         proposalsUsed,
         bonusProposals,
+        baseLimit,
         totalLimit,
         proposalsRemaining,
         trialStartDate,
@@ -147,7 +162,7 @@ export const useTrialStatus = () => {
       setTrialStatus({
         isInTrial: !!isInTrial,
         daysUsed,
-        totalTrialDays: 15,
+        totalTrialDays,
         proposalsUsed,
         proposalsRemaining,
         trialStartDate,

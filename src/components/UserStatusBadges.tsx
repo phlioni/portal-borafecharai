@@ -15,6 +15,10 @@ interface UserStatusBadgesProps {
       trial_start_date?: string;
       bonus_proposals_current_month?: number;
     };
+    trial_limits?: {
+      trial_proposals_limit: number;
+      trial_days_limit: number;
+    };
   };
 }
 
@@ -37,15 +41,16 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
   // 2. OU se é role 'user' sem assinatura (mesmo sem dados de trial configurados)
   const isTrialActive = shouldBeInTrial && (!trialEndDate || trialEndDate > now);
   
-  // Calcular propostas restantes com o novo sistema de bônus
+  // Calcular propostas restantes usando trial_limits + bônus
   const rawProposalsUsed = user.subscriber?.trial_proposals_used || 0;
   const bonusProposals = user.subscriber?.bonus_proposals_current_month || 0;
   
   let trialProposalsRemaining = 0;
   
   if (isTrialActive) {
-    // Trial: 20 propostas base + bônus de 5 (aplicado apenas uma vez)
-    const totalLimit = 20 + bonusProposals;
+    // Trial: usar limite da tabela trial_limits + bônus
+    const baseLimit = user.trial_limits?.trial_proposals_limit || 20;
+    const totalLimit = baseLimit + bonusProposals;
     trialProposalsRemaining = Math.max(0, totalLimit - rawProposalsUsed);
   } else if (hasActiveSubscription && user.subscriber?.subscription_tier === 'basico') {
     // Plano básico: 10 propostas + bônus do mês atual
@@ -60,6 +65,7 @@ const UserStatusBadges = ({ user }: UserStatusBadgesProps) => {
     hasActiveSubscription,
     rawProposalsUsed,
     bonusProposals,
+    baseLimit: user.trial_limits?.trial_proposals_limit || 20,
     trialProposalsRemaining,
     subscribed: user.subscriber?.subscribed,
     subscription_tier: user.subscriber?.subscription_tier,

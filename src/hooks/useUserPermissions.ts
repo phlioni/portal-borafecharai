@@ -115,12 +115,25 @@ export const useUserPermissions = () => {
             setCanAccessPremiumTemplates(true);
           }
         } else {
-          // Trial ou sem acesso
+          // Trial - buscar da tabela trial_limits
           if (subscriber?.trial_end_date && new Date(subscriber.trial_end_date) >= new Date()) {
-            // Trial: 20 propostas + bônus de 5 (aplicado apenas uma vez)
+            // Buscar limites específicos da tabela trial_limits
+            const { data: trialLimits, error: trialLimitsError } = await supabase
+              .from('trial_limits')
+              .select('*')
+              .eq('user_id', user.id)
+              .maybeSingle();
+
+            if (trialLimitsError) {
+              console.error('useUserPermissions - Error fetching trial limits:', trialLimitsError);
+            }
+
+            // Usar limite da tabela trial_limits ou padrão se não existir
+            const baseLimit = trialLimits?.trial_proposals_limit || 20;
             const bonusProposals = subscriber?.bonus_proposals_current_month || 0;
-            proposalLimit = 20 + bonusProposals;
-            console.log('useUserPermissions - User in trial, limit:', proposalLimit, 'proposals (20 base +', bonusProposals, 'bonus)');
+            proposalLimit = baseLimit + bonusProposals;
+            
+            console.log('useUserPermissions - Trial user, limit:', proposalLimit, 'proposals (', baseLimit, 'base +', bonusProposals, 'bonus)');
           } else {
             proposalLimit = 0;
             console.log('useUserPermissions - User trial expired, no access');

@@ -41,9 +41,9 @@ const TrialCallToAction = () => {
   // Calcular dias restantes
   const daysRemaining = trialEndDate ? Math.max(0, Math.ceil((new Date(trialEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0;
 
-  // Limitar propostas utilizadas para não ultrapassar 20
-  const limitedProposalsUsed = Math.min(proposalsUsed, 20);
-  const limitedProposalsRemaining = Math.max(0, 20 - limitedProposalsUsed);
+  // Usar proposalsUsed e proposalsRemaining já calculados pelo hook
+  const limitedProposalsUsed = proposalsUsed;
+  const limitedProposalsRemaining = proposalsRemaining;
 
   // Formatrar data de validade
   const formatEndDate = (dateString: string) => {
@@ -74,7 +74,7 @@ const TrialCallToAction = () => {
             <div className="flex items-center gap-4 mb-4">
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <FileText className="h-4 w-4" />
-                <span>{limitedProposalsUsed}/20 propostas usadas</span>
+                <span>{limitedProposalsUsed}/{limitedProposalsUsed + limitedProposalsRemaining} propostas usadas</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <Calendar className="h-4 w-4" />
@@ -92,12 +92,12 @@ const TrialCallToAction = () => {
               {/* Barra de progresso das propostas */}
               <div className="flex justify-between text-xs text-gray-500">
                 <span>Propostas utilizadas</span>
-                <span>{limitedProposalsUsed}/20</span>
+                <span>{limitedProposalsUsed}/{limitedProposalsUsed + limitedProposalsRemaining}</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div 
                   className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${Math.min((limitedProposalsUsed / 20) * 100, 100)}%` }}
+                  style={{ width: `${Math.min((limitedProposalsUsed / (limitedProposalsUsed + limitedProposalsRemaining)) * 100, 100)}%` }}
                 />
               </div>
               
@@ -128,7 +128,7 @@ const TrialCallToAction = () => {
 
         <div className="mt-4 pt-4 border-t border-blue-200">
           <p className="text-xs text-gray-500">
-            ✨ Período gratuito automático • ✨ 15 dias ou 20 propostas • ✨ Acesso completo aos templates
+            ✨ Período gratuito automático • ✨ Até {totalTrialDays} dias ou {limitedProposalsUsed + limitedProposalsRemaining} propostas • ✨ Acesso completo aos templates
           </p>
         </div>
       </CardContent>
