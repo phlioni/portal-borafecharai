@@ -2,7 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 
 export const useCompanies = () => {
   const { user } = useAuth();
@@ -62,6 +62,7 @@ export const useCompanies = () => {
 export const useUpdateCompany = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
@@ -131,12 +132,19 @@ export const useUpdateCompany = () => {
       return data;
     },
     onSuccess: () => {
-      toast.success('Informações da empresa atualizadas com sucesso!');
+      toast({
+        title: "Sucesso!",
+        description: "Informações da empresa atualizadas com sucesso!",
+      });
       queryClient.invalidateQueries({ queryKey: ['companies'] });
     },
     onError: (error: any) => {
       console.error('Error updating company:', error);
-      toast.error(error.message || 'Erro ao atualizar informações da empresa');
+      toast({
+        title: "Erro",
+        description: error.message || 'Erro ao atualizar informações da empresa',
+        variant: "destructive",
+      });
     },
   });
 };
@@ -144,6 +152,7 @@ export const useUpdateCompany = () => {
 export const useCreateCompany = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (companyData: any) => {
@@ -191,12 +200,19 @@ export const useCreateCompany = () => {
       return data;
     },
     onSuccess: () => {
-      toast.success('Empresa criada com sucesso!');
+      toast({
+        title: "Sucesso!",
+        description: "Empresa criada com sucesso!",
+      });
       queryClient.invalidateQueries({ queryKey: ['companies'] });
     },
     onError: (error: any) => {
       console.error('Error creating company:', error);
-      toast.error(error.message || 'Erro ao criar empresa');
+      toast({
+        title: "Erro",
+        description: error.message || 'Erro ao criar empresa',
+        variant: "destructive",
+      });
     },
   });
 };
