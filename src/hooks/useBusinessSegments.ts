@@ -6,8 +6,8 @@ export interface BusinessSegment {
   id: string;
   segment_name: string;
   segment_order: number;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export interface BusinessType {
@@ -15,8 +15,8 @@ export interface BusinessType {
   segment_id: string;
   type_name: string;
   type_order: number;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export const useBusinessSegments = () => {
@@ -25,7 +25,7 @@ export const useBusinessSegments = () => {
     queryFn: async () => {
       console.log('Fetching business segments...');
       
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('business_segments')
         .select('*')
         .order('segment_order');
@@ -52,7 +52,7 @@ export const useBusinessTypes = (segmentId?: string) => {
 
       console.log('Fetching business types for segment:', segmentId);
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('business_types')
         .select('*')
         .eq('segment_id', segmentId)
