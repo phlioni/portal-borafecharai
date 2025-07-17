@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -105,28 +104,19 @@ export const useAdminOperations = () => {
     try {
       console.log(`useAdminOperations - Changing role for user ${userId} to ${newRole}`);
 
-      // Primeiro, remover todas as roles existentes
-      const { error: deleteError } = await supabase
+      // Usar UPSERT para evitar erro de duplicação
+      const { error } = await supabase
         .from('user_roles')
-        .delete()
-        .eq('user_id', userId);
-
-      if (deleteError) {
-        console.error('useAdminOperations - Error deleting existing roles:', deleteError);
-        throw deleteError;
-      }
-
-      // Inserir a nova role
-      const { error: insertError } = await supabase
-        .from('user_roles')
-        .insert({
+        .upsert({
           user_id: userId,
           role: newRole
+        }, {
+          onConflict: 'user_id,role'
         });
 
-      if (insertError) {
-        console.error('useAdminOperations - Error inserting new role:', insertError);
-        throw insertError;
+      if (error) {
+        console.error('useAdminOperations - Error updating role:', error);
+        throw error;
       }
 
       console.log(`useAdminOperations - Successfully changed role for user ${userId} to ${newRole}`);
@@ -140,6 +130,71 @@ export const useAdminOperations = () => {
       console.error(`useAdminOperations - Error changing user role:`, error);
       toast.error('Erro ao alterar role do usuário');
       throw error;
+    }
+  };
+
+  const normalizeAllUserRoles = async () => {
+    try {
+      setLoading(true);
+      console.log('useAdminOperations - Normalizing all user roles...');
+
+      // Buscar todos os usuários
+      const { data: allUsers, error: usersError } = await supabase.functions.invoke('get-users');
+      
+      if (usersError) {
+        console.error('useAdminOperations - Error getting users:', usersError);
+        throw usersError;
+      }
+
+      // Processar cada usuário
+      for (const user of allUsers || []) {
+        try {
+          if (user.email === 'admin@borafecharai.com') {
+            // Garantir que o admin principal tenha role admin
+            await supabase
+              .from('user_roles')
+              .upsert({
+                user_id: user.id,
+                role: 'admin'
+              }, {
+                onConflict: 'user_id,role'
+              });
+            console.log(`Admin principal ${user.email} mantido como admin`);
+          } else {
+            // Primeiro, remover todas as roles existentes do usuário
+            await supabase
+              .from('user_roles')
+              .delete()
+              .eq('user_id', user.id);
+
+            // Depois, inserir apenas a role 'user'
+            await supabase
+              .from('user_roles')
+              .insert({
+                user_id: user.id,
+                role: 'user'
+              });
+            console.log(`Usuário ${user.email} definido como user`);
+          }
+        } catch (userError) {
+          console.error(`Erro ao normalizar role do usuário ${user.email}:`, userError);
+          // Continua com os outros usuários mesmo se um falhar
+        }
+      }
+
+      console.log('useAdminOperations - User roles normalized successfully');
+      
+      // Recarregar dados dos usuários
+      await loadUsers();
+      
+      toast.success('Roles de todos os usuários normalizadas com sucesso!');
+
+    } catch (error) {
+      console.error('useAdminOperations - Error normalizing user roles:', error);
+      toast.error('Erro ao normalizar roles dos usuários');
+      throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -268,6 +323,7 @@ export const useAdminOperations = () => {
     loading,
     loadUsers,
     changeUserRole,
+    normalizeAllUserRoles,
     resetUserData,
     deleteUser,
     createAdminUser

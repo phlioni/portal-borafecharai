@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { Plus, Users, RefreshCw } from 'lucide-react';
+import { Plus, Users, RefreshCw, UserCheck } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import UserStatusBadges from '@/components/UserStatusBadges';
@@ -24,7 +24,8 @@ const GerenciamentoUsuariosPage = () => {
     resetUserData, 
     deleteUser, 
     createAdminUser,
-    changeUserRole 
+    changeUserRole,
+    normalizeAllUserRoles
   } = useAdminOperations();
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
@@ -65,6 +66,16 @@ const GerenciamentoUsuariosPage = () => {
       toast.success('Lista de usuários atualizada!');
     } catch (error) {
       toast.error('Erro ao atualizar lista de usuários');
+    }
+  };
+
+  const handleNormalizeRoles = async () => {
+    if (window.confirm('Tem certeza que deseja normalizar todas as roles? Isso definirá todos os usuários como "user", exceto o admin principal.')) {
+      try {
+        await normalizeAllUserRoles();
+      } catch (error) {
+        // O erro já é tratado no hook
+      }
     }
   };
 
@@ -115,6 +126,15 @@ const GerenciamentoUsuariosPage = () => {
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Atualizar
+          </Button>
+
+          <Button 
+            onClick={handleNormalizeRoles} 
+            variant="outline"
+            disabled={loading}
+          >
+            <UserCheck className="h-4 w-4 mr-2" />
+            Normalizar Roles
           </Button>
           
           <Dialog open={showCreateAdminDialog} onOpenChange={setShowCreateAdminDialog}>
