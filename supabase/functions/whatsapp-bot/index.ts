@@ -91,14 +91,14 @@ async function processMessage(message: TwilioMessage, supabase: any, accountSid:
     session = await createSession(phoneNumber, supabase);
   }
 
-  // Check if user is registered
+  // Check if user is registered by phone number
   const user = await getUserByPhone(phoneNumber, supabase);
   
   if (user) {
-    // User flow
+    // User flow - registered user creating proposals
     await handleUserFlow(phoneNumber, messageText, session, user, supabase, accountSid, authToken);
   } else {
-    // Client flow (proposal recipient)
+    // Client flow - proposal recipient or unregistered user
     await handleClientFlow(phoneNumber, messageText, session, supabase, accountSid, authToken);
   }
 }
@@ -156,28 +156,63 @@ async function updateSession(phoneNumber: string, updates: any, supabase: any) {
 }
 
 async function getUserByPhone(phoneNumber: string, supabase: any) {
-  // Check in profiles table
+  console.log('Searching for user with phone:', phoneNumber);
+  
+  // Clean phone number for better matching
+  const cleanPhone = phoneNumber.replace(/\D/g, '');
+  
+  // First, check in profiles table
   const { data: profile } = await supabase
     .from('profiles')
-    .select('user_id')
+    .select('user_id, name, phone')
     .eq('phone', phoneNumber)
     .single();
 
   if (profile) {
-    return { user_id: profile.user_id, phone: phoneNumber };
+    console.log('User found in profiles:', profile);
+    return { user_id: profile.user_id, phone: phoneNumber, name: profile.name };
   }
 
-  // Check in user_companies table
+  // Then check in user_companies table
   const { data: company } = await supabase
     .from('user_companies')
-    .select('user_id')
+    .select('user_id, name, phone')
     .eq('phone', phoneNumber)
     .single();
 
   if (company) {
-    return { user_id: company.user_id, phone: phoneNumber };
+    console.log('User found in user_companies:', company);
+    return { user_id: company.user_id, phone: phoneNumber, name: company.name };
   }
 
+  // Try with cleaned phone numbers
+  const { data: profilesAll } = await supabase
+    .from('profiles')
+    .select('user_id, name, phone');
+
+  if (profilesAll) {
+    for (const p of profilesAll) {
+      if (p.phone && p.phone.replace(/\D/g, '') === cleanPhone) {
+        console.log('User found in profiles with cleaned phone:', p);
+        return { user_id: p.user_id, phone: phoneNumber, name: p.name };
+      }
+    }
+  }
+
+  const { data: companiesAll } = await supabase
+    .from('user_companies')
+    .select('user_id, name, phone');
+
+  if (companiesAll) {
+    for (const c of companiesAll) {
+      if (c.phone && c.phone.replace(/\D/g, '') === cleanPhone) {
+        console.log('User found in user_companies with cleaned phone:', c);
+        return { user_id: c.user_id, phone: phoneNumber, name: c.name };
+      }
+    }
+  }
+
+  console.log('No user found for phone:', phoneNumber);
   return null;
 }
 
@@ -188,7 +223,7 @@ async function handleUserFlow(phoneNumber: string, messageText: string, session:
     case 'start':
       await sendMessage(phoneNumber, 
         `🎯 *BoraFecharAI - WhatsApp Bot*\n\n` +
-        `Olá! Como posso ajudá-lo hoje?\n\n` +
+        `Olá ${user.name || 'usuário'}! Como posso ajudá-lo hoje?\n\n` +
         `1️⃣ Criar nova proposta\n` +
         `2️⃣ Ver minhas propostas\n` +
         `3️⃣ Enviar proposta por email\n\n` +
@@ -477,7 +512,10 @@ async function handleClientFlow(phoneNumber: string, messageText: string, sessio
 
   if (!clientProposals || clientProposals.length === 0) {
     await sendMessage(phoneNumber, 
-      `👋 Olá! Não encontrei propostas para este número.\n\n` +
+      `👋 Olá! Este número não está cadastrado no sistema.\n\n` +
+      `Para usar o bot do WhatsApp, você precisa:\n` +
+      `1. Ter uma conta no sistema BoraFecharAI\n` +
+      `2. Cadastrar este número de telefone no seu perfil ou empresa\n\n` +
       `Se você é cliente e recebeu uma proposta, verifique se o número está correto.`, 
       accountSid, authToken
     );
@@ -508,7 +546,7 @@ async function handleClientFlow(phoneNumber: string, messageText: string, sessio
       `Olá ${client.name}!\n\n` +
       `Você tem uma proposta pendente.\n\n` +
       `Para visualizar todos os detalhes, acesse: ` +
-      `${Deno.env.get('SUPABASE_URL')}/proposta/${proposal.public_hash || btoa(proposal.id)}\n\n` +
+      `https://pakrraqbjbkkbdnwkkbt.supabase.co/proposta/${proposal.public_hash || btoa(proposal.id)}\n\n` +
       `Responda com:\n` +
       `• *aceitar* - para aceitar a proposta\n` +
       `• *recusar* - para recusar a proposta`, 
@@ -700,8 +738,11 @@ async function sendMessage(phoneNumber: string, message: string, accountSid: str
     if (!response.ok) {
       const error = await response.text();
       console.error('Error sending Twilio message:', error);
+      console.error('Response status:', response.status);
     } else {
       console.log('Message sent successfully to:', phoneNumber);
+      const responseData = await response.json();
+      console.log('Twilio response:', responseData);
     }
   } catch (error) {
     console.error('Error sending Twilio message:', error);

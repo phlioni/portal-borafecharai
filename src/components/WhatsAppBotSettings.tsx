@@ -14,7 +14,8 @@ import {
   Phone,
   Send,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Users
 } from 'lucide-react';
 import { useWhatsAppConfig, useTestWhatsAppBot, useWhatsAppSessions } from '@/hooks/useWhatsAppBot';
 
@@ -82,6 +83,29 @@ const WhatsAppBotSettings = () => {
         </CardContent>
       </Card>
 
+      {/* Important Notice */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-orange-600" />
+            Requisito Importante - Usuários Cadastrados
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+            <p className="text-orange-800 font-medium mb-2">
+              ⚠️ Para usar o bot do WhatsApp, o número de telefone deve estar cadastrado no sistema:
+            </p>
+            <ul className="text-sm text-orange-700 space-y-1 ml-4">
+              <li>• O usuário deve ter cadastrado o telefone em "Configurações → Perfil"</li>
+              <li>• Ou o telefone deve estar cadastrado na empresa em "Configurações → Meu Negócio"</li>
+              <li>• O bot verifica automaticamente se o número existe no sistema</li>
+              <li>• Usuários não cadastrados receberão uma mensagem informativa</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Test Bot Card */}
       <Card>
         <CardHeader>
@@ -99,7 +123,8 @@ const WhatsAppBotSettings = () => {
             <ol className="text-sm text-blue-700 space-y-1">
               <li>1. Envie "join your-sandbox-code" para +1 415 523-8886 no WhatsApp</li>
               <li>2. Aguarde a confirmação do Twilio</li>
-              <li>3. Use o formulário abaixo para testar</li>
+              <li>3. Certifique-se de que seu número está cadastrado no sistema</li>
+              <li>4. Use o formulário abaixo para testar</li>
             </ol>
           </div>
 
@@ -147,7 +172,7 @@ const WhatsAppBotSettings = () => {
             <div>
               <h4 className="font-semibold mb-3 flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-green-600" />
-                Para Usuários (PMEs/Autônomos)
+                Para Usuários Cadastrados (PMEs/Autônomos)
               </h4>
               <ul className="space-y-2 text-sm">
                 <li className="flex items-center gap-2">
@@ -171,7 +196,7 @@ const WhatsAppBotSettings = () => {
             <div>
               <h4 className="font-semibold mb-3 flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-blue-600" />
-                Para Clientes
+                Para Clientes (Com propostas recebidas)
               </h4>
               <ul className="space-y-2 text-sm">
                 <li className="flex items-center gap-2">
@@ -264,7 +289,17 @@ const WhatsAppBotSettings = () => {
               <li>• <code>TWILIO_AUTH_TOKEN</code> - Auth Token do Twilio ✅</li>
             </ul>
 
-            <h4 className="font-semibold">3. Ambiente de Produção</h4>
+            <h4 className="font-semibold">3. Cadastro de Usuários</h4>
+            <p className="text-sm text-gray-600 mb-2">
+              Para usar o bot, os usuários devem ter o telefone cadastrado:
+            </p>
+            <ul className="text-sm text-gray-600 space-y-1 mb-4">
+              <li>• Em "Configurações → Perfil" na tabela profiles</li>
+              <li>• Ou em "Configurações → Meu Negócio" na tabela user_companies</li>
+              <li>• O bot valida automaticamente se o número existe</li>
+            </ul>
+
+            <h4 className="font-semibold">4. Ambiente de Produção</h4>
             <p className="text-sm text-gray-600 mb-2">
               Para usar em produção, você precisa:
             </p>
@@ -274,11 +309,10 @@ const WhatsAppBotSettings = () => {
               <li>• Atualizar o número "From" na função sendMessage</li>
             </ul>
 
-            <h4 className="font-semibold">4. Como Usar</h4>
+            <h4 className="font-semibold">5. Como Funciona</h4>
             <p className="text-sm text-gray-600">
-              Os usuários podem enviar mensagens para o número do WhatsApp configurado no Twilio. 
-              O bot identificará automaticamente se é um usuário cadastrado ou um cliente e direcionará 
-              para o fluxo apropriado.
+              O bot verifica se o número de telefone está cadastrado no sistema e direciona 
+              automaticamente para o fluxo apropriado (usuário ou cliente).
             </p>
           </div>
         </CardContent>
