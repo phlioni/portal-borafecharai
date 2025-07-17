@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useAdminOperations } from '@/hooks/useAdminOperations';
@@ -14,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import UserStatusBadges from '@/components/UserStatusBadges';
 import UserActionsDropdown from '@/components/UserActionsDropdown';
 import MobileUserCard from '@/components/MobileUserCard';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const GerenciamentoUsuariosPage = () => {
   const { isAdmin, loading: permissionsLoading } = useUserPermissions();
@@ -30,7 +29,7 @@ const GerenciamentoUsuariosPage = () => {
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
   const [showCreateAdminDialog, setShowCreateAdminDialog] = useState(false);
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
 
   const handleCreateAdmin = async () => {
     if (!newAdminEmail) {
