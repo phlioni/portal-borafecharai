@@ -202,7 +202,7 @@ export const useUpdateProposal = () => {
 };
 
 // Legacy hook for backward compatibility - updated to not query when id is invalid
-export const useProposal = () => {
+export const useProposalsLegacy = () => {
   const { user } = useAuth();
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
