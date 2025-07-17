@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
       return total + (item.quantity * item.unit_price)
     }, 0) || proposal.value || 0
 
-    // Gerar HTML bem formatado com o botão
+    // Gerar HTML bem formatado com o botão e melhor espaçamento
     const generateEmailHTML = (message: string, proposalUrl: string) => {
       // Converter quebras de linha em parágrafos
       const paragraphs = message.split('\n\n').filter(p => p.trim());
@@ -94,13 +94,13 @@ Deno.serve(async (req) => {
           const afterButton = paragraph.split('[LINK_DA_PROPOSTA]')[1];
           
           return `
-            ${beforeButton ? `<p style="margin: 0 0 16px 0; line-height: 1.6; color: #374151;">${beforeButton.replace(/\n/g, '<br>')}</p>` : ''}
-            <div style="text-align: center; margin: 24px 0;">
+            ${beforeButton ? `<p style="margin: 0 0 24px 0; line-height: 1.8; color: #374151; font-size: 16px;">${beforeButton.replace(/\n/g, '<br>')}</p>` : ''}
+            <div style="text-align: center; margin: 32px 0;">
               <a href="${proposalUrl}" 
                  style="display: inline-block; 
                         background-color: #2563eb; 
                         color: #ffffff; 
-                        padding: 14px 28px; 
+                        padding: 16px 32px; 
                         text-decoration: none; 
                         border-radius: 8px; 
                         font-weight: 600; 
@@ -111,11 +111,11 @@ Deno.serve(async (req) => {
                 📄 Visualizar Proposta
               </a>
             </div>
-            ${afterButton ? `<p style="margin: 16px 0 0 0; line-height: 1.6; color: #374151;">${afterButton.replace(/\n/g, '<br>')}</p>` : ''}
+            ${afterButton ? `<p style="margin: 24px 0 0 0; line-height: 1.8; color: #374151; font-size: 16px;">${afterButton.replace(/\n/g, '<br>')}</p>` : ''}
           `;
         } else {
-          // Parágrafo normal
-          return `<p style="margin: 0 0 16px 0; line-height: 1.6; color: #374151;">${paragraph.replace(/\n/g, '<br>')}</p>`;
+          // Parágrafo normal com melhor espaçamento
+          return `<p style="margin: 0 0 24px 0; line-height: 1.8; color: #374151; font-size: 16px;">${paragraph.replace(/\n/g, '<br>')}</p>`;
         }
       }).join('');
 
@@ -129,13 +129,42 @@ Deno.serve(async (req) => {
         </head>
         <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f9fafb;">
           <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-            <div style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); padding: 32px; text-align: center;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">
+            <div style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); padding: 40px; text-align: center;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">
                 📋 Proposta Comercial
               </h1>
             </div>
-            <div style="padding: 32px;">
+            <div style="padding: 40px;">
               ${htmlContent}
+              
+              <!-- Separador elegante -->
+              <div style="margin: 48px 0 32px 0; text-align: center;">
+                <div style="height: 1px; background: linear-gradient(to right, transparent, #e5e7eb, transparent);"></div>
+              </div>
+              
+              <!-- Footer BoraFecharAI -->
+              <div style="text-align: center; padding: 24px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 8px; border: 1px solid #e2e8f0;">
+                <p style="margin: 0 0 12px 0; color: #64748b; font-size: 14px; font-weight: 500;">
+                  ✨ Esta proposta foi criada com
+                </p>
+                <a href="https://www.borafecharai.com" 
+                   target="_blank" 
+                   style="display: inline-block; 
+                          color: #2563eb; 
+                          text-decoration: none; 
+                          font-size: 18px; 
+                          font-weight: 700; 
+                          padding: 8px 16px; 
+                          border-radius: 6px; 
+                          background: rgba(37, 99, 235, 0.1); 
+                          transition: all 0.2s ease;">
+                  🚀 BoraFecharAI
+                </a>
+                <p style="margin: 12px 0 0 0; color: #64748b; font-size: 12px;">
+                  A plataforma que transforma suas propostas em fechamentos
+                </p>
+              </div>
+              
               <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 14px;">
                 <p style="margin: 0;">Esta é uma mensagem automática. Não responda a este email.</p>
               </div>

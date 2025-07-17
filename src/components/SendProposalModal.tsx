@@ -121,7 +121,7 @@ const SendProposalModal = ({
 
   const isFormValid = formData.recipientEmail.trim() && formData.recipientName.trim();
 
-  // Função melhorada para gerar preview do email com formatação adequada
+  // Função melhorada para gerar preview do email com melhor espaçamento
   const generatePreviewMessage = () => {
     const paragraphs = formData.emailMessage.split('\n\n').filter(p => p.trim());
     
@@ -131,12 +131,12 @@ const SendProposalModal = ({
         const afterButton = paragraph.split('[LINK_DA_PROPOSTA]')[1];
         
         return `
-          ${beforeButton ? `<p style="margin: 0 0 12px 0; line-height: 1.5;">${beforeButton.replace(/\n/g, '<br>')}</p>` : ''}
-          <div style="text-align: center; margin: 16px 0;">
+          ${beforeButton ? `<p style="margin: 0 0 20px 0; line-height: 1.7; color: #374151;">${beforeButton.replace(/\n/g, '<br>')}</p>` : ''}
+          <div style="text-align: center; margin: 24px 0;">
             <div style="display: inline-block; 
                         background-color: #2563eb; 
                         color: #ffffff; 
-                        padding: 10px 20px; 
+                        padding: 12px 24px; 
                         border-radius: 6px; 
                         font-weight: 600; 
                         font-size: 14px; 
@@ -144,14 +144,29 @@ const SendProposalModal = ({
               📄 Visualizar Proposta
             </div>
           </div>
-          ${afterButton ? `<p style="margin: 12px 0 0 0; line-height: 1.5;">${afterButton.replace(/\n/g, '<br>')}</p>` : ''}
+          ${afterButton ? `<p style="margin: 20px 0 0 0; line-height: 1.7; color: #374151;">${afterButton.replace(/\n/g, '<br>')}</p>` : ''}
         `;
       } else {
-        return `<p style="margin: 0 0 12px 0; line-height: 1.5;">${paragraph.replace(/\n/g, '<br>')}</p>`;
+        return `<p style="margin: 0 0 20px 0; line-height: 1.7; color: #374151;">${paragraph.replace(/\n/g, '<br>')}</p>`;
       }
     }).join('');
 
-    return htmlContent || 'Mensagem do email aparecerá aqui...';
+    // Adicionar o footer do BoraFecharAI na preview
+    const footerHtml = `
+      <div style="margin-top: 32px; text-align: center; padding: 16px; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
+        <p style="margin: 0 0 8px 0; color: #64748b; font-size: 12px; font-weight: 500;">
+          ✨ Esta proposta foi criada com
+        </p>
+        <div style="color: #2563eb; font-size: 14px; font-weight: 700; padding: 4px 12px; border-radius: 4px; background: rgba(37, 99, 235, 0.1);">
+          🚀 BoraFecharAI
+        </div>
+        <p style="margin: 8px 0 0 0; color: #64748b; font-size: 10px;">
+          A plataforma que transforma suas propostas em fechamentos
+        </p>
+      </div>
+    `;
+
+    return (htmlContent || 'Mensagem do email aparecerá aqui...') + footerHtml;
   };
 
   return (
