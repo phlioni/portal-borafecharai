@@ -131,36 +131,36 @@ const SendProposalModal = ({
         const afterButton = paragraph.split('[LINK_DA_PROPOSTA]')[1];
         
         return `
-          ${beforeButton ? `<p style="margin: 0 0 20px 0; line-height: 1.7; color: #374151;">${beforeButton.replace(/\n/g, '<br>')}</p>` : ''}
-          <div style="text-align: center; margin: 24px 0;">
+          ${beforeButton ? `<p style="margin: 0 0 30px 0; line-height: 1.8; color: #374151; font-size: 16px;">${beforeButton.replace(/\n/g, '<br><br>')}</p>` : ''}
+          <div style="text-align: center; margin: 40px 0;">
             <div style="display: inline-block; 
                         background-color: #2563eb; 
                         color: #ffffff; 
-                        padding: 12px 24px; 
-                        border-radius: 6px; 
+                        padding: 16px 32px; 
+                        border-radius: 8px; 
                         font-weight: 600; 
-                        font-size: 14px; 
-                        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+                        font-size: 16px; 
+                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
               📄 Visualizar Proposta
             </div>
           </div>
-          ${afterButton ? `<p style="margin: 20px 0 0 0; line-height: 1.7; color: #374151;">${afterButton.replace(/\n/g, '<br>')}</p>` : ''}
+          ${afterButton ? `<p style="margin: 30px 0 0 0; line-height: 1.8; color: #374151; font-size: 16px;">${afterButton.replace(/\n/g, '<br><br>')}</p>` : ''}
         `;
       } else {
-        return `<p style="margin: 0 0 20px 0; line-height: 1.7; color: #374151;">${paragraph.replace(/\n/g, '<br>')}</p>`;
+        return `<p style="margin: 0 0 30px 0; line-height: 1.8; color: #374151; font-size: 16px;">${paragraph.replace(/\n/g, '<br><br>')}</p>`;
       }
     }).join('');
 
     // Adicionar o footer do BoraFecharAI na preview
     const footerHtml = `
-      <div style="margin-top: 32px; text-align: center; padding: 16px; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
-        <p style="margin: 0 0 8px 0; color: #64748b; font-size: 12px; font-weight: 500;">
+      <div style="margin-top: 50px; text-align: center; padding: 24px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <p style="margin: 0 0 12px 0; color: #64748b; font-size: 14px; font-weight: 500;">
           ✨ Esta proposta foi criada com
         </p>
-        <div style="color: #2563eb; font-size: 14px; font-weight: 700; padding: 4px 12px; border-radius: 4px; background: rgba(37, 99, 235, 0.1);">
+        <div style="color: #2563eb; font-size: 18px; font-weight: 700; padding: 8px 16px; border-radius: 6px; background: rgba(37, 99, 235, 0.1);">
           🚀 BoraFecharAI
         </div>
-        <p style="margin: 8px 0 0 0; color: #64748b; font-size: 10px;">
+        <p style="margin: 12px 0 0 0; color: #64748b; font-size: 12px;">
           A plataforma que transforma suas propostas em fechamentos
         </p>
       </div>
@@ -245,7 +245,7 @@ const SendProposalModal = ({
               <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-3 rounded-t text-center">
                 <h5 className="font-semibold">📋 Proposta Comercial</h5>
               </div>
-              <div className="max-h-48 overflow-y-auto p-3 bg-gray-50 rounded-b">
+              <div className="max-h-64 overflow-y-auto p-4 bg-gray-50 rounded-b">
                 <div
                   className="text-sm leading-relaxed"
                   dangerouslySetInnerHTML={{
