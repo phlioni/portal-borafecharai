@@ -67,7 +67,7 @@ const NovaPropostaPage = () => {
     // Buscar logo da empresa do usuário
     let logoUrl = '';
     let selectedClient = null;
-    
+
     if (formData.client_id && formData.client_id !== 'none' && clients) {
       selectedClient = clients.find(c => c.id === formData.client_id);
     }
@@ -140,16 +140,16 @@ const NovaPropostaPage = () => {
 
       const newProposal = await createProposal.mutateAsync(proposalData);
       console.log('Proposta criada com ID:', newProposal.id);
-      
+
       if (budgetItems.length > 0) {
         sessionStorage.setItem('pendingBudgetItems', JSON.stringify(budgetItems));
       }
-      
+
       toast.success('Proposta salva como rascunho!');
       setShowPreview(false);
-      
+
       // Navegação correta
-      navigate(`/propostas/${newProposal.id}`);
+      navigate(`/propostas/${newProposal.id}/visualizar`);
     } catch (error) {
       console.error('Erro ao salvar rascunho:', error);
       toast.error('Erro ao salvar rascunho');
@@ -185,7 +185,7 @@ const NovaPropostaPage = () => {
 
       const newProposal = await createProposal.mutateAsync(proposalData);
       console.log('Proposta criada para envio com ID:', newProposal.id);
-      
+
       if (budgetItems.length > 0) {
         sessionStorage.setItem('pendingBudgetItems', JSON.stringify(budgetItems));
       }
@@ -195,7 +195,7 @@ const NovaPropostaPage = () => {
       if (success) {
         setShowSendModal(false);
         toast.success('Proposta criada e enviada com sucesso!');
-        navigate(`/propostas/${newProposal.id}`);
+        navigate(`/propostas/${newProposal.id}/visualizar`);
       }
     } catch (error) {
       console.error('Erro ao criar e enviar proposta:', error);
@@ -244,8 +244,8 @@ const NovaPropostaPage = () => {
             <div>
               <Label htmlFor="client">Cliente</Label>
               <div className="space-y-2">
-                <Select 
-                  value={formData.client_id} 
+                <Select
+                  value={formData.client_id}
                   onValueChange={(value) => handleInputChange('client_id', value)}
                 >
                   <SelectTrigger>
@@ -330,8 +330,8 @@ const NovaPropostaPage = () => {
             <CardTitle>Itens do Orçamento</CardTitle>
           </CardHeader>
           <CardContent>
-            <BudgetItemsManager 
-              proposalId={'temp-proposal'} 
+            <BudgetItemsManager
+              proposalId={'temp-proposal'}
               isNewProposal={true}
               onItemsChange={handleBudgetItemsChange}
             />
