@@ -21,7 +21,7 @@ const PropostaPublicaPage = () => {
       
       console.log('Buscando proposta com hash:', hash);
       
-      // Buscar pelo public_hash
+      // Buscar pelo public_hash primeiro
       const { data: proposalData, error: proposalError } = await supabase
         .from('proposals')
         .select(`
@@ -46,57 +46,23 @@ const PropostaPublicaPage = () => {
 
       if (proposalError) {
         console.error('Erro ao buscar proposta por hash:', proposalError);
-        
-        // Se não encontrar pelo hash, tentar decodificar base64 (compatibilidade)
-        try {
-          const decodedId = atob(hash);
-          console.log('Tentando buscar por ID decodificado:', decodedId);
-          
-          const { data: proposalById, error: idError } = await supabase
-            .from('proposals')
-            .select(`
-              *,
-              clients (
-                id,
-                name,
-                email,
-                phone
-              ),
-              proposal_budget_items (
-                id,
-                description,
-                quantity,
-                unit_price,
-                total_price,
-                type
-              )
-            `)
-            .eq('id', decodedId)
-            .single();
-
-          if (idError) {
-            console.error('Erro ao buscar proposta por ID:', idError);
-            throw new Error('Proposta não encontrada');
-          }
-          
-          console.log('Proposta encontrada por ID:', proposalById);
-          return proposalById;
-        } catch (decodeError) {
-          console.error('Erro ao decodificar hash:', decodeError);
-          throw new Error('Proposta não encontrada');
-        }
+        throw new Error('Proposta não encontrada');
       }
 
       console.log('Proposta encontrada por hash:', proposalData);
       
       // Incrementar visualizações automaticamente
-      await supabase
+      const { error: updateError } = await supabase
         .from('proposals')
         .update({ 
           views: (proposalData.views || 0) + 1,
           last_viewed_at: new Date().toISOString()
         })
         .eq('id', proposalData.id);
+        
+      if (updateError) {
+        console.error('Erro ao atualizar visualizações:', updateError);
+      }
       
       return proposalData;
     },
@@ -162,9 +128,9 @@ const PropostaPublicaPage = () => {
     }, 500);
   };
 
-  // Verificar se a proposta está dentro da validade
-  const isValid = proposal?.validity_date ? 
-    new Date(proposal.validity_date) >= new Date() : true;
+  // Verificar se a proposta está dentro da validade (apenas se validity_date existir)
+  const isValid = !proposal?.validity_date || 
+    new Date(proposal.validity_date) >= new Date();
 
   if (isLoading) {
     return (

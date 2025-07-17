@@ -69,11 +69,16 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Gerar hash público se não existir
+    // Garantir que existe um hash público válido
     let finalPublicHash = proposal.public_hash
-    if (!finalPublicHash) {
+    if (!finalPublicHash || finalPublicHash.length < 16) {
       console.log('Gerando novo hash público para a proposta')
-      finalPublicHash = btoa(`${proposalId}-${Date.now()}`).replace(/[+=\/]/g, '').substring(0, 32)
+      // Gerar hash mais robusto usando crypto
+      const encoder = new TextEncoder()
+      const data = encoder.encode(`${proposalId}-${Date.now()}-${Math.random()}`)
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+      const hashArray = Array.from(new Uint8Array(hashBuffer))
+      finalPublicHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32)
       
       // Atualizar proposta com o novo hash
       const { error: updateError } = await supabase
@@ -94,7 +99,7 @@ Deno.serve(async (req) => {
     }
 
     // Construir URL pública correta
-    const finalPublicUrl = publicUrl || `https://www.borafecharai.com/proposta/${finalPublicHash}`
+    const finalPublicUrl = `https://www.borafecharai.com/proposta/${finalPublicHash}`
     console.log('URL final da proposta:', finalPublicUrl)
 
     // Buscar dados da empresa do usuário
