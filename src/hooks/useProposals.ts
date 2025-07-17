@@ -78,6 +78,43 @@ export const useProposals = () => {
   });
 };
 
+export const useProposal = (id?: string) => {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['proposal', id],
+    queryFn: async () => {
+      if (!id || id === 'nova' || !user) return null;
+      
+      const { data, error } = await supabase
+        .from('proposals')
+        .select(`
+          *,
+          clients (
+            id,
+            name,
+            email,
+            phone
+          ),
+          proposal_budget_items (
+            id,
+            type,
+            description,
+            quantity,
+            unit_price,
+            total_price
+          )
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id && id !== 'nova' && !!user,
+  });
+};
+
 export const useCreateProposal = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -164,7 +201,7 @@ export const useUpdateProposal = () => {
   });
 };
 
-// Legacy hook for backward compatibility
+// Legacy hook for backward compatibility - updated to not query when id is invalid
 export const useProposal = () => {
   const { user } = useAuth();
   const [proposals, setProposals] = useState<Proposal[]>([]);

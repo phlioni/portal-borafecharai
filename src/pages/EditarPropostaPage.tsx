@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Save, Eye } from 'lucide-react';
-import { useProposals, useUpdateProposal } from '@/hooks/useProposals';
+import { useProposal, useUpdateProposal } from '@/hooks/useProposals';
 import { useClients } from '@/hooks/useClients';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -19,12 +19,10 @@ const EditarPropostaPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { data: proposals } = useProposals();
+  const { data: proposal, isLoading } = useProposal(id);
   const updateProposal = useUpdateProposal();
   const { data: clients } = useClients();
   const createBudgetItem = useCreateBudgetItem();
-
-  const proposal = proposals?.find(p => p.id === id);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -99,7 +97,11 @@ const EditarPropostaPage = () => {
     }
   }, [id, createBudgetItem, proposal, itemsProcessed]);
 
-  if (!proposal) {
+  if (isLoading) {
+    return <div>Carregando proposta...</div>;
+  }
+
+  if (!proposal && !isLoading) {
     return <div>Proposta não encontrada</div>;
   }
 

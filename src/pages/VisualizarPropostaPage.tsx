@@ -1,9 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useProposal } from '@/hooks/useProposals';
 import SendProposalModal from '@/components/SendProposalModal';
 import ProposalPreviewModal from '@/components/ProposalPreviewModal';
 import ProposalHeader from '@/components/ProposalHeader';
@@ -23,38 +21,7 @@ const VisualizarPropostaPage = () => {
   const { sendProposal, isSending } = useProposalSending();
   const createBudgetItem = useCreateBudgetItem();
 
-  const { data: proposal, isLoading, refetch } = useQuery({
-    queryKey: ['proposal', id],
-    queryFn: async () => {
-      if (!id) throw new Error('ID da proposta não fornecido');
-      
-      const { data, error } = await supabase
-        .from('proposals')
-        .select(`
-          *,
-          clients (
-            id,
-            name,
-            email,
-            phone
-          ),
-          proposal_budget_items (
-            id,
-            type,
-            description,
-            quantity,
-            unit_price,
-            total_price
-          )
-        `)
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!id,
-  });
+  const { data: proposal, isLoading, refetch } = useProposal(id);
 
   // Verificar se há itens pendentes do sessionStorage apenas uma vez
   useEffect(() => {
