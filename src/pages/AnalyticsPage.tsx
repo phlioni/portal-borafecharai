@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -131,7 +132,7 @@ const AnalyticsPage = () => {
 
   // Dados para gráfico de templates
   const templateData = [
-    { name: 'Moderno', value: proposals?.filter(p => p.template_id === 'moderno').length || 0 },
+    { name: 'Moderno', value: proposals?.filter(p => p.template_id === 'moderno' || !p.template_id).length || 0 },
     { name: 'Executivo', value: proposals?.filter(p => p.template_id === 'executivo').length || 0 },
     { name: 'Criativo', value: proposals?.filter(p => p.template_id === 'criativo').length || 0 },
   ];

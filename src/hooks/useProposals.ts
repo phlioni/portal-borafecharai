@@ -2,7 +2,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useState, useEffect } from 'react';
 
 export interface Proposal {
   id: string;
@@ -15,6 +14,7 @@ export interface Proposal {
   validity_date?: string;
   observations?: string;
   status?: string;
+  template_id?: string;
   created_at: string;
   updated_at: string;
   user_id: string;
@@ -81,7 +81,7 @@ export const useProposals = () => {
 };
 
 // Hook específico para buscar uma proposta individual
-export const useProposal = (id: string) => {
+export const useProposal = (id: string | undefined) => {
   const { user } = useAuth();
   
   return useQuery({
@@ -167,7 +167,7 @@ export const useUpdateProposal = () => {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ id, ...updateData }: Partial<Proposal> & { id: string }) => {
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Proposal> }) => {
       if (!user?.id) {
         throw new Error('User not authenticated');
       }
@@ -175,7 +175,7 @@ export const useUpdateProposal = () => {
       const { data, error } = await supabase
         .from('proposals')
         .update({
-          ...updateData,
+          ...updates,
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
