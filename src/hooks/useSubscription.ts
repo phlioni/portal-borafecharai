@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,7 +34,34 @@ export const useSubscription = () => {
       setSubscriptionData(prev => ({ ...prev, loading: true, error: null }));
       console.log('useSubscription - Checking subscription for user:', user.id);
       
-      // Buscar diretamente na tabela subscribers
+      // Chamar a função check-subscription para verificar com o Stripe
+      const { data, error } = await supabase.functions.invoke('check-subscription', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) {
+        console.error('useSubscription - Error calling check-subscription:', error);
+        throw error;
+      }
+
+      console.log('useSubscription - Stripe check result:', data);
+
+      // Se retornou dados do Stripe, usar esses dados
+      if (data) {
+        setSubscriptionData({
+          subscribed: data.subscribed || false,
+          subscription_tier: data.subscription_tier || null,
+          subscription_end: data.subscription_end || null,
+          cancel_at_period_end: data.cancel_at_period_end || false,
+          loading: false,
+          error: null,
+        });
+        return;
+      }
+
+      // Fallback: buscar diretamente na tabela subscribers se a função falhar
       const { data: subscriberData, error: subscriberError } = await supabase
         .from('subscribers')
         .select('*')
@@ -58,7 +86,7 @@ export const useSubscription = () => {
         return;
       }
 
-      // Se não encontrar na tabela, criar um registro básico para o usuário (fallback de segurança)
+      // Se não encontrar na tabela, criar um registro básico para o usuário
       console.log('useSubscription - No subscriber found, creating trial record');
       const trialEndDate = new Date();
       trialEndDate.setDate(trialEndDate.getDate() + 15);
@@ -122,6 +150,18 @@ export const useSubscription = () => {
       // Abrir checkout em nova aba
       if (data?.url) {
         window.open(data.url, '_blank');
+        
+        // Após redirecionamento, verificar periodicamente se houve mudança na assinatura
+        const checkInterval = setInterval(async () => {
+          console.log('Verificando mudanças na assinatura após checkout...');
+          await checkSubscription();
+          
+          // Parar de verificar após 5 minutos
+          setTimeout(() => {
+            clearInterval(checkInterval);
+          }, 5 * 60 * 1000);
+        }, 10000); // Verificar a cada 10 segundos
+        
       } else {
         throw new Error('URL de checkout não encontrada');
       }
@@ -215,6 +255,20 @@ export const useSubscription = () => {
 
   useEffect(() => {
     checkSubscription();
+  }, [user, session]);
+
+  // Verificar mudanças na URL que possam indicar retorno do Stripe
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const checkoutSuccess = urlParams.get('checkout');
+    
+    if (checkoutSuccess === 'success' && user && session) {
+      console.log('Detectado retorno de checkout com sucesso, verificando assinatura...');
+      // Aguardar um pouco para dar tempo do Stripe processar
+      setTimeout(() => {
+        checkSubscription();
+      }, 2000);
+    }
   }, [user, session]);
 
   return {

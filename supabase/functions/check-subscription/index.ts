@@ -75,19 +75,28 @@ serve(async (req) => {
     const hasActiveSub = subscriptions.data.length > 0;
     let subscriptionTier = null;
     let subscriptionEnd = null;
+    let cancelAtPeriodEnd = false;
 
     if (hasActiveSub) {
       const subscription = subscriptions.data[0];
       subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
-      logStep("Active subscription found", { subscriptionId: subscription.id, endDate: subscriptionEnd });
+      cancelAtPeriodEnd = subscription.cancel_at_period_end || false;
+      logStep("Active subscription found", { 
+        subscriptionId: subscription.id, 
+        endDate: subscriptionEnd,
+        cancelAtPeriodEnd 
+      });
       
       const priceId = subscription.items.data[0].price.id;
       const price = await stripe.prices.retrieve(priceId);
       const amount = price.unit_amount || 0;
       
-      if (amount <= 2999) {
+      // Corrigir a lógica de determinação do tier baseado nos preços corretos
+      // Plano Essencial: R$ 39,90 = 3990 centavos
+      // Plano Profissional: R$ 79,90 = 7990 centavos
+      if (amount <= 3990) {
         subscriptionTier = "basico";
-      } else if (amount <= 4999) {
+      } else if (amount <= 7990) {
         subscriptionTier = "profissional";
       } else {
         subscriptionTier = "equipes";
@@ -97,21 +106,38 @@ serve(async (req) => {
       logStep("No active subscription found");
     }
 
-    await supabaseClient.from("subscribers").upsert({
+    // Atualizar subscriber com todas as informações necessárias
+    const updateData = {
       email: user.email,
       user_id: user.id,
       stripe_customer_id: customerId,
       subscribed: hasActiveSub,
       subscription_tier: subscriptionTier,
       subscription_end: subscriptionEnd,
+      cancel_at_period_end: cancelAtPeriodEnd,
       updated_at: new Date().toISOString(),
-    }, { onConflict: 'email' });
+    };
 
-    logStep("Updated database with subscription info", { subscribed: hasActiveSub, subscriptionTier });
+    // Se tem assinatura ativa, limpar dados de trial
+    if (hasActiveSub) {
+      updateData.trial_start_date = null;
+      updateData.trial_end_date = null;
+      updateData.trial_proposals_used = 0;
+    }
+
+    await supabaseClient.from("subscribers").upsert(updateData, { onConflict: 'email' });
+
+    logStep("Updated database with subscription info", { 
+      subscribed: hasActiveSub, 
+      subscriptionTier,
+      cancelAtPeriodEnd 
+    });
+    
     return new Response(JSON.stringify({
       subscribed: hasActiveSub,
       subscription_tier: subscriptionTier,
-      subscription_end: subscriptionEnd
+      subscription_end: subscriptionEnd,
+      cancel_at_period_end: cancelAtPeriodEnd
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
