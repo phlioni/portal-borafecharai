@@ -45,18 +45,17 @@ const ChatPropostaPage = () => {
     scrollToBottom();
   }, [messages]);
 
-  // Verificar se o usuário pode criar propostas
+  // Remover o redirecionamento automático - apenas mostrar mensagem se não pode criar propostas
   useEffect(() => {
     if (!permissionsLoading && !canCreateProposal) {
-      toast.error('Você não tem permissão para criar propostas. Verifique seu plano ou trial.');
-      navigate('/propostas');
+      console.log('Usuário não tem permissão para criar propostas, mas permanece na página do chat');
     }
-  }, [canCreateProposal, permissionsLoading, navigate]);
+  }, [canCreateProposal, permissionsLoading]);
 
   const sendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
 
-    // Verificar novamente se pode criar propostas antes de enviar mensagem
+    // Verificar se pode criar propostas antes de enviar mensagem
     if (!canCreateProposal) {
       toast.error('Você não tem permissão para criar propostas. Verifique seu plano ou trial.');
       return;
@@ -106,10 +105,9 @@ const ChatPropostaPage = () => {
     } catch (error) {
       console.error('Erro no chat:', error);
       
-      // Se for erro de limite, mostrar mensagem específica e redirecionar
+      // Se for erro de limite, mostrar mensagem específica mas não redirecionar
       if (error.message && error.message.includes('Limite de')) {
         toast.error(error.message);
-        navigate('/propostas');
         return;
       }
       
@@ -223,10 +221,9 @@ const ChatPropostaPage = () => {
     } catch (error) {
       console.error('Erro ao gerar proposta:', error);
       
-      // Se for erro de limite, mostrar mensagem específica e redirecionar
+      // Se for erro de limite, mostrar mensagem específica mas não redirecionar
       if (error.message && error.message.includes('Limite de')) {
         toast.error(error.message);
-        navigate('/propostas');
         return;
       }
       
@@ -255,7 +252,7 @@ const ChatPropostaPage = () => {
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={() => navigate('/propostas')}>
+        <Button variant="ghost" onClick={() => navigate('/dashboard')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Voltar
         </Button>
@@ -267,6 +264,20 @@ const ChatPropostaPage = () => {
           <p className="text-gray-600 mt-1">Converse com nosso assistente para criar sua proposta</p>
         </div>
       </div>
+
+      {/* Aviso se não pode criar propostas */}
+      {!canCreateProposal && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-orange-600" />
+              <p className="text-orange-800">
+                Você atingiu o limite de propostas do seu plano. Para usar o chat, faça upgrade do seu plano ou aguarde o próximo mês.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Chat Container */}
       <Card className="h-[600px] flex flex-col">
@@ -316,12 +327,11 @@ const ChatPropostaPage = () => {
           </div>
 
           {/* Generate Button */}
-          {showGenerateButton && !isLoading && (
+          {showGenerateButton && !isLoading && canCreateProposal && (
             <div className="p-4 border-t bg-green-50">
               <Button 
                 onClick={generateProposal}
                 className="w-full bg-green-600 hover:bg-green-700"
-                disabled={!canCreateProposal}
               >
                 <Sparkles className="h-4 w-4 mr-2" />
                 Gerar Proposta Agora
@@ -335,7 +345,7 @@ const ChatPropostaPage = () => {
               <Input
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                placeholder="Digite sua mensagem..."
+                placeholder={canCreateProposal ? "Digite sua mensagem..." : "Você precisa de um plano ativo para usar o chat"}
                 onKeyPress={handleKeyPress}
                 disabled={isLoading || !canCreateProposal}
                 className="flex-1"
