@@ -1,11 +1,12 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CalendarDays, CheckCircle2, CircleDollarSign, FileText, Users, TrendingUp, Eye, Plus } from 'lucide-react';
+import { CalendarDays, CheckCircle2, CircleDollarSign, FileText, Users, TrendingUp, Eye, Plus, Crown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useProposals } from '@/hooks/useProposals';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ModernLoader } from '@/components/ModernLoader';
@@ -15,7 +16,8 @@ import ProfileCompletionAlert from '@/components/ProfileCompletionAlert';
 const Dashboard = () => {
   const { data, isLoading, error } = useDashboardData();
   const { data: proposals, isLoading: proposalsLoading } = useProposals();
-  const { subscribed, subscription_tier } = useSubscription();
+  const { subscribed, subscription_tier, subscription_end } = useSubscription();
+  const { monthlyProposalCount, monthlyProposalLimit } = useUserPermissions();
 
   if (isLoading || proposalsLoading) {
     return <ModernLoader message="Carregando dashboard..." fullScreen />;
@@ -40,7 +42,6 @@ const Dashboard = () => {
     );
   }
 
-  // Calcular estatísticas reais
   const totalProposals = data?.totalProposalsSent || 0;
   const totalClients = data?.totalClients || 0;
   const totalAccepted = data?.totalProposalsApproved || 0;
@@ -48,7 +49,6 @@ const Dashboard = () => {
   const acceptanceRate = totalProposals > 0 ? (totalAccepted / totalProposals) * 100 : 0;
   const totalViews = proposals?.reduce((acc, p) => acc + (p.views || 0), 0) || 0;
 
-  // Pegar as 3 propostas mais recentes
   const recentProposals = proposals?.slice(0, 3) || [];
 
   const formatDate = (date: string) => {
@@ -100,6 +100,17 @@ const Dashboard = () => {
     }
   };
 
+  const getPlanName = (tier: string | null) => {
+    switch (tier) {
+      case 'basico':
+        return 'Essencial';
+      case 'profissional':
+        return 'Professional';
+      default:
+        return 'Gratuito';
+    }
+  };
+
   return (
     <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -117,6 +128,30 @@ const Dashboard = () => {
 
       {/* Profile Completion Alert */}
       <ProfileCompletionAlert />
+
+      {/* Subscription Status Card */}
+      {subscribed && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Crown className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-blue-900">Plano {getPlanName(subscription_tier)}</h3>
+                  <p className="text-sm text-blue-700">
+                    {subscription_end && `Próxima cobrança: ${formatDate(subscription_end)}`}
+                  </p>
+                </div>
+              </div>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/configurações">Gerenciar Plano</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Trial Call to Action */}
       <TrialCallToActionWrapper />
@@ -136,6 +171,34 @@ const Dashboard = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Monthly Proposal Limit Card - Only show for subscribed users with limits */}
+        {subscribed && subscription_tier === 'basico' && (
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Propostas deste Mês</p>
+                  <p className="text-3xl font-bold">
+                    {monthlyProposalCount}
+                    {monthlyProposalLimit && (
+                      <span className="text-lg text-gray-500">/{monthlyProposalLimit}</span>
+                    )}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {monthlyProposalLimit && monthlyProposalLimit - monthlyProposalCount > 0
+                      ? `${monthlyProposalLimit - monthlyProposalCount} restantes`
+                      : 'Limite atingido'
+                    }
+                  </p>
+                </div>
+                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <CalendarDays className="h-6 w-6 text-orange-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardContent className="p-6">

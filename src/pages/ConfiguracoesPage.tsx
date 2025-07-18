@@ -19,6 +19,7 @@ import TelegramBotUserGuide from '@/components/TelegramBotUserGuide';
 import TelegramBotPage from './TelegramBotPage';
 import ProfileTab from '@/components/ProfileTab';
 import EmailTemplateSettings from '@/components/EmailTemplateSettings';
+import SubscriptionStatus from '@/components/SubscriptionStatus';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const ConfiguracoesPage = () => {
@@ -164,8 +165,8 @@ const ConfiguracoesPage = () => {
         'Analytics completo',
         'Suporte prioritário'
       ],
-      buttonText: subscription.subscription_tier === 'professional' ? 'Plano Atual' : 'Assinar Agora',
-      current: subscription.subscription_tier === 'professional',
+      buttonText: subscription.subscription_tier === 'profissional' ? 'Plano Atual' : 'Assinar Agora',
+      current: subscription.subscription_tier === 'profissional',
       popular: true
     }
   ];
@@ -397,6 +398,8 @@ const ConfiguracoesPage = () => {
 
           <TabsContent value="planos" className="mt-4">
             <div className="space-y-6">
+              <SubscriptionStatus />
+
               <div>
                 <h2 className="text-xl font-bold">Escolha seu Plano</h2>
                 <p className="text-muted-foreground">Selecione o plano que melhor atende às suas necessidades</p>
@@ -688,6 +691,8 @@ const ConfiguracoesPage = () => {
 
         <TabsContent value="planos">
           <div className="space-y-6">
+            <SubscriptionStatus />
+
             <div>
               <h2 className="text-2xl font-bold">Escolha seu Plano</h2>
               <p className="text-muted-foreground">Selecione o plano que melhor atende às suas necessidades</p>

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,9 +48,9 @@ const SubscriptionStatus: React.FC = () => {
   const getTierName = (tier: string | null) => {
     switch (tier) {
       case 'basico':
-        return 'Básico';
+        return 'Essencial';
       case 'profissional':
-        return 'Profissional';
+        return 'Professional';
       case 'equipes':
         return 'Equipes';
       default:
