@@ -215,16 +215,21 @@ export const useDeleteProposal = () => {
         throw new Error('Usuário não autenticado');
       }
 
-      // Verificar se a proposta pertence ao usuário antes de deletar
+      // Verificar se a proposta pertence ao usuário e se pode ser deletada
       const { data: existingProposal, error: checkError } = await supabase
         .from('proposals')
-        .select('user_id')
+        .select('user_id, status')
         .eq('id', id)
         .eq('user_id', user.id)
         .single();
 
       if (checkError || !existingProposal) {
         throw new Error('Proposta não encontrada ou acesso negado');
+      }
+
+      // Verificar se a proposta pode ser deletada (apenas rascunhos)
+      if (existingProposal.status && existingProposal.status !== 'rascunho') {
+        throw new Error('Propostas enviadas não podem ser excluídas');
       }
 
       const { error } = await supabase
@@ -237,10 +242,11 @@ export const useDeleteProposal = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
+      toast.success('Proposta excluída com sucesso!');
     },
     onError: (error) => {
       console.error('Erro ao deletar proposta:', error);
-      toast.error('Erro ao deletar proposta');
+      toast.error(error.message || 'Erro ao deletar proposta');
     },
   });
 };
