@@ -146,7 +146,7 @@ const Dashboard = () => {
                 </div>
               </div>
               <Button variant="outline" size="sm" asChild>
-                <Link to="/configurações">Gerenciar Plano</Link>
+                <Link to="/configuracoes">Gerenciar Plano</Link>
               </Button>
             </div>
           </CardContent>
