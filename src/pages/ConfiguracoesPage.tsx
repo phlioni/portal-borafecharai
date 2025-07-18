@@ -62,7 +62,7 @@ const ConfiguracoesPage = () => {
       const segmentId = businessSegments?.find(s => s.segment_name === company.business_segment)?.id || '';
       console.log('Found segment ID:', segmentId, 'for segment:', company.business_segment);
       setSelectedSegmentId(segmentId);
-      
+
       setCompanyData({
         name: company.name || '',
         email: company.email || '',
@@ -137,7 +137,7 @@ const ConfiguracoesPage = () => {
       name: 'Essencial',
       description: 'Ideal para freelancers e pequenos projetos',
       price: 'R$ 39,90',
-      priceId: 'price_1RktM2IjvuQQ47SwvTDKabRJ',
+      priceId: 'price_1Rm595IjvuQQ47SwCLLgnS5R',
       currency: 'BRL',
       features: [
         'Até 10 propostas por mês',
@@ -155,7 +155,7 @@ const ConfiguracoesPage = () => {
       description: 'Para empresas que precisam de mais recursos',
       price: 'R$ 79,90',
       currency: 'BRL',
-      priceId: 'price_1RktMUIjvuQQ47Swctsuavr9',
+      priceId: 'price_1Rm59dIjvuQQ47SwbzGycRs1',
       features: [
         'Propostas ilimitadas',
         'Chat com IA para criação avançada',
@@ -191,15 +191,15 @@ const ConfiguracoesPage = () => {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="grid w-full grid-cols-2 h-auto p-1">
-            <TabsTrigger 
-              value="perfil" 
+            <TabsTrigger
+              value="perfil"
               className="flex flex-col items-center gap-1 p-3 text-xs"
             >
               <User className="h-4 w-4" />
               Perfil
             </TabsTrigger>
-            <TabsTrigger 
-              value="negocio" 
+            <TabsTrigger
+              value="negocio"
               className="flex flex-col items-center gap-1 p-3 text-xs"
             >
               <Building className="h-4 w-4" />
@@ -311,8 +311,8 @@ const ConfiguracoesPage = () => {
                       </div>
                       <div>
                         <Label htmlFor="business_type_detail">Tipo</Label>
-                        <Select 
-                          value={companyData.business_type_detail} 
+                        <Select
+                          value={companyData.business_type_detail}
                           onValueChange={(value) => handleInputChange('business_type_detail', value)}
                           disabled={!selectedSegmentId || typesLoading}
                         >
@@ -612,8 +612,8 @@ const ConfiguracoesPage = () => {
                   </div>
                   <div>
                     <Label htmlFor="business_type_detail">Tipo</Label>
-                    <Select 
-                      value={companyData.business_type_detail} 
+                    <Select
+                      value={companyData.business_type_detail}
                       onValueChange={(value) => handleInputChange('business_type_detail', value)}
                       disabled={!selectedSegmentId || typesLoading}
                     >
