@@ -62,7 +62,7 @@ const SubscriptionPlanCard: React.FC<SubscriptionPlanCardProps> = ({
     if (isCurrentPlan) return 'Plano Atual';
     if (hasHigherPlan) return 'Fazer Downgrade';
     if (subscribed) return 'Alterar Plano';
-    return 'Escolher Plano';
+    return 'Assinar Agora';
   };
 
   const getButtonVariant = () => {
@@ -71,10 +71,10 @@ const SubscriptionPlanCard: React.FC<SubscriptionPlanCardProps> = ({
   };
 
   return (
-    <Card className={`relative h-full flex flex-col w-full max-w-full ${popular ? 'border-blue-600 shadow-lg' : ''} ${isCurrentPlan ? 'ring-2 ring-green-500' : ''}`}>
+    <Card className={`relative h-full flex flex-col w-full max-w-sm mx-auto ${popular ? 'border-blue-600 shadow-lg' : ''} ${isCurrentPlan ? 'ring-2 ring-green-500' : ''}`}>
       {popular && (
-        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
-          <Badge className="bg-blue-600 text-white px-2 py-1 text-xs whitespace-nowrap">
+        <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-10">
+          <Badge className="bg-blue-600 text-white px-3 py-1 text-xs">
             <Crown className="w-3 h-3 mr-1" />
             Mais Popular
           </Badge>
@@ -82,34 +82,34 @@ const SubscriptionPlanCard: React.FC<SubscriptionPlanCardProps> = ({
       )}
       
       {isCurrentPlan && (
-        <div className="absolute -top-3 right-2 md:right-4 z-10">
-          <Badge className="bg-green-600 text-white px-2 py-1 text-xs whitespace-nowrap">
+        <div className="absolute -top-2 right-2 z-10">
+          <Badge className="bg-green-600 text-white px-3 py-1 text-xs">
             Seu Plano
           </Badge>
         </div>
       )}
 
-      <CardHeader className="text-center pb-4 px-3 md:px-6">
-        <CardTitle className="text-xl md:text-2xl font-bold break-words">{title}</CardTitle>
-        <CardDescription className="text-gray-600 text-sm break-words">{description}</CardDescription>
+      <CardHeader className="text-center pb-4 px-4 pt-6">
+        <CardTitle className="text-lg sm:text-xl md:text-2xl font-bold">{title}</CardTitle>
+        <CardDescription className="text-gray-600 text-sm">{description}</CardDescription>
         <div className="mt-4">
-          <span className="text-2xl md:text-4xl font-bold text-gray-900 break-words">{price}</span>
-          <span className="text-gray-600 text-sm md:text-base">/mês</span>
+          <span className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">{price}</span>
+          <span className="text-gray-600 text-sm">/mês</span>
         </div>
       </CardHeader>
 
-      <CardContent className="flex-1 flex flex-col px-3 md:px-6">
-        <div className="space-y-2 md:space-y-3 flex-1">
+      <CardContent className="flex-1 flex flex-col px-4 pb-4">
+        <div className="space-y-3 flex-1 mb-6">
           {features.map((feature, index) => (
-            <div key={index} className="flex items-start space-x-2 md:space-x-3">
-              <div className={`flex-shrink-0 w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center mt-0.5 ${
+            <div key={index} className="flex items-start space-x-3">
+              <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5 ${
                 feature.included ? 'bg-green-100' : 'bg-gray-100'
               }`}>
-                <Check className={`w-2.5 h-2.5 md:w-3 md:h-3 ${
+                <Check className={`w-3 h-3 ${
                   feature.included ? 'text-green-600' : 'text-gray-400'
                 }`} />
               </div>
-              <span className={`text-xs md:text-sm break-words ${
+              <span className={`text-sm leading-relaxed ${
                 feature.included ? 'text-gray-900' : 'text-gray-500'
               }`}>
                 {feature.text}
@@ -118,23 +118,21 @@ const SubscriptionPlanCard: React.FC<SubscriptionPlanCardProps> = ({
           ))}
         </div>
 
-        <div className="mt-4 md:mt-6">
-          <Button
-            onClick={handleSubscribe}
-            disabled={loading || isCurrentPlan}
-            variant={getButtonVariant()}
-            className="w-full text-xs md:text-sm px-2 py-2 h-auto min-h-[40px] whitespace-normal break-words"
-          >
-            {loading ? (
-              <div className="flex items-center justify-center">
-                <Loader2 className="mr-2 h-3 w-3 md:h-4 md:w-4 animate-spin flex-shrink-0" />
-                <span className="truncate">Processando...</span>
-              </div>
-            ) : (
-              <span className="break-words text-center">{getButtonText()}</span>
-            )}
-          </Button>
-        </div>
+        <Button
+          onClick={handleSubscribe}
+          disabled={loading || isCurrentPlan}
+          variant={getButtonVariant()}
+          className="w-full text-sm font-medium py-3 h-auto"
+        >
+          {loading ? (
+            <div className="flex items-center justify-center">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Processando...
+            </div>
+          ) : (
+            getButtonText()
+          )}
+        </Button>
       </CardContent>
     </Card>
   );

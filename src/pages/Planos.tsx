@@ -65,9 +65,9 @@ const Planos = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 flex items-center justify-center p-4">
-        <div className="text-center max-w-md mx-auto">
-          <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4 break-words">Erro ao carregar planos</h2>
-          <p className="text-gray-600 text-sm md:text-base break-words">{error}</p>
+        <div className="text-center max-w-md mx-auto px-4">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Erro ao carregar planos</h2>
+          <p className="text-gray-600 text-sm">{error}</p>
         </div>
       </div>
     );
@@ -77,23 +77,23 @@ const Planos = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100">
-      <div className="container mx-auto px-4 py-6 md:py-8 max-w-7xl">
+      <div className="container mx-auto px-4 py-6 max-w-6xl">
         {/* Header */}
-        <div className="text-center mb-6 md:mb-8">
-          <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4 text-sm md:text-base">
-            <ArrowLeft className="h-4 w-4 mr-2 flex-shrink-0" />
-            <span className="break-words">Voltar ao início</span>
+        <div className="text-center mb-8">
+          <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6 text-sm">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Voltar ao início
           </Link>
-          <h1 className="text-2xl md:text-4xl font-bold text-gray-900 mb-3 md:mb-4 break-words px-2">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-4 px-2">
             Escolha o Plano Ideal
           </h1>
-          <p className="text-base md:text-xl text-gray-600 max-w-2xl mx-auto break-words px-2">
+          <p className="text-sm sm:text-base md:text-lg text-gray-600 max-w-2xl mx-auto px-2 leading-relaxed">
             Selecione o plano que melhor se adapta às suas necessidades e comece a criar propostas profissionais hoje mesmo.
           </p>
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 max-w-4xl mx-auto mb-8 md:mb-12 px-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-4xl mx-auto mb-12">
           {plans.map((plan, index) => (
             <div key={index} className="w-full">
               <SubscriptionPlanCard
@@ -111,52 +111,52 @@ const Planos = () => {
         </div>
 
         {/* Trial Info */}
-        <div className="max-w-4xl mx-auto mb-8 md:mb-12 px-2">
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 md:p-6 text-center">
-            <h3 className="text-base md:text-lg font-semibold text-green-900 mb-2 break-words">
+        <div className="max-w-4xl mx-auto mb-12">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 sm:p-6 text-center mx-4 sm:mx-0">
+            <h3 className="text-base sm:text-lg font-semibold text-green-900 mb-2">
               🎉 Teste Gratuito de 15 Dias
             </h3>
-            <p className="text-green-700 text-sm md:text-base break-words">
+            <p className="text-green-700 text-sm sm:text-base leading-relaxed">
               Experimente todos os recursos premium gratuitamente por 15 dias com até 20 propostas incluídas!
             </p>
           </div>
         </div>
 
         {/* FAQ Section */}
-        <div className="max-w-4xl mx-auto px-2">
-          <h2 className="text-xl md:text-2xl font-bold text-center text-gray-900 mb-6 md:mb-8 break-words">
+        <div className="max-w-4xl mx-auto px-4">
+          <h2 className="text-xl sm:text-2xl font-bold text-center text-gray-900 mb-8">
             Perguntas Frequentes
           </h2>
-          <div className="space-y-4 md:space-y-6">
-            <div className="bg-white rounded-lg p-4 md:p-6 shadow-sm border">
-              <h3 className="font-semibold text-gray-900 mb-2 text-sm md:text-base break-words">
+          <div className="space-y-4">
+            <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border">
+              <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">
                 Posso cancelar minha assinatura a qualquer momento?
               </h3>
-              <p className="text-gray-600 text-sm md:text-base break-words">
+              <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
                 Sim, você pode cancelar sua assinatura a qualquer momento através do portal do cliente. Você continuará tendo acesso aos recursos premium até o final do período pago.
               </p>
             </div>
-            <div className="bg-white rounded-lg p-4 md:p-6 shadow-sm border">
-              <h3 className="font-semibold text-gray-900 mb-2 text-sm md:text-base break-words">
+            <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border">
+              <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">
                 Existe período de teste gratuito?
               </h3>
-              <p className="text-gray-600 text-sm md:text-base break-words">
+              <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
                 Sim, oferecemos 15 dias de teste gratuito para todos os planos pagos com até 20 propostas incluídas. Você pode experimentar todos os recursos premium sem compromisso.
               </p>
             </div>
-            <div className="bg-white rounded-lg p-4 md:p-6 shadow-sm border">
-              <h3 className="font-semibold text-gray-900 mb-2 text-sm md:text-base break-words">
+            <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border">
+              <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">
                 Posso alterar meu plano depois?
               </h3>
-              <p className="text-gray-600 text-sm md:text-base break-words">
+              <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
                 Claro! Você pode fazer upgrade ou downgrade do seu plano a qualquer momento. As alterações serão aplicadas no próximo ciclo de cobrança.
               </p>
             </div>
-            <div className="bg-white rounded-lg p-4 md:p-6 shadow-sm border">
-              <h3 className="font-semibold text-gray-900 mb-2 text-sm md:text-base break-words">
+            <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border">
+              <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">
                 Qual a diferença entre os planos?
               </h3>
-              <p className="text-gray-600 text-sm md:text-base break-words">
+              <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
                 O plano Essencial oferece até 15 propostas mensais, acesso ao chat com IA e bot do Telegram. O Professional inclui propostas ilimitadas, chat com IA avançado, analytics completo e suporte prioritário.
               </p>
             </div>
