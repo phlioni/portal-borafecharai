@@ -424,6 +424,7 @@ export type Database = {
           stripe_customer_id: string | null
           subscribed: boolean
           subscription_end: string | null
+          subscription_started_at: string | null
           subscription_tier: string | null
           trial_end_date: string | null
           trial_proposals_used: number | null
@@ -442,6 +443,7 @@ export type Database = {
           stripe_customer_id?: string | null
           subscribed?: boolean
           subscription_end?: string | null
+          subscription_started_at?: string | null
           subscription_tier?: string | null
           trial_end_date?: string | null
           trial_proposals_used?: number | null
@@ -460,6 +462,7 @@ export type Database = {
           stripe_customer_id?: string | null
           subscribed?: boolean
           subscription_end?: string | null
+          subscription_started_at?: string | null
           subscription_tier?: string | null
           trial_end_date?: string | null
           trial_proposals_used?: number | null
