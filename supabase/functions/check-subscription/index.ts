@@ -44,6 +44,13 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
+    // Buscar dados atuais do subscriber para comparar
+    const { data: currentSubscriber } = await supabaseClient
+      .from("subscribers")
+      .select("subscribed, subscription_tier")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
@@ -106,6 +113,10 @@ serve(async (req) => {
       logStep("No active subscription found");
     }
 
+    // Verificar se houve mudança no status da assinatura
+    const isNewSubscription = !currentSubscriber?.subscribed && hasActiveSub;
+    const subscriptionStartedAt = isNewSubscription ? new Date().toISOString() : undefined;
+
     // Atualizar subscriber com todas as informações necessárias
     const updateData = {
       email: user.email,
@@ -116,6 +127,7 @@ serve(async (req) => {
       subscription_end: subscriptionEnd,
       cancel_at_period_end: cancelAtPeriodEnd,
       updated_at: new Date().toISOString(),
+      ...(subscriptionStartedAt && { subscription_started_at: subscriptionStartedAt })
     };
 
     // Se tem assinatura ativa, limpar dados de trial
@@ -130,7 +142,8 @@ serve(async (req) => {
     logStep("Updated database with subscription info", { 
       subscribed: hasActiveSub, 
       subscriptionTier,
-      cancelAtPeriodEnd 
+      cancelAtPeriodEnd,
+      isNewSubscription 
     });
     
     return new Response(JSON.stringify({
