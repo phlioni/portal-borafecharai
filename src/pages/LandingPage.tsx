@@ -333,7 +333,7 @@ const LandingPage = () => {
                 <ul className="space-y-3 mb-8">
                   <li className="flex items-center">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
-                    <span className="text-gray-900">Até 10 propostas por mês</span>
+                    <span className="text-gray-900">Até 15 propostas por mês</span>
                   </li>
                   <li className="flex items-center">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />

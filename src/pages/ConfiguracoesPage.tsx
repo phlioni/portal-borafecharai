@@ -141,7 +141,7 @@ const ConfiguracoesPage = () => {
       priceId: 'price_1Rm595IjvuQQ47SwCLLgnS5R',
       currency: 'BRL',
       features: [
-        'Até 10 propostas por mês',
+        'Até 15 propostas por mês',
         'Chat com IA para criação de propostas',
         'Bot do Telegram para consultas',
         'Gestão de clientes',

@@ -19,7 +19,7 @@ const Planos = () => {
         productId: 'prod_SfuTlv2mX4TfJe',
         planTier: 'basico' as const,
         features: [
-          { text: 'Até 10 propostas por mês', included: true },
+          { text: 'Até 15 propostas por mês', included: true },
           { text: 'Chat com IA para criação de propostas', included: true },
           { text: 'Bot do Telegram para consultas', included: true },
           { text: 'Gestão de clientes', included: true },
@@ -156,7 +156,7 @@ const Planos = () => {
                 Qual a diferença entre os planos?
               </h3>
               <p className="text-gray-600">
-                O plano Essencial oferece até 10 propostas mensais, acesso ao chat com IA e bot do Telegram. O Professional inclui propostas ilimitadas, chat com IA avançado, analytics completo e suporte prioritário.
+                O plano Essencial oferece até 15 propostas mensais, acesso ao chat com IA e bot do Telegram. O Professional inclui propostas ilimitadas, chat com IA avançado, analytics completo e suporte prioritário.
               </p>
             </div>
           </div>
