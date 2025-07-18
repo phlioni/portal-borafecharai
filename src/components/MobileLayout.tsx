@@ -67,13 +67,13 @@ const MobileLayout = ({ children }: MobileLayoutProps) => {
 
   return (
     <div className="flex h-screen bg-background">
-      {/* Mobile Header */}
+      {/* Mobile Header - altura reduzida para otimizar espaço */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-card border-b border-border">
-        <div className="flex items-center justify-between p-4">
-          <h1 className="text-lg font-bold text-primary">BoraFecharAI</h1>
+        <div className="flex items-center justify-between p-3 h-12">
+          <h1 className="text-base sm:text-lg font-bold text-primary truncate">BoraFecharAI</h1>
           
-          <div className="flex items-center gap-3">
-            <Avatar className="w-8 h-8">
+          <div className="flex items-center gap-2">
+            <Avatar className="w-7 h-7 sm:w-8 sm:h-8">
               {profile?.avatar_url ? (
                 <AvatarImage src={profile.avatar_url} alt="Avatar" />
               ) : (
@@ -85,24 +85,24 @@ const MobileLayout = ({ children }: MobileLayoutProps) => {
             
             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="p-2">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-72 p-0">
-                <div className="flex flex-col h-full">
-                  {/* Menu Header */}
-                  <div className="p-4 border-b border-border">
+              <SheetContent side="right" className="w-72 p-0 flex flex-col max-h-screen">
+                <div className="flex flex-col h-full overflow-hidden">
+                  {/* Menu Header - altura reduzida */}
+                  <div className="p-3 border-b border-border flex-shrink-0">
                     <div className="flex items-center justify-between">
-                      <h2 className="font-semibold">Menu</h2>
-                      <Button variant="ghost" size="sm" onClick={closeMenu}>
+                      <h2 className="font-semibold text-sm">Menu</h2>
+                      <Button variant="ghost" size="sm" onClick={closeMenu} className="p-1">
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
 
-                  {/* Navigation */}
-                  <nav className="flex-1 p-4 space-y-2">
+                  {/* Navigation - área scrollável */}
+                  <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
                     {menuItems.map((item) => {
                       const Icon = item.icon;
                       const isActive = location.pathname === item.path;
@@ -112,7 +112,7 @@ const MobileLayout = ({ children }: MobileLayoutProps) => {
                           key={item.path}
                           to={item.path}
                           onClick={closeMenu}
-                          className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors ${
+                          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
                             isActive
                               ? 'bg-primary text-primary-foreground'
                               : item.highlight 
@@ -120,10 +120,10 @@ const MobileLayout = ({ children }: MobileLayoutProps) => {
                                 : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                           }`}
                         >
-                          <Icon className={`w-5 h-5 ${item.highlight && !isActive ? 'animate-pulse' : ''}`} />
-                          {item.label}
+                          <Icon className={`w-5 h-5 flex-shrink-0 ${item.highlight && !isActive ? 'animate-pulse' : ''}`} />
+                          <span className="truncate">{item.label}</span>
                           {item.highlight && !isActive && (
-                            <span className="ml-auto text-xs font-medium bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">
+                            <span className="ml-auto text-xs font-medium bg-primary/20 text-primary px-1.5 py-0.5 rounded-full flex-shrink-0">
                               Novo
                             </span>
                           )}
@@ -132,10 +132,10 @@ const MobileLayout = ({ children }: MobileLayoutProps) => {
                     })}
                   </nav>
 
-                  {/* User Profile & Logout */}
-                  <div className="p-4 border-t border-border">
+                  {/* User Profile & Logout - área fixa no rodapé */}
+                  <div className="p-3 border-t border-border flex-shrink-0">
                     <div className="flex items-center gap-3 mb-3">
-                      <Avatar className="w-10 h-10">
+                      <Avatar className="w-9 h-9 flex-shrink-0">
                         {profile?.avatar_url ? (
                           <AvatarImage src={profile.avatar_url} alt="Avatar" />
                         ) : (
@@ -158,9 +158,9 @@ const MobileLayout = ({ children }: MobileLayoutProps) => {
                       variant="ghost"
                       size="sm"
                       onClick={handleSignOut}
-                      className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+                      className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground min-h-[44px]"
                     >
-                      <LogOut className="w-4 w-4" />
+                      <LogOut className="w-4 h-4" />
                       Sair
                     </Button>
                   </div>
@@ -171,8 +171,8 @@ const MobileLayout = ({ children }: MobileLayoutProps) => {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 pt-16 overflow-hidden">
+      {/* Main Content - altura ajustada para header menor */}
+      <div className="flex-1 pt-12 overflow-hidden">
         <main className="h-full overflow-y-auto">
           {children}
         </main>

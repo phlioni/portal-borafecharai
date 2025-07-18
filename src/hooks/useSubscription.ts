@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,6 +11,11 @@ interface SubscriptionData {
   loading: boolean;
   error: string | null;
 }
+
+// Função para detectar dispositivos móveis
+const isMobileDevice = () => {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
 
 export const useSubscription = () => {
   const { user, session } = useAuth();
@@ -147,9 +151,23 @@ export const useSubscription = () => {
       toast.dismiss();
       toast.success('Redirecionando para o pagamento...');
       
-      // Abrir checkout em nova aba
+      // Detectar se é dispositivo móvel e usar redirecionamento apropriado
       if (data?.url) {
-        window.open(data.url, '_blank');
+        const mobile = isMobileDevice();
+        console.log('Redirecting to Stripe checkout:', { url: data.url, mobile });
+        
+        if (mobile) {
+          // Em dispositivos móveis, usar window.location.href para evitar bloqueios
+          window.location.href = data.url;
+        } else {
+          // Em desktop, usar nova aba
+          const newWindow = window.open(data.url, '_blank');
+          if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+            // Se a nova aba foi bloqueada, usar location.href como fallback
+            console.log('Popup blocked, using location.href as fallback');
+            window.location.href = data.url;
+          }
+        }
         
         // Após redirecionamento, verificar periodicamente se houve mudança na assinatura
         const checkInterval = setInterval(async () => {
@@ -198,8 +216,16 @@ export const useSubscription = () => {
       toast.dismiss();
       toast.success('Abrindo portal do cliente...');
       
-      // Abrir portal em nova aba
-      window.open(data.url, '_blank');
+      // Detectar se é dispositivo móvel para portal também
+      const mobile = isMobileDevice();
+      if (mobile) {
+        window.location.href = data.url;
+      } else {
+        const newWindow = window.open(data.url, '_blank');
+        if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+          window.location.href = data.url;
+        }
+      }
     } catch (error) {
       toast.dismiss();
       console.error('Error opening customer portal:', error);

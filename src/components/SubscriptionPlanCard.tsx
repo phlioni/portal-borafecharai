@@ -74,7 +74,7 @@ const SubscriptionPlanCard: React.FC<SubscriptionPlanCardProps> = ({
     <Card className={`relative h-full flex flex-col w-full max-w-sm mx-auto ${popular ? 'border-blue-600 shadow-lg' : ''} ${isCurrentPlan ? 'ring-2 ring-green-500' : ''}`}>
       {popular && (
         <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-10">
-          <Badge className="bg-blue-600 text-white px-3 py-1 text-xs">
+          <Badge className="bg-blue-600 text-white px-2 sm:px-3 py-1 text-xs">
             <Crown className="w-3 h-3 mr-1" />
             Mais Popular
           </Badge>
@@ -83,33 +83,39 @@ const SubscriptionPlanCard: React.FC<SubscriptionPlanCardProps> = ({
       
       {isCurrentPlan && (
         <div className="absolute -top-2 right-2 z-10">
-          <Badge className="bg-green-600 text-white px-3 py-1 text-xs">
+          <Badge className="bg-green-600 text-white px-2 sm:px-3 py-1 text-xs">
             Seu Plano
           </Badge>
         </div>
       )}
 
-      <CardHeader className="text-center pb-4 px-4 pt-6">
-        <CardTitle className="text-lg sm:text-xl md:text-2xl font-bold">{title}</CardTitle>
-        <CardDescription className="text-gray-600 text-sm">{description}</CardDescription>
-        <div className="mt-4">
-          <span className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">{price}</span>
-          <span className="text-gray-600 text-sm">/mês</span>
+      <CardHeader className="text-center pb-3 sm:pb-4 px-3 sm:px-4 pt-4 sm:pt-6">
+        <CardTitle className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold leading-tight">
+          {title}
+        </CardTitle>
+        <CardDescription className="text-gray-600 text-xs sm:text-sm leading-relaxed">
+          {description}
+        </CardDescription>
+        <div className="mt-3 sm:mt-4">
+          <span className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900">
+            {price}
+          </span>
+          <span className="text-gray-600 text-xs sm:text-sm">/mês</span>
         </div>
       </CardHeader>
 
-      <CardContent className="flex-1 flex flex-col px-4 pb-4">
-        <div className="space-y-3 flex-1 mb-6">
+      <CardContent className="flex-1 flex flex-col px-3 sm:px-4 pb-3 sm:pb-4">
+        <div className="space-y-2 sm:space-y-3 flex-1 mb-4 sm:mb-6">
           {features.map((feature, index) => (
-            <div key={index} className="flex items-start space-x-3">
-              <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5 ${
+            <div key={index} className="flex items-start space-x-2 sm:space-x-3">
+              <div className={`flex-shrink-0 w-4 sm:w-5 h-4 sm:h-5 rounded-full flex items-center justify-center mt-0.5 ${
                 feature.included ? 'bg-green-100' : 'bg-gray-100'
               }`}>
-                <Check className={`w-3 h-3 ${
+                <Check className={`w-2.5 sm:w-3 h-2.5 sm:h-3 ${
                   feature.included ? 'text-green-600' : 'text-gray-400'
                 }`} />
               </div>
-              <span className={`text-sm leading-relaxed ${
+              <span className={`text-xs sm:text-sm leading-relaxed ${
                 feature.included ? 'text-gray-900' : 'text-gray-500'
               }`}>
                 {feature.text}
@@ -122,15 +128,15 @@ const SubscriptionPlanCard: React.FC<SubscriptionPlanCardProps> = ({
           onClick={handleSubscribe}
           disabled={loading || isCurrentPlan}
           variant={getButtonVariant()}
-          className="w-full text-sm font-medium py-3 h-auto"
+          className="w-full text-xs sm:text-sm font-medium py-2 sm:py-3 h-auto min-h-[44px] touch-manipulation"
         >
           {loading ? (
             <div className="flex items-center justify-center">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Processando...
+              <Loader2 className="mr-2 h-3 sm:h-4 w-3 sm:w-4 animate-spin" />
+              <span className="text-xs sm:text-sm">Processando...</span>
             </div>
           ) : (
-            getButtonText()
+            <span className="text-xs sm:text-sm">{getButtonText()}</span>
           )}
         </Button>
       </CardContent>
