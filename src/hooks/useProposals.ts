@@ -1,3 +1,4 @@
+
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -18,6 +19,7 @@ export interface Proposal {
   user_id: string;
   public_hash?: string;
   template_id?: string;
+  views?: number;
   clients?: {
     id: string;
     name: string;
@@ -139,7 +141,7 @@ export const useUpdateProposal = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<Proposal> & { id: string }) => {
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Proposal> }) => {
       const { data, error } = await supabase
         .from('proposals')
         .update(updates)
