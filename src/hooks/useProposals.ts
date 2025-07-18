@@ -1,4 +1,5 @@
 
+
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -6,7 +7,7 @@ import { toast } from 'sonner';
 export interface Proposal {
   id: string;
   title: string;
-  client_id?: string;
+  company_id?: string;
   service_description?: string;
   detailed_description?: string;
   value?: number;
@@ -20,7 +21,7 @@ export interface Proposal {
   public_hash?: string;
   template_id?: string;
   views?: number;
-  clients?: {
+  companies?: {
     id: string;
     name: string;
     email?: string;
@@ -40,11 +41,18 @@ export const useProposals = () => {
   return useQuery({
     queryKey: ['proposals'],
     queryFn: async () => {
+      // Primeiro verificar se o usuário está autenticado
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
       const { data, error } = await supabase
         .from('proposals')
         .select(`
           *,
-          clients (
+          companies (
             id,
             name,
             email,
@@ -59,6 +67,7 @@ export const useProposals = () => {
             total_price
           )
         `)
+        .eq('user_id', user.id) // Garantir que só busque propostas do usuário atual
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -72,9 +81,22 @@ export const useCreateProposal = () => {
 
   return useMutation({
     mutationFn: async (proposalData: Omit<Proposal, 'id' | 'created_at' | 'updated_at'>) => {
+      // Verificar autenticação antes de criar proposta
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      // Garantir que o user_id seja sempre do usuário atual
+      const secureProposalData = {
+        ...proposalData,
+        user_id: user.id
+      };
+
       // Verificar se o usuário pode criar propostas antes de tentar criar
       const { data: canCreate, error: canCreateError } = await supabase.rpc('can_create_proposal', {
-        _user_id: proposalData.user_id
+        _user_id: user.id
       });
 
       if (canCreateError) {
@@ -87,13 +109,13 @@ export const useCreateProposal = () => {
         const { data: subscriberData } = await supabase
           .from('subscribers')
           .select('subscribed, subscription_tier, trial_end_date, trial_proposals_used')
-          .eq('user_id', proposalData.user_id)
+          .eq('user_id', user.id)
           .maybeSingle();
 
         const { data: trialLimits } = await supabase
           .from('trial_limits')
           .select('trial_proposals_limit')
-          .eq('user_id', proposalData.user_id)
+          .eq('user_id', user.id)
           .maybeSingle();
 
         const isInTrial = subscriberData?.trial_end_date && new Date(subscriberData.trial_end_date) > new Date();
@@ -109,7 +131,7 @@ export const useCreateProposal = () => {
         } else {
           const currentMonth = new Date().toISOString().slice(0, 7);
           const { data: monthlyCount } = await supabase.rpc('get_monthly_proposal_count', {
-            _user_id: proposalData.user_id,
+            _user_id: user.id,
             _month: currentMonth
           });
           
@@ -119,7 +141,7 @@ export const useCreateProposal = () => {
 
       const { data, error } = await supabase
         .from('proposals')
-        .insert(proposalData)
+        .insert(secureProposalData)
         .select()
         .single();
 
@@ -142,10 +164,30 @@ export const useUpdateProposal = () => {
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Proposal> }) => {
+      // Verificar autenticação antes de atualizar
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      // Verificar se a proposta pertence ao usuário antes de atualizar
+      const { data: existingProposal, error: checkError } = await supabase
+        .from('proposals')
+        .select('user_id')
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (checkError || !existingProposal) {
+        throw new Error('Proposta não encontrada ou acesso negado');
+      }
+
       const { data, error } = await supabase
         .from('proposals')
         .update(updates)
         .eq('id', id)
+        .eq('user_id', user.id) // Garantir que só atualize propostas do usuário atual
         .select()
         .single();
 
@@ -167,10 +209,30 @@ export const useDeleteProposal = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      // Verificar autenticação antes de deletar
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      // Verificar se a proposta pertence ao usuário antes de deletar
+      const { data: existingProposal, error: checkError } = await supabase
+        .from('proposals')
+        .select('user_id')
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (checkError || !existingProposal) {
+        throw new Error('Proposta não encontrada ou acesso negado');
+      }
+
       const { error } = await supabase
         .from('proposals')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.id); // Garantir que só delete propostas do usuário atual
 
       if (error) throw error;
     },
@@ -190,11 +252,18 @@ export const useProposal = (id?: string) => {
     queryFn: async () => {
       if (!id) return null;
 
+      // Verificar autenticação antes de buscar proposta específica
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
       const { data, error } = await supabase
         .from('proposals')
         .select(`
           *,
-          clients (
+          companies (
             id,
             name,
             email,
@@ -210,6 +279,7 @@ export const useProposal = (id?: string) => {
           )
         `)
         .eq('id', id)
+        .eq('user_id', user.id) // Garantir que só busque propostas do usuário atual
         .single();
 
       if (error) throw error;
