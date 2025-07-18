@@ -1,5 +1,4 @@
 
-
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -7,7 +6,7 @@ import { toast } from 'sonner';
 export interface Proposal {
   id: string;
   title: string;
-  company_id?: string;
+  client_id?: string;
   service_description?: string;
   detailed_description?: string;
   value?: number;
@@ -21,7 +20,7 @@ export interface Proposal {
   public_hash?: string;
   template_id?: string;
   views?: number;
-  companies?: {
+  clients?: {
     id: string;
     name: string;
     email?: string;
@@ -52,7 +51,7 @@ export const useProposals = () => {
         .from('proposals')
         .select(`
           *,
-          companies (
+          clients (
             id,
             name,
             email,
@@ -263,7 +262,7 @@ export const useProposal = (id?: string) => {
         .from('proposals')
         .select(`
           *,
-          companies (
+          clients (
             id,
             name,
             email,
