@@ -290,7 +290,7 @@ const Dashboard = () => {
                       {proposal.value ? `R$ ${proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'Valor não definido'}
                     </p>
                     <Button variant="link" className="h-auto p-0 text-xs justify-start sm:justify-end" asChild>
-                      <Link to={`/propostas/${proposal.id}`}>Ver detalhes</Link>
+                      <Link to={`/propostas/${proposal.id}/visualizar`}>Ver detalhes</Link>
                     </Button>
                   </div>
                 </div>
