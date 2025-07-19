@@ -57,7 +57,7 @@ const MobileLayout = ({ children }: MobileLayoutProps) => {
     { path: '/dashboard', icon: Home, label: 'Dashboard' },
     { path: '/chat-proposta', icon: MessageSquare, label: 'Chat Proposta', highlight: true },
     { path: '/propostas', icon: FileText, label: 'Propostas' },
-    ...(canCreateProposal ? [{ path: '/nova-proposta', icon: PlusCircle, label: 'Nova Proposta' }] : []),
+    // ...(canCreateProposal ? [{ path: '/nova-proposta', icon: PlusCircle, label: 'Nova Proposta' }] : []),
     { path: '/clientes', icon: Users, label: 'Clientes' },
     { path: '/analytics', icon: BarChart3, label: 'Analytics' },
     { path: '/configuracoes', icon: Settings, label: 'Configurações' },
@@ -71,7 +71,7 @@ const MobileLayout = ({ children }: MobileLayoutProps) => {
       <div className="fixed top-0 left-0 right-0 z-50 bg-card border-b border-border">
         <div className="flex items-center justify-between p-3 h-12">
           <h1 className="text-base sm:text-lg font-bold text-primary truncate">BoraFecharAI</h1>
-          
+
           <div className="flex items-center gap-2">
             <Avatar className="w-7 h-7 sm:w-8 sm:h-8">
               {profile?.avatar_url ? (
@@ -82,7 +82,7 @@ const MobileLayout = ({ children }: MobileLayoutProps) => {
                 </AvatarFallback>
               )}
             </Avatar>
-            
+
             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="sm" className="p-2">
@@ -112,13 +112,12 @@ const MobileLayout = ({ children }: MobileLayoutProps) => {
                           key={item.path}
                           to={item.path}
                           onClick={closeMenu}
-                          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
-                            isActive
+                          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${isActive
                               ? 'bg-primary text-primary-foreground'
-                              : item.highlight 
+                              : item.highlight
                                 ? 'bg-accent text-accent-foreground hover:bg-accent/80'
                                 : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                          }`}
+                            }`}
                         >
                           <Icon className={`w-5 h-5 flex-shrink-0 ${item.highlight && !isActive ? 'animate-pulse' : ''}`} />
                           <span className="truncate">{item.label}</span>

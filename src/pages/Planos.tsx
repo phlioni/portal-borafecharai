@@ -80,8 +80,8 @@ const Planos = () => {
       <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 max-w-6xl">
         {/* Header com melhor responsividade */}
         <div className="text-center mb-6 sm:mb-8">
-          <Link 
-            to="/" 
+          <Link
+            to="/"
             className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4 sm:mb-6 text-sm transition-colors"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />

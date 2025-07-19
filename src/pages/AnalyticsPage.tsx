@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
+import {
   BarChart,
   Bar,
   XAxis,
@@ -15,7 +15,7 @@ import {
   LineChart,
   Line
 } from 'recharts';
-import { 
+import {
   TrendingUp,
   TrendingDown,
   DollarSign,
@@ -84,7 +84,7 @@ const AnalyticsPage = () => {
   const sentProposals = proposals?.filter(p => p.status === 'enviada').length || 0;
   const draftProposals = proposals?.filter(p => p.status === 'rascunho').length || 0;
   const rejectedProposals = proposals?.filter(p => p.status === 'rejeitada').length || 0;
-  
+
   // Novas estatísticas
   const acceptedValue = proposals?.filter(p => p.status === 'aceita').reduce((acc, p) => acc + (p.value || 0), 0) || 0;
   const totalViews = proposals?.reduce((acc, p) => acc + (p.views || 0), 0) || 0;
@@ -362,7 +362,7 @@ const AnalyticsPage = () => {
         </Card>
       </div>
 
-      {/* Template Usage */}
+      {/* Template Usage
       <Card>
         <CardHeader>
           <CardTitle>Templates Mais Usados</CardTitle>
@@ -388,7 +388,7 @@ const AnalyticsPage = () => {
             ))}
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
       {/* Additional Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

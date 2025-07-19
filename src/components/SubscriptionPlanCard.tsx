@@ -35,10 +35,10 @@ const SubscriptionPlanCard: React.FC<SubscriptionPlanCardProps> = ({
   const { createCheckout, subscribed, subscription_tier } = useSubscription();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  
+
   const isCurrentPlan = subscribed && subscription_tier === planTier;
-  const hasHigherPlan = subscribed && subscription_tier && 
-    ['basico', 'profissional', 'equipes'].indexOf(subscription_tier) > 
+  const hasHigherPlan = subscribed && subscription_tier &&
+    ['basico', 'profissional', 'equipes'].indexOf(subscription_tier) >
     ['basico', 'profissional', 'equipes'].indexOf(planTier);
 
   const handleSubscribe = async () => {
@@ -80,7 +80,7 @@ const SubscriptionPlanCard: React.FC<SubscriptionPlanCardProps> = ({
           </Badge>
         </div>
       )}
-      
+
       {isCurrentPlan && (
         <div className="absolute -top-2 right-2 z-10">
           <Badge className="bg-green-600 text-white px-2 sm:px-3 py-1 text-xs">
@@ -108,23 +108,20 @@ const SubscriptionPlanCard: React.FC<SubscriptionPlanCardProps> = ({
         <div className="space-y-2 sm:space-y-3 flex-1 mb-4 sm:mb-6">
           {features.map((feature, index) => (
             <div key={index} className="flex items-start space-x-2 sm:space-x-3">
-              <div className={`flex-shrink-0 w-4 sm:w-5 h-4 sm:h-5 rounded-full flex items-center justify-center mt-0.5 ${
-                feature.included ? 'bg-green-100' : 'bg-gray-100'
-              }`}>
-                <Check className={`w-2.5 sm:w-3 h-2.5 sm:h-3 ${
-                  feature.included ? 'text-green-600' : 'text-gray-400'
-                }`} />
+              <div className={`flex-shrink-0 w-4 sm:w-5 h-4 sm:h-5 rounded-full flex items-center justify-center mt-0.5 ${feature.included ? 'bg-green-100' : 'bg-gray-100'
+                }`}>
+                <Check className={`w-2.5 sm:w-3 h-2.5 sm:h-3 ${feature.included ? 'text-green-600' : 'text-gray-400'
+                  }`} />
               </div>
-              <span className={`text-xs sm:text-sm leading-relaxed ${
-                feature.included ? 'text-gray-900' : 'text-gray-500'
-              }`}>
+              <span className={`text-xs sm:text-sm leading-relaxed ${feature.included ? 'text-gray-900' : 'text-gray-500'
+                }`}>
                 {feature.text}
               </span>
             </div>
           ))}
         </div>
 
-        <Button
+        {/* <Button
           onClick={handleSubscribe}
           disabled={loading || isCurrentPlan}
           variant={getButtonVariant()}
@@ -138,7 +135,7 @@ const SubscriptionPlanCard: React.FC<SubscriptionPlanCardProps> = ({
           ) : (
             <span className="text-xs sm:text-sm">{getButtonText()}</span>
           )}
-        </Button>
+        </Button> */}
       </CardContent>
     </Card>
   );

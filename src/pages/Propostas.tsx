@@ -8,14 +8,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { 
-  FileText, 
-  Plus, 
-  Eye, 
-  Calendar, 
-  DollarSign, 
-  Building, 
-  Search, 
+import {
+  FileText,
+  Plus,
+  Eye,
+  Calendar,
+  DollarSign,
+  Building,
+  Search,
   Edit,
   Trash2,
   Send,
@@ -38,7 +38,7 @@ const Propostas = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedProposal, setSelectedProposal] = useState<any>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  
+
   const itemsPerPage = isMobile ? 5 : 10;
 
   const deleteProposal = async (id: string) => {
@@ -134,34 +134,34 @@ const Propostas = () => {
           <h3 className="font-medium text-sm truncate flex-1 mr-2">{proposal.title}</h3>
           {getStatusBadge(proposal.status)}
         </div>
-        
+
         <div className="space-y-1 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
             <Building className="h-3 w-3" />
             <span className="truncate">{proposal.clients?.name || 'Cliente não informado'}</span>
           </div>
-          
+
           <div className="flex items-center gap-1">
             <DollarSign className="h-3 w-3" />
             <span>
-              {proposal.value 
+              {proposal.value
                 ? `R$ ${proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
                 : 'Não informado'
               }
             </span>
           </div>
-          
+
           <div className="flex items-center gap-1">
             <Calendar className="h-3 w-3" />
             <span>{format(new Date(proposal.created_at), "dd/MM/yyyy", { locale: ptBR })}</span>
           </div>
-          
+
           <div className="flex items-center gap-1">
             <Eye className="h-3 w-3" />
             <span>{proposal.views || 0} visualizações</span>
           </div>
         </div>
-        
+
         <div className="flex gap-2 mt-3 pt-2 border-t">
           <Button
             variant="outline"
@@ -234,12 +234,12 @@ const Propostas = () => {
     <div className={`${isMobile ? 'p-4' : 'p-4 sm:p-6'} max-w-7xl mx-auto space-y-6`}>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl font-bold">Propostas</h1>
-        <Button asChild className="w-full sm:w-auto">
+        {/* <Button asChild className="w-full sm:w-auto">
           <Link to="/propostas/nova">
             <Plus className="h-4 w-4 mr-2" />
             Nova Proposta
           </Link>
-        </Button>
+        </Button> */}
       </div>
 
       {proposals && proposals.length === 0 ? (
@@ -252,12 +252,12 @@ const Propostas = () => {
             <p className="text-gray-600 mb-6">
               Comece criando sua primeira proposta para seus clientes.
             </p>
-            <Button asChild>
+            {/* <Button asChild>
               <Link to="/propostas/nova">
                 <Plus className="h-4 w-4 mr-2" />
                 Criar primeira proposta
               </Link>
-            </Button>
+            </Button> */}
           </CardContent>
         </Card>
       ) : (
@@ -309,7 +309,7 @@ const Propostas = () => {
                   </TableHeader>
                   <TableBody>
                     {paginatedProposals.map((proposal) => (
-                      <TableRow 
+                      <TableRow
                         key={proposal.id}
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => handleViewProposal(proposal)}
@@ -321,7 +321,7 @@ const Propostas = () => {
                           {proposal.clients?.name || 'Cliente não informado'}
                         </TableCell>
                         <TableCell>
-                          {proposal.value 
+                          {proposal.value
                             ? `R$ ${proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
                             : 'Não informado'
                           }
@@ -408,13 +408,13 @@ const Propostas = () => {
                 <Pagination>
                   <PaginationContent>
                     <PaginationItem>
-                      <PaginationPrevious 
+                      <PaginationPrevious
                         onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                         className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                       />
                     </PaginationItem>
                     {Array.from({ length: Math.min(totalPages, isMobile ? 3 : 5) }, (_, i) => {
-                      const pageNum = isMobile ? 
+                      const pageNum = isMobile ?
                         Math.max(1, Math.min(currentPage - 1, totalPages - 2)) + i :
                         i + 1;
                       return (
@@ -430,7 +430,7 @@ const Propostas = () => {
                       );
                     })}
                     <PaginationItem>
-                      <PaginationNext 
+                      <PaginationNext
                         onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                         className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                       />
@@ -462,7 +462,7 @@ const Propostas = () => {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Valor</p>
-                  <p>{selectedProposal.value 
+                  <p>{selectedProposal.value
                     ? `R$ ${selectedProposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
                     : 'Não informado'
                   }</p>
@@ -472,30 +472,30 @@ const Propostas = () => {
                   <p>{selectedProposal.delivery_time || 'Não informado'}</p>
                 </div>
               </div>
-              
+
               {selectedProposal.service_description && (
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Resumo do Serviço</p>
                   <p>{selectedProposal.service_description}</p>
                 </div>
               )}
-              
+
               {selectedProposal.detailed_description && (
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Descrição Detalhada</p>
                   <p className="whitespace-pre-wrap">{selectedProposal.detailed_description}</p>
                 </div>
               )}
-              
+
               {selectedProposal.observations && (
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Observações</p>
                   <p className="whitespace-pre-wrap">{selectedProposal.observations}</p>
                 </div>
               )}
-              
+
               <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-2 pt-4`}>
-                <Button 
+                <Button
                   className={isMobile ? 'w-full' : ''}
                   onClick={() => {
                     setIsViewModalOpen(false);
@@ -505,9 +505,9 @@ const Propostas = () => {
                   <Eye className="h-4 w-4 mr-2" />
                   Visualizar Completa
                 </Button>
-                <Button 
-                  variant="outline" 
-                  className={isMobile ? 'w-full' : ''} 
+                <Button
+                  variant="outline"
+                  className={isMobile ? 'w-full' : ''}
                   onClick={() => {
                     setIsViewModalOpen(false);
                     handleEditProposal(selectedProposal.id);

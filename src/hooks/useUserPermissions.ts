@@ -51,11 +51,12 @@ export const useUserPermissions = () => {
         }
 
         // Se não encontrou roles para o usuário comum, criar a role 'user'
+        //troquei todo os usuarios para guest quando se cadastrar a primeira vez
         if (!isMainAdmin && (!userRoles || userRoles.length === 0)) {
           console.log('useUserPermissions - No roles found, creating user role');
           const { error: insertError } = await supabase
             .from('user_roles')
-            .insert({ user_id: user.id, role: 'user' });
+            .insert({ user_id: user.id, role: 'guest' });
 
           if (insertError) {
             console.error('useUserPermissions - Error creating user role:', insertError);
@@ -146,7 +147,7 @@ export const useUserPermissions = () => {
             const baseLimit = trialLimits?.trial_proposals_limit || 20;
             const bonusProposals = subscriber?.bonus_proposals_current_month || 0;
             proposalLimit = baseLimit + bonusProposals;
-            
+
             console.log('useUserPermissions - Trial user, limit:', proposalLimit, 'proposals (', baseLimit, 'base +', bonusProposals, 'bonus)');
           } else {
             proposalLimit = 0;

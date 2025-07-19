@@ -398,14 +398,24 @@ const ConfiguracoesPage = () => {
 
           <TabsContent value="planos" className="mt-4">
             <div className="space-y-6">
-              <SubscriptionStatus />
+
+              <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+                <h3 className="text-lg font-semibold text-green-900 mb-2">
+                  🎁 Acesso Especial Liberado até 30/10/2025
+                </h3>
+                <p className="text-green-700">
+                  Como forma de reconhecimento pela sua importância para nós neste início, liberamos para você todos os recursos premium, sem necessidade de assinatura, até o dia <strong>30/10/2025</strong>.<br />
+                  Explore tudo, envie suas propostas com inteligência e nos ajude a tornar o BoraFecharAI ainda melhor!
+                </p>
+              </div>
+              {/* <SubscriptionStatus /> */}
 
               <div>
                 <h2 className="text-xl font-bold">Escolha seu Plano</h2>
                 <p className="text-muted-foreground">Selecione o plano que melhor atende às suas necessidades</p>
               </div>
 
-              <div className="grid grid-cols-1 gap-6">
+              <div className=" grid grid-cols-1 gap-6">
                 {plans.map((plan) => (
                   <Card key={plan.name} className={`relative ${plan.popular ? 'border-blue-600 shadow-lg' : ''} ${plan.current ? 'ring-2 ring-green-500' : ''}`}>
                     {plan.popular && (
@@ -438,27 +448,19 @@ const ConfiguracoesPage = () => {
                           </li>
                         ))}
                       </ul>
-                      <Button
+                      {/* <Button
                         onClick={() => handleSubscribe(plan.priceId, plan.name)}
                         disabled={plan.current || subscription.loading}
                         variant={plan.current ? 'outline' : plan.popular ? 'default' : 'outline'}
                         className="w-full"
                       >
                         {plan.buttonText}
-                      </Button>
+                      </Button> */}
                     </CardContent>
                   </Card>
                 ))}
               </div>
 
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-                <h3 className="text-lg font-semibold text-green-900 mb-2">
-                  🎉 Teste Gratuito de 15 Dias
-                </h3>
-                <p className="text-green-700 text-sm">
-                  Experimente todos os recursos premium gratuitamente por 15 dias com até 20 propostas incluídas!
-                </p>
-              </div>
 
               {isProfessional && (
                 <Card>
@@ -691,14 +693,23 @@ const ConfiguracoesPage = () => {
 
         <TabsContent value="planos">
           <div className="space-y-6">
-            <SubscriptionStatus />
+            <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+              <h3 className="text-lg font-semibold text-green-900 mb-2">
+                🎁 Acesso Especial Liberado até 30/10/2025
+              </h3>
+              <p className="text-green-700">
+                Como forma de reconhecimento pela sua importância para nós neste início, liberamos para você todos os recursos premium, sem necessidade de assinatura, até o dia <strong>30/10/2025</strong>.<br />
+                Explore tudo, envie suas propostas com inteligência e nos ajude a tornar o BoraFecharAI ainda melhor!
+              </p>
+            </div>
+            {/* <SubscriptionStatus /> */}
 
             <div>
               <h2 className="text-2xl font-bold">Escolha seu Plano</h2>
               <p className="text-muted-foreground">Selecione o plano que melhor atende às suas necessidades</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-50">
               {plans.map((plan) => (
                 <Card key={plan.name} className={`relative ${plan.popular ? 'border-blue-600 shadow-lg' : ''} ${plan.current ? 'ring-2 ring-green-500' : ''}`}>
                   {plan.popular && (
@@ -731,27 +742,20 @@ const ConfiguracoesPage = () => {
                         </li>
                       ))}
                     </ul>
-                    <Button
+                    {/* <Button
                       onClick={() => handleSubscribe(plan.priceId, plan.name)}
                       disabled={plan.current || subscription.loading}
                       variant={plan.current ? 'outline' : plan.popular ? 'default' : 'outline'}
                       className="w-full"
                     >
                       {plan.buttonText}
-                    </Button>
+                    </Button> */}
                   </CardContent>
                 </Card>
               ))}
             </div>
 
-            <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
-              <h3 className="text-lg font-semibold text-green-900 mb-2">
-                🎉 Teste Gratuito de 15 Dias
-              </h3>
-              <p className="text-green-700">
-                Experimente todos os recursos premium gratuitamente por 15 dias com até 20 propostas incluídas!
-              </p>
-            </div>
+
 
             {isProfessional && (
               <Card>

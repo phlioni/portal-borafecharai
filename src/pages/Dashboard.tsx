@@ -118,18 +118,18 @@ const Dashboard = () => {
           <h1 className="text-2xl font-bold">Olá! 👋</h1>
           <p className="text-muted-foreground">Aqui está um resumo da sua atividade</p>
         </div>
-        <Button asChild className="w-full sm:w-auto">
+        {/* <Button asChild className="w-full sm:w-auto">
           <Link to="/propostas/nova">
             <Plus className="h-4 w-4 mr-2" />
             Nova Proposta
           </Link>
-        </Button>
+        </Button> */}
       </div>
 
       {/* Profile Completion Alert */}
-      <ProfileCompletionAlert />
+      {/* <ProfileCompletionAlert /> */}
 
-      {/* Subscription Status Card */}
+      {/* Subscription Status Card
       {subscribed && (
         <Card className="border-blue-200 bg-blue-50">
           <CardContent className="p-6">
@@ -151,8 +151,16 @@ const Dashboard = () => {
             </div>
           </CardContent>
         </Card>
-      )}
-
+      )} */}
+      <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+        <h3 className="text-lg font-semibold text-green-900 mb-2">
+          🎁 Acesso Especial Liberado até 30/10/2025
+        </h3>
+        <p className="text-green-700">
+          Como forma de reconhecimento pela sua importância para nós neste início, liberamos para você todos os recursos premium, sem necessidade de assinatura, até o dia <strong>30/10/2025</strong>.<br />
+          Explore tudo, envie suas propostas com inteligência e nos ajude a tornar o BoraFecharAI ainda melhor!
+        </p>
+      </div>
       {/* Trial Call to Action */}
       <TrialCallToActionWrapper />
 
@@ -263,9 +271,9 @@ const Dashboard = () => {
             <div className="text-center py-8">
               <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-500">Nenhuma proposta criada ainda</p>
-              <Button asChild className="mt-4">
+              {/* <Button asChild className="mt-4">
                 <Link to="/propostas/nova">Criar primeira proposta</Link>
-              </Button>
+              </Button> */}
             </div>
           ) : (
             recentProposals.map((proposal) => (

@@ -63,7 +63,7 @@ const Layout = ({ children }: LayoutProps) => {
     // Movemos o Chat Proposta para uma posição mais destacada
     { path: '/chat-proposta', icon: MessageSquare, label: 'Chat Proposta', highlight: true },
     { path: '/propostas', icon: FileText, label: 'Propostas' },
-    ...(canCreateProposal ? [{ path: '/nova-proposta', icon: PlusCircle, label: 'Nova Proposta' }] : []),
+    // ...(canCreateProposal ? [{ path: '/nova-proposta', icon: PlusCircle, label: 'Nova Proposta' }] : []),
     { path: '/clientes', icon: Users, label: 'Clientes' },
     { path: '/analytics', icon: BarChart3, label: 'Analytics' },
     { path: '/configuracoes', icon: Settings, label: 'Configurações' },
@@ -88,13 +88,12 @@ const Layout = ({ children }: LayoutProps) => {
               <NavLink
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : item.highlight 
-                      ? 'bg-accent text-accent-foreground hover:bg-accent/80'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                }`}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
+                  ? 'bg-primary text-primary-foreground'
+                  : item.highlight
+                    ? 'bg-accent text-accent-foreground hover:bg-accent/80'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}
               >
                 <Icon className={`w-4 h-4 ${item.highlight && !isActive ? 'animate-pulse' : ''}`} />
                 {item.label}
