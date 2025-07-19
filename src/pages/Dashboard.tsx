@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CalendarDays, CheckCircle2, CircleDollarSign, FileText, Users, TrendingUp, Eye, Plus, Crown } from 'lucide-react';
+import { CalendarDays, CheckCircle2, CircleDollarSign, FileText, Users, TrendingUp, Eye, Plus, Crown, Send, Bot } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useProposals } from '@/hooks/useProposals';
@@ -18,6 +18,10 @@ const Dashboard = () => {
   const { data: proposals, isLoading: proposalsLoading } = useProposals();
   const { subscribed, subscription_tier, subscription_end } = useSubscription();
   const { monthlyProposalCount, monthlyProposalLimit } = useUserPermissions();
+
+  const handleTelegramBot = () => {
+    window.open('https://t.me/borafecharai_bot', '_blank');
+  };
 
   if (isLoading || proposalsLoading) {
     return <ModernLoader message="Carregando dashboard..." fullScreen />;
@@ -128,6 +132,34 @@ const Dashboard = () => {
 
       {/* Profile Completion Alert */}
       <ProfileCompletionAlert />
+
+      {/* Telegram Bot Highlight - Apenas versão mobile */}
+      <div className="block sm:hidden">
+        <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
+                  <Send className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-blue-900">Assistente no Telegram</h3>
+                  <p className="text-sm text-blue-700">
+                    Acesse nossa IA diretamente pelo Telegram
+                  </p>
+                </div>
+              </div>
+              <Button 
+                onClick={handleTelegramBot}
+                className="bg-blue-500 hover:bg-blue-600 text-white"
+                size="sm"
+              >
+                Abrir
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Subscription Status Card */}
       {subscribed && (
