@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,7 +10,7 @@ import { useBusinessSegments } from '@/hooks/useBusinessSegments';
 import BonusCelebration from '@/components/BonusCelebration';
 import { useProfileCompletion } from '@/hooks/useProfileCompletion';
 import CompanyLogoUpload from '@/components/CompanyLogoUpload';
-import { useEffect } from 'react';
+import { toast } from 'sonner';
 
 const CompanyTab = () => {
   const { data: company, isLoading: companyLoading } = useUserCompany();
@@ -45,10 +44,13 @@ const CompanyTab = () => {
 
   React.useEffect(() => {
     if (company) {
+      // --- AJUSTE 1: Exibir o telefone sem o DDI +55 ---
+      const localPhone = company.phone ? company.phone.replace(/^\+55/, '') : '';
+
       setFormData({
         name: company.name || '',
         email: company.email || '',
-        phone: company.phone || '',
+        phone: localPhone, // Usa o número local
         address: company.address || '',
         city: company.city || '',
         state: company.state || '',
@@ -73,10 +75,30 @@ const CompanyTab = () => {
 
   const handleSave = () => {
     if (!company?.id) return;
-    
+
+    // --- AJUSTE 2: Lógica de validação e salvamento do telefone ---
+    const rawPhone = formData.phone.replace(/\D/g, '');
+
+    if (!formData.name || !formData.email || !rawPhone) {
+      toast.error('Nome da empresa, e-mail e telefone são obrigatórios.');
+      return;
+    }
+
+    if (!rawPhone.match(/^\d{10,11}$/)) {
+      toast.error('Formato do telefone inválido. Use DDD + número, com 10 ou 11 dígitos.');
+      return;
+    }
+
+    const phoneToSave = `+55${rawPhone}`;
+
+    const updatesWithFormattedPhone = {
+      ...formData,
+      phone: phoneToSave,
+    };
+
     updateCompanyMutation.mutate({
       id: company.id,
-      updates: formData
+      updates: updatesWithFormattedPhone
     });
   };
 
@@ -135,7 +157,8 @@ const CompanyTab = () => {
                 id="company-phone"
                 value={formData.phone}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
-                placeholder="+5511999999999"
+                // --- AJUSTE 3: Placeholder atualizado ---
+                placeholder="11999999999"
                 required
               />
             </div>
@@ -253,10 +276,9 @@ const CompanyTab = () => {
         </CardContent>
       </Card>
 
-      {/* Modal de celebração de bônus */}
-      <BonusCelebration 
-        show={showCelebration} 
-        onComplete={handleCelebrationComplete} 
+      <BonusCelebration
+        show={showCelebration}
+        onComplete={handleCelebrationComplete}
       />
     </>
   );

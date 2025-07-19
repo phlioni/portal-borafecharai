@@ -133,7 +133,7 @@ const WhatsAppBotSettings = () => {
               <Label htmlFor="test-phone">Número de Teste (com código do país)</Label>
               <Input
                 id="test-phone"
-                placeholder="+5511999999999"
+                placeholder="11999999999"
                 value={testPhone}
                 onChange={(e) => setTestPhone(e.target.value)}
               />

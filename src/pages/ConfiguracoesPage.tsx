@@ -291,7 +291,7 @@ const ConfiguracoesPage = () => {
                         id="phone"
                         value={companyData.phone}
                         onChange={(e) => handleInputChange('phone', e.target.value)}
-                        placeholder="55+DDD+Número (ex: 5511999999999)"
+                        placeholder="DDD+Número (ex: 11999999999)"
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -415,7 +415,7 @@ const ConfiguracoesPage = () => {
                 <p className="text-muted-foreground">Selecione o plano que melhor atende às suas necessidades</p>
               </div>
 
-              <div className=" grid grid-cols-1 gap-6">
+              <div className=" grid grid-cols-1 gap-6 opacity-50">
                 {plans.map((plan) => (
                   <Card key={plan.name} className={`relative ${plan.popular ? 'border-blue-600 shadow-lg' : ''} ${plan.current ? 'ring-2 ring-green-500' : ''}`}>
                     {plan.popular && (
@@ -462,7 +462,7 @@ const ConfiguracoesPage = () => {
               </div>
 
 
-              {isProfessional && (
+              {/* {isProfessional && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -486,7 +486,7 @@ const ConfiguracoesPage = () => {
                     </div>
                   </CardContent>
                 </Card>
-              )}
+              )} */}
             </div>
           </TabsContent>
 
@@ -588,7 +588,7 @@ const ConfiguracoesPage = () => {
                       id="phone"
                       value={companyData.phone}
                       onChange={(e) => handleInputChange('phone', e.target.value)}
-                      placeholder="55+DDD+Número (ex: 5511999999999)"
+                      placeholder="DDD+Número (ex: 11999999999)"
                     />
                   </div>
                   <div>
