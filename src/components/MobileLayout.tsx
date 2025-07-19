@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, FileText, Users, BarChart3, Settings, Menu, X, MessageSquare, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -8,7 +9,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 
-const MobileLayout = () => {
+interface MobileLayoutProps {
+  children: React.ReactNode;
+}
+
+const MobileLayout = ({ children }: MobileLayoutProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -29,7 +34,7 @@ const MobileLayout = () => {
 
   const navItems = [
     { 
-      href: '/', 
+      href: '/dashboard', 
       icon: Home, 
       label: 'Dashboard' 
     },
@@ -80,8 +85,8 @@ const MobileLayout = () => {
   ];
 
   const isActivePath = (path: string) => {
-    if (path === '/') {
-      return location.pathname === '/';
+    if (path === '/dashboard') {
+      return location.pathname === '/dashboard';
     }
     return location.pathname.startsWith(path);
   };
@@ -162,7 +167,7 @@ const MobileLayout = () => {
 
       {/* Conteúdo principal */}
       <main className="flex-1 pt-16 pb-4 px-2 overflow-auto">
-        <Outlet />
+        {children}
       </main>
     </div>
   );
