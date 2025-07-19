@@ -1,208 +1,261 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useClients, useDeleteClient } from '@/hooks/useClients';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Plus, Search, Users, Edit, Trash2 } from 'lucide-react';
-import ClientEditModal from '@/components/ClientEditModal';
+import { Label } from '@/components/ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Edit, Trash2, Plus, Search } from 'lucide-react';
+import { useClients, useCreateClient, useUpdateClient, useDeleteClient } from '@/hooks/useClients';
+import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import MobileClientCard from '@/components/MobileClientCard';
-
-interface Client {
-  id: string;
-  name: string;
-  email: string | null;
-  phone: string | null;
-  created_at: string;
-  updated_at: string;
-  user_id: string;
-}
+import { formatPhoneNumber, displayPhoneNumber } from '@/utils/phoneUtils';
 
 const ClientesPage = () => {
-  const { data: clients = [], isLoading, refetch } = useClients();
-  const deleteClientMutation = useDeleteClient();
-  
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: ''
+  });
+  const [editingClient, setEditingClient] = useState<any>(null);
+  const [search, setSearch] = useState('');
   const isMobile = useIsMobile();
 
-  const handleEditClient = (client: Client) => {
-    console.log('Editing client:', client);
-    setSelectedClient(client);
-    setIsModalOpen(true);
-  };
+  const { data: clients, isLoading, refetch } = useClients();
+  const createClient = useCreateClient();
+  const updateClient = useUpdateClient();
+  const deleteClient = useDeleteClient();
 
-  const handleCreateClient = () => {
-    console.log('Creating new client');
-    setSelectedClient(null);
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    console.log('Closing modal');
-    setIsModalOpen(false);
-    setSelectedClient(null);
-  };
-
-  const handleClientUpdated = () => {
-    console.log('Client updated, refetching data');
+  useEffect(() => {
     refetch();
+  }, [refetch]);
+
+  const filteredClients = clients?.filter(client =>
+    client.name.toLowerCase().includes(search.toLowerCase()) ||
+    client.email?.toLowerCase().includes(search.toLowerCase()) ||
+    displayPhoneNumber(client.phone || '').includes(search)
+  ) || [];
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      email: '',
+      phone: ''
+    });
+    setEditingClient(null);
   };
 
-  const handleDeleteClient = async (clientId: string) => {
-    console.log('Deleting client:', clientId);
-    await deleteClientMutation.mutateAsync(clientId);
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Tem certeza que deseja excluir este cliente?')) {
+      try {
+        await deleteClient.mutateAsync(id);
+        toast.success('Cliente excluído com sucesso!');
+        resetForm();
+      } catch (error) {
+        console.error('Erro ao excluir cliente:', error);
+        toast.error('Erro ao excluir cliente');
+      }
+    }
   };
 
-  const filteredClients = clients.filter(client =>
-    client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (client.email && client.email.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.name.trim()) {
+      toast.error('Nome é obrigatório');
+      return;
+    }
 
-  if (isLoading) {
-    return (
-      <div className="p-6 space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Clientes</h1>
-          <p className="text-muted-foreground">Carregando...</p>
-        </div>
-      </div>
-    );
-  }
+    try {
+      const clientData = {
+        name: formData.name.trim(),
+        email: formData.email.trim() || null,
+        phone: formData.phone.trim() ? formatPhoneNumber(formData.phone.trim()) : null
+      };
+
+      if (editingClient) {
+        await updateClient.mutateAsync({
+          id: editingClient.id,
+          updates: clientData
+        });
+        toast.success('Cliente atualizado com sucesso!');
+      } else {
+        await createClient.mutateAsync(clientData);
+        toast.success('Cliente criado com sucesso!');
+      }
+      
+      resetForm();
+    } catch (error) {
+      console.error('Erro ao salvar cliente:', error);
+      toast.error('Erro ao salvar cliente');
+    }
+  };
+
+  const handleEdit = (client: any) => {
+    setFormData({
+      name: client.name,
+      email: client.email || '',
+      phone: client.phone ? displayPhoneNumber(client.phone) : ''
+    });
+    setEditingClient(client);
+  };
 
   return (
-    <div className={`${isMobile ? 'p-4' : 'p-6'} space-y-6`}>
+    <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold flex items-center gap-2`}>
-            <Users className={`${isMobile ? 'h-6 w-6' : 'h-8 w-8'}`} />
-            Clientes
-          </h1>
-          <p className="text-muted-foreground">Gerencie seus clientes</p>
+          <h1 className="text-3xl font-bold text-gray-900">Clientes</h1>
+          <p className="text-gray-600 mt-1">Gerencie seus clientes cadastrados</p>
         </div>
-        <Button
-          onClick={handleCreateClient}
-          className={`${isMobile ? 'px-3' : ''}`}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          {isMobile ? 'Novo' : 'Novo Cliente'}
+        <Button onClick={resetForm}>
+          <Plus className="mr-2 h-4 w-4" />
+          Novo Cliente
         </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Clientes</CardTitle>
+          <CardTitle>
+            {editingClient ? 'Editar Cliente' : 'Novo Cliente'}
+          </CardTitle>
           <CardDescription>
-            Todos os seus clientes cadastrados
+            Preencha os dados do cliente
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Busca */}
-          <div className="mb-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="name">Nome</Label>
               <Input
-                placeholder="Buscar clientes..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Nome do cliente"
+                required
               />
             </div>
-          </div>
-
-          {isMobile ? (
-            /* Cards para Mobile */
-            <div className="space-y-3">
-              {filteredClients.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  {searchTerm ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado'}
-                </div>
-              ) : (
-                filteredClients.map((client) => (
-                  <MobileClientCard
-                    key={client.id}
-                    client={client}
-                    onEdit={handleEditClient}
-                    onDelete={handleDeleteClient}
-                    isDeleting={deleteClientMutation.isPending}
-                  />
-                ))
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="email@exemplo.com"
+              />
+            </div>
+            <div>
+              <Label htmlFor="phone">Telefone</Label>
+              <Input
+                id="phone"
+                value={displayPhoneNumber(formData.phone)}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="11988887777"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Digite apenas os números (ex: 11988887777)
+              </p>
+            </div>
+            <div className="flex justify-end gap-2">
+              {editingClient && (
+                <Button type="button" variant="ghost" onClick={resetForm}>
+                  Cancelar
+                </Button>
               )}
+              <Button type="submit" disabled={createClient.isLoading || updateClient.isLoading}>
+                {editingClient ? (updateClient.isLoading ? 'Salvando...' : 'Salvar Cliente') : (createClient.isLoading ? 'Criando...' : 'Criar Cliente')}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Clientes Cadastrados</CardTitle>
+          <CardDescription>
+            {filteredClients.length} cliente{filteredClients.length !== 1 ? 's' : ''} encontrado{filteredClients.length !== 1 ? 's' : ''}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4">
+            <Input
+              type="search"
+              placeholder="Buscar cliente..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-2 text-muted-foreground">Carregando clientes...</p>
+              </div>
+            </div>
+          ) : filteredClients.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">Nenhum cliente encontrado</p>
             </div>
           ) : (
-            /* Tabela para Desktop */
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Data de Criação</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredClients.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                      {searchTerm ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado'}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredClients.map((client) => (
-                    <TableRow key={client.id}>
-                      <TableCell className="font-medium">{client.name}</TableCell>
-                      <TableCell>{client.email || '-'}</TableCell>
-                      <TableCell>{client.phone || '-'}</TableCell>
-                      <TableCell>
-                        {new Date(client.created_at).toLocaleDateString('pt-BR')}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditClient(client)}
-                          >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Editar
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDeleteClient(client.id)}
-                            disabled={deleteClientMutation.isPending}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            {deleteClientMutation.isPending ? 'Deletando...' : 'Deletar'}
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+            <>
+              {isMobile ? (
+                <div className="space-y-4">
+                  {filteredClients.map((client) => (
+                    <MobileClientCard
+                      key={client.id}
+                      client={{
+                        ...client,
+                        phone: client.phone ? displayPhoneNumber(client.phone) : null
+                      }}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Telefone</TableHead>
+                        <TableHead>Data de Cadastro</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredClients.map((client) => (
+                        <TableRow key={client.id}>
+                          <TableCell className="font-medium">{client.name}</TableCell>
+                          <TableCell>{client.email || '-'}</TableCell>
+                          <TableCell>
+                            {client.phone ? displayPhoneNumber(client.phone) : '-'}
+                          </TableCell>
+                          <TableCell>
+                            {new Date(client.created_at).toLocaleDateString('pt-BR')}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button variant="ghost" size="icon" onClick={() => handleEdit(client)}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleDelete(client.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
-
-      <ClientEditModal
-        company={selectedClient}
-        open={isModalOpen}
-        onOpenChange={handleCloseModal}
-        onCompanyUpdated={handleClientUpdated}
-      />
     </div>
   );
 };
