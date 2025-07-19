@@ -17,12 +17,10 @@ import SendProposalModal from '@/components/SendProposalModal';
 import BudgetItemsManager from '@/components/BudgetItemsManager';
 import { useProposalSending } from '@/hooks/useProposalSending';
 import QuickClientModal from '@/components/QuickClientModal';
-import { useUserPermissions } from '@/hooks/useUserPermissions';
 
 const NovaPropostaPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { canCreateProposal } = useUserPermissions();
   const createProposal = useCreateProposal();
   const { data: clients, refetch: refetchClients } = useClients();
   const { data: userCompany } = useUserCompany();
@@ -204,17 +202,6 @@ const NovaPropostaPage = () => {
       toast.error('Erro ao criar e enviar proposta');
     }
   };
-
-  // Se o usuário não pode criar propostas, redirecionar
-  React.useEffect(() => {
-    if (!canCreateProposal) {
-      navigate('/propostas');
-    }
-  }, [canCreateProposal, navigate]);
-
-  if (!canCreateProposal) {
-    return null;
-  }
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">

@@ -8,7 +8,6 @@ export const useUserPermissions = () => {
   const { user } = useAuth();
   const { subscribed, subscription_tier, loading: subscriptionLoading } = useSubscription();
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isGuest, setIsGuest] = useState(false);
   const [monthlyProposalCount, setMonthlyProposalCount] = useState(0);
   const [monthlyProposalLimit, setMonthlyProposalLimit] = useState<number | null>(null);
   const [canCreateProposal, setCanCreateProposal] = useState(false);
@@ -51,22 +50,21 @@ export const useUserPermissions = () => {
           }
         }
 
-        // Se não encontrou roles para o usuário comum, criar a role 'guest'
+        // Se não encontrou roles para o usuário comum, criar a role 'user'
         if (!isMainAdmin && (!userRoles || userRoles.length === 0)) {
-          console.log('useUserPermissions - No roles found, creating guest role');
+          console.log('useUserPermissions - No roles found, creating user role');
           const { error: insertError } = await supabase
             .from('user_roles')
-            .insert({ user_id: user.id, role: 'guest' });
+            .insert({ user_id: user.id, role: 'user' });
 
           if (insertError) {
-            console.error('useUserPermissions - Error creating guest role:', insertError);
+            console.error('useUserPermissions - Error creating user role:', insertError);
           }
         }
 
         const adminRole = isMainAdmin || userRoles?.some(role => role.role === 'admin') || false;
         const guestRole = userRoles?.some(role => role.role === 'guest') || false;
         setIsAdmin(adminRole);
-        setIsGuest(guestRole);
 
         console.log('useUserPermissions - User roles:', { adminRole, guestRole, userRoles });
 
@@ -88,8 +86,7 @@ export const useUserPermissions = () => {
           console.error('useUserPermissions - Error checking can_create_proposal:', canCreateError);
           setCanCreateProposal(false);
         } else {
-          // Usuários guest não podem criar propostas manualmente
-          setCanCreateProposal(guestRole ? false : (canCreate || false));
+          setCanCreateProposal(canCreate || false);
         }
 
         // Verificar dados do subscriber para determinar limites e acessos
@@ -115,7 +112,7 @@ export const useUserPermissions = () => {
           setCanAccessAnalytics(true);
           setCanAccessPremiumTemplates(true);
         } else if (guestRole) {
-          // Guest tem todos os recursos liberados exceto administrar usuários e criar propostas manualmente
+          // Guest tem todos os recursos liberados exceto administrar usuários
           proposalLimit = null; // Unlimited for guest
           setCanAccessAnalytics(true);
           setCanAccessPremiumTemplates(true);
@@ -162,7 +159,7 @@ export const useUserPermissions = () => {
         setMonthlyProposalLimit(proposalLimit);
 
         console.log('useUserPermissions - final state:', {
-          canCreateProposal: guestRole ? false : canCreate,
+          canCreateProposal: canCreate,
           monthlyProposalLimit: proposalLimit,
           monthlyProposalCount: monthlyCount,
           isAdmin: adminRole,
@@ -184,7 +181,6 @@ export const useUserPermissions = () => {
 
   return {
     isAdmin,
-    isGuest,
     monthlyProposalCount,
     monthlyProposalLimit,
     canCreateProposal,
