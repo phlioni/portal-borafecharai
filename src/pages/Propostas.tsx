@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +17,7 @@ import MobileProposalCard from '@/components/MobileProposalCard';
 
 const PropostasPage = () => {
   const navigate = useNavigate();
-  const { data: proposals, loading } = useProposals();
+  const { data: proposals, isLoading } = useProposals();
   const deleteProposal = useDeleteProposal();
   const { canCreateProposal } = useUserPermissions();
   const isMobile = useIsMobile();
@@ -93,7 +94,7 @@ const PropostasPage = () => {
             />
           </div>
 
-          {loading ? (
+          {isLoading ? (
             <div className="text-center py-4">Carregando propostas...</div>
           ) : filteredProposals.length === 0 ? (
             <div className="text-center py-4">Nenhuma proposta encontrada.</div>
@@ -185,7 +186,9 @@ const PropostasPage = () => {
       <ProposalPreviewModal
         isOpen={showPreviewModal}
         onClose={handleClosePreview}
+        onContinue={handleClosePreview}
         proposal={selectedProposal}
+        companyLogo=""
       />
     </div>
   );

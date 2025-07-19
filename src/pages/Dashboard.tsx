@@ -6,18 +6,18 @@ import { BarChart3, Users, FileText, Plus, Send, MessageSquare } from 'lucide-re
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
-import TrialCallToActionWrapper from '@/components/TrialCallToActionWrapper';
+import { TrialCallToActionWrapper } from '@/components/TrialCallToActionWrapper';
 import ProfileCompletionAlert from '@/components/ProfileCompletionAlert';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const Dashboard = () => {
   const { canCreateProposal, isGuest } = useUserPermissions();
-  const { data, loading } = useDashboardData();
+  const { data, isLoading } = useDashboardData();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="p-6 space-y-6">
         <Skeleton className="h-8 w-64" />
@@ -58,8 +58,8 @@ const Dashboard = () => {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data?.totalProposals || 0}</div>
-            <p className="text-xs text-muted-foreground">+{data?.proposalsThisMonth || 0} este mês</p>
+            <div className="text-2xl font-bold">{data?.totalProposalsSent || 0}</div>
+            <p className="text-xs text-muted-foreground">Propostas enviadas</p>
           </CardContent>
         </Card>
 
@@ -69,9 +69,9 @@ const Dashboard = () => {
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data?.acceptedProposals || 0}</div>
+            <div className="text-2xl font-bold">{data?.totalProposalsApproved || 0}</div>
             <p className="text-xs text-muted-foreground">
-              {data?.totalProposals ? ((data.acceptedProposals / data.totalProposals) * 100).toFixed(1) : 0}% taxa de aceite
+              {data?.totalProposalsSent ? ((data.totalProposalsApproved / data.totalProposalsSent) * 100).toFixed(1) : 0}% taxa de aceite
             </p>
           </CardContent>
         </Card>
@@ -83,7 +83,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{data?.totalClients || 0}</div>
-            <p className="text-xs text-muted-foreground">+{data?.clientsThisMonth || 0} este mês</p>
+            <p className="text-xs text-muted-foreground">Clientes cadastrados</p>
           </CardContent>
         </Card>
 
@@ -94,7 +94,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              R$ {data?.totalValue ? new Intl.NumberFormat('pt-BR').format(data.totalValue) : '0'}
+              R$ {data?.totalProposalsValue ? new Intl.NumberFormat('pt-BR').format(data.totalProposalsValue) : '0'}
             </div>
             <p className="text-xs text-muted-foreground">Em propostas aceitas</p>
           </CardContent>

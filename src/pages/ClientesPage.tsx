@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -162,8 +163,8 @@ const ClientesPage = () => {
                   Cancelar
                 </Button>
               )}
-              <Button type="submit" disabled={createClient.isLoading || updateClient.isLoading}>
-                {editingClient ? (updateClient.isLoading ? 'Salvando...' : 'Salvar Cliente') : (createClient.isLoading ? 'Criando...' : 'Criar Cliente')}
+              <Button type="submit" disabled={createClient.isPending || updateClient.isPending}>
+                {editingClient ? (updateClient.isPending ? 'Salvando...' : 'Salvar Cliente') : (createClient.isPending ? 'Criando...' : 'Criar Cliente')}
               </Button>
             </div>
           </form>
@@ -210,6 +211,7 @@ const ClientesPage = () => {
                       }}
                       onEdit={handleEdit}
                       onDelete={handleDelete}
+                      isDeleting={deleteClient.isPending}
                     />
                   ))}
                 </div>

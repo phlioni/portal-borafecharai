@@ -35,3 +35,5 @@ export const TrialCallToActionWrapper = () => {
 
   return null;
 };
+
+export default TrialCallToActionWrapper;
