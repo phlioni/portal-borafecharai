@@ -8,10 +8,11 @@ import {
   Settings,
   BarChart3,
   LogOut,
-  MessageSquare,
+  Bot,
   PlusCircle,
   Menu,
-  X
+  X,
+  Send
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfiles } from '@/hooks/useProfiles';
@@ -43,6 +44,12 @@ const MobileLayout = ({ children }: MobileLayoutProps) => {
     }
   };
 
+  const handleTelegramBot = () => {
+    // Abrir o bot do Telegram
+    window.open('https://t.me/borafecharai_bot', '_blank');
+    closeMenu();
+  };
+
   const getInitials = () => {
     if (profile?.name) {
       return profile.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -55,7 +62,7 @@ const MobileLayout = ({ children }: MobileLayoutProps) => {
 
   const menuItems = [
     { path: '/dashboard', icon: Home, label: 'Dashboard' },
-    { path: '/chat-proposta', icon: MessageSquare, label: 'Chat Proposta', highlight: true },
+    { path: '/chat-proposta', icon: Bot, label: 'Chat Proposta', highlight: true },
     { path: '/propostas', icon: FileText, label: 'Propostas' },
     // ...(canCreateProposal ? [{ path: '/nova-proposta', icon: PlusCircle, label: 'Nova Proposta' }] : []),
     { path: '/clientes', icon: Users, label: 'Clientes' },
@@ -101,6 +108,17 @@ const MobileLayout = ({ children }: MobileLayoutProps) => {
                     </div>
                   </div>
 
+                  {/* Telegram Bot Highlight - Novo destaque */}
+                  <div className="p-3 border-b border-border flex-shrink-0">
+                    <Button
+                      onClick={handleTelegramBot}
+                      className="w-full bg-blue-500 hover:bg-blue-600 text-white gap-2 min-h-[44px]"
+                    >
+                      <Send className="w-5 h-5" />
+                      <span>Assistente no Telegram</span>
+                    </Button>
+                  </div>
+
                   {/* Navigation - área scrollável */}
                   <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
                     {menuItems.map((item) => {
@@ -123,7 +141,7 @@ const MobileLayout = ({ children }: MobileLayoutProps) => {
                           <span className="truncate">{item.label}</span>
                           {item.highlight && !isActive && (
                             <span className="ml-auto text-xs font-medium bg-primary/20 text-primary px-1.5 py-0.5 rounded-full flex-shrink-0">
-                              Novo
+                              IA
                             </span>
                           )}
                         </NavLink>
@@ -159,7 +177,7 @@ const MobileLayout = ({ children }: MobileLayoutProps) => {
                       onClick={handleSignOut}
                       className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground min-h-[44px]"
                     >
-                      <LogOut className="w-4 h-4" />
+                      <LogOut className="w-4 w-4" />
                       Sair
                     </Button>
                   </div>
