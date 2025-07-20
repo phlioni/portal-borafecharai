@@ -18,9 +18,9 @@ const PropostaPublicaPage = () => {
     queryKey: ['public-proposal', hash],
     queryFn: async () => {
       if (!hash) throw new Error('Hash não fornecido');
-      
+
       console.log('Buscando proposta com hash:', hash);
-      
+
       // Buscar proposta com todos os dados necessários (igual ao preview)
       const { data: proposalData, error: proposalError } = await supabase
         .from('proposals')
@@ -50,42 +50,42 @@ const PropostaPublicaPage = () => {
       }
 
       console.log('Proposta encontrada por hash:', proposalData);
-      
+
       // Buscar informações da empresa do usuário na tabela user_companies
       const { data: userCompanyData, error: userCompanyError } = await supabase
         .from('user_companies')
         .select('*')
         .eq('user_id', proposalData.user_id)
         .maybeSingle();
-        
+
       if (userCompanyError) {
         console.error('Erro ao buscar empresa do usuário:', userCompanyError);
       }
-      
+
       // Buscar dados do perfil do usuário
       const { data: userProfile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', proposalData.user_id)
         .single();
-        
+
       if (profileError) {
         console.error('Erro ao buscar perfil:', profileError);
       }
-      
+
       // Incrementar visualizações automaticamente
       const { error: updateError } = await supabase
         .from('proposals')
-        .update({ 
+        .update({
           views: (proposalData.views || 0) + 1,
           last_viewed_at: new Date().toISOString()
         })
         .eq('id', proposalData.id);
-        
+
       if (updateError) {
         console.error('Erro ao atualizar visualizações:', updateError);
       }
-      
+
       // Retornar dados completos incluindo empresa e perfil
       return {
         ...proposalData,
@@ -105,7 +105,7 @@ const PropostaPublicaPage = () => {
     try {
       const { error } = await supabase
         .from('proposals')
-        .update({ 
+        .update({
           status: 'aceita',
           updated_at: new Date().toISOString()
         })
@@ -130,7 +130,7 @@ const PropostaPublicaPage = () => {
     try {
       const { error } = await supabase
         .from('proposals')
-        .update({ 
+        .update({
           status: 'perdida',
           updated_at: new Date().toISOString()
         })
@@ -156,7 +156,7 @@ const PropostaPublicaPage = () => {
   };
 
   // Verificar se a proposta está dentro da validade (apenas se validity_date existir)
-  const isValid = !proposal?.validity_date || 
+  const isValid = !proposal?.validity_date ||
     new Date(proposal.validity_date) >= new Date();
 
   if (isLoading) {
@@ -239,7 +239,7 @@ const PropostaPublicaPage = () => {
                 </div>
               )}
             </div>
-            
+
             {/* Botões de Ação - Melhorados para mobile */}
             <div className="flex flex-col gap-2 sm:flex-row sm:gap-2 w-full sm:w-auto">
               {/* Botão de Download sempre visível */}
@@ -266,7 +266,7 @@ const PropostaPublicaPage = () => {
                   >
                     <X className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                     <span className="hidden xs:inline">{isRejecting ? 'Rejeitando...' : 'Rejeitar'}</span>
-                    <span className="xs:hidden">✗</span>
+                    <span className="xs:hidden">Recusar</span>
                   </Button>
                   <Button
                     onClick={handleAcceptProposal}
@@ -276,7 +276,7 @@ const PropostaPublicaPage = () => {
                   >
                     <Check className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                     <span className="hidden xs:inline">{isAccepting ? 'Aceitando...' : 'Aceitar Proposta'}</span>
-                    <span className="xs:hidden">✓</span>
+                    <span className="xs:hidden">Aceitar</span>
                   </Button>
                 </>
               )}
@@ -288,10 +288,10 @@ const PropostaPublicaPage = () => {
       {/* Conteúdo da Proposta - Usando StandardProposalTemplate */}
       <div className="pt-32 sm:pt-24 pb-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <div className="bg-white rounded-lg shadow-sm">
-            <StandardProposalTemplate 
-              proposal={proposal} 
-              companyLogo={proposal.user_companies?.logo_url || ""} 
+          <div className="bg-white rounded-lg shadow-sm mt-10">
+            <StandardProposalTemplate
+              proposal={proposal}
+              companyLogo={proposal.user_companies?.logo_url || ""}
             />
           </div>
         </div>
