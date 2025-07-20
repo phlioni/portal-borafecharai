@@ -310,15 +310,15 @@ export const useProposal = (id?: string) => {
 
       if (error) throw error;
 
-      // Buscar informações da empresa do usuário
-      const { data: companyData, error: companyError } = await supabase
+      // Buscar informações da empresa do usuário na tabela user_companies
+      const { data: userCompanyData, error: userCompanyError } = await supabase
         .from('user_companies')
         .select('*')
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (companyError) {
-        console.error('Erro ao buscar empresa:', companyError);
+      if (userCompanyError) {
+        console.error('Erro ao buscar empresa do usuário:', userCompanyError);
       }
 
       // Buscar informações do perfil do usuário
@@ -335,7 +335,7 @@ export const useProposal = (id?: string) => {
       // Compor a proposta completa com as informações adicionais
       const completeProposal = {
         ...data,
-        companies: companyData,
+        user_companies: userCompanyData,
         user_profile: profileData
       } as Proposal;
 

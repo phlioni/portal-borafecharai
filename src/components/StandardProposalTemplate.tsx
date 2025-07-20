@@ -36,14 +36,17 @@ const StandardProposalTemplate = ({ proposal, companyLogo, className = '' }: Sta
     return proposal?.value || 0;
   };
 
+  // Usar a logo da empresa do usuário se disponível
+  const logoUrl = proposal?.user_companies?.logo_url || proposal?.companies?.logo_url || companyLogo;
+
   return (
     <div className={`bg-white p-8 ${className}`}>
       {/* Header */}
       <div className="flex justify-between items-start mb-8">
         <div className="flex-1">
-          {companyLogo && (
+          {logoUrl && (
             <img 
-              src={companyLogo} 
+              src={logoUrl} 
               alt="Logo da empresa" 
               className="h-16 w-auto mb-4"
             />
@@ -64,22 +67,22 @@ const StandardProposalTemplate = ({ proposal, companyLogo, className = '' }: Sta
       </div>
 
       {/* Company Info */}
-      {(proposal?.companies || proposal?.user_profile) && (
+      {(proposal?.user_companies || proposal?.companies || proposal?.user_profile) && (
         <div className="mb-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Dados da Empresa</h2>
           <div className="bg-gray-50 p-4 rounded-lg">
-            {proposal?.companies && (
+            {(proposal?.user_companies || proposal?.companies) && (
               <div>
-                <p className="font-semibold">{proposal.companies.name}</p>
-                {proposal.companies.email && <p>Email: {proposal.companies.email}</p>}
-                {proposal.companies.phone && <p>Telefone: {proposal.companies.phone}</p>}
-                {proposal.companies.address && (
-                  <p>Endereço: {proposal.companies.address}{proposal.companies.city && `, ${proposal.companies.city}`}{proposal.companies.state && ` - ${proposal.companies.state}`}</p>
+                <p className="font-semibold">{(proposal?.user_companies || proposal?.companies)?.name}</p>
+                {(proposal?.user_companies || proposal?.companies)?.email && <p>Email: {(proposal?.user_companies || proposal?.companies)?.email}</p>}
+                {(proposal?.user_companies || proposal?.companies)?.phone && <p>Telefone: {(proposal?.user_companies || proposal?.companies)?.phone}</p>}
+                {(proposal?.user_companies || proposal?.companies)?.address && (
+                  <p>Endereço: {(proposal?.user_companies || proposal?.companies)?.address}{(proposal?.user_companies || proposal?.companies)?.city && `, ${(proposal?.user_companies || proposal?.companies)?.city}`}{(proposal?.user_companies || proposal?.companies)?.state && ` - ${(proposal?.user_companies || proposal?.companies)?.state}`}</p>
                 )}
-                {proposal.companies.cnpj && <p>CNPJ: {proposal.companies.cnpj}</p>}
+                {(proposal?.user_companies || proposal?.companies)?.cnpj && <p>CNPJ: {(proposal?.user_companies || proposal?.companies)?.cnpj}</p>}
               </div>
             )}
-            {proposal?.user_profile && !proposal?.companies && (
+            {proposal?.user_profile && !(proposal?.user_companies || proposal?.companies) && (
               <div>
                 <p className="font-semibold">{proposal.user_profile.name}</p>
                 {proposal.user_profile.phone && <p>Telefone: {proposal.user_profile.phone}</p>}
