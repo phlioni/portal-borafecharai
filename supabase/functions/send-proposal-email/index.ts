@@ -22,20 +22,20 @@ Deno.serve(async (req) => {
     const requestBody = await req.json()
     console.log('Request body received:', requestBody)
 
-    const { 
-      proposalId, 
-      recipientEmail, 
-      recipientName, 
-      emailSubject, 
-      emailMessage, 
-      publicUrl 
+    const {
+      proposalId,
+      recipientEmail,
+      recipientName,
+      emailSubject,
+      emailMessage,
+      publicUrl
     } = requestBody
 
-    console.log('Enviando proposta por email:', { 
-      proposalId, 
-      recipientEmail, 
-      recipientName, 
-      emailSubject 
+    console.log('Enviando proposta por email:', {
+      proposalId,
+      recipientEmail,
+      recipientName,
+      emailSubject
     })
 
     // Buscar proposta básica para garantir hash público
@@ -62,15 +62,15 @@ Deno.serve(async (req) => {
       const hashBuffer = await crypto.subtle.digest('SHA-256', data)
       const hashArray = Array.from(new Uint8Array(hashBuffer))
       finalPublicHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32)
-      
+
       const { error: updateError } = await supabase
         .from('proposals')
-        .update({ 
+        .update({
           public_hash: finalPublicHash,
           updated_at: new Date().toISOString()
         })
         .eq('id', proposalId)
-        
+
       if (updateError) {
         console.error('Erro ao atualizar hash público:', updateError)
         return new Response(
@@ -86,12 +86,12 @@ Deno.serve(async (req) => {
     // Processar template de e-mail apenas com mensagem simples
     const processEmailMessage = (message: string, proposalUrl: string) => {
       const paragraphs = message.split('\n\n').filter(p => p.trim());
-      
+
       return paragraphs.map(paragraph => {
         if (paragraph.includes('[LINK_DA_PROPOSTA]')) {
           const beforeButton = paragraph.split('[LINK_DA_PROPOSTA]')[0];
           const afterButton = paragraph.split('[LINK_DA_PROPOSTA]')[1];
-          
+
           return `
             ${beforeButton ? `<p style="margin: 0 0 32px 0; line-height: 1.9; color: #374151; font-size: 16px;">${beforeButton.replace(/\n/g, '<br><br>')}</p>` : ''}
             <div style="text-align: center; margin: 40px 0;">
@@ -110,10 +110,10 @@ Deno.serve(async (req) => {
                 📄 Visualizar Proposta
               </a>
             </div>
-            ${afterButton ? `<p style="margin: 32px 0 0 0; line-height: 1.9; color: #374151; font-size: 16px;">${afterButton.replace(/\n/g, '<br><br>')}</p>` : ''}
+            ${afterButton ? `<p style="margin: 20px 0 0 0; line-height: 1.4; color: #374151; font-size: 16px;">${afterButton.replace(/\n/g, '<br><br>')}</p>` : ''}
           `;
         } else {
-          return `<p style="margin: 0 0 32px 0; line-height: 1.9; color: #374151; font-size: 16px;">${paragraph.replace(/\n/g, '<br><br>')}</p>`;
+          return `<p style="margin: 0 0 32px 0; line-height: 1.4; color: #374151; font-size: 16px;">${paragraph.replace(/\n/g, '<br><br>')}</p>`;
         }
       }).join('');
     };
@@ -184,7 +184,7 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'noreply@borafecharai.com',
+        from: 'BoraFecharAI - Proposta <contato@borafecharai.com>',
         to: [recipientEmail],
         subject: emailSubject,
         html: emailHTML
@@ -203,7 +203,7 @@ Deno.serve(async (req) => {
     // Atualizar status da proposta para 'enviada'
     await supabase
       .from('proposals')
-      .update({ 
+      .update({
         status: 'enviada',
         updated_at: new Date().toISOString()
       })
@@ -213,8 +213,8 @@ Deno.serve(async (req) => {
     console.log('Hash público final:', finalPublicHash)
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: 'Email enviado com sucesso',
         publicHash: finalPublicHash,
         publicUrl: finalPublicUrl

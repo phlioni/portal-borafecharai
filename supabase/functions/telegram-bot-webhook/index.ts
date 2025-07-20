@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 // --- CONFIGURAÇÃO INICIAL ---
@@ -51,7 +50,7 @@ async function checkUserPermissions(userId) {
   };
 }
 // --- SERVIDOR PRINCIPAL DO WEBHOOK ---
-serve(async (req)=>{
+serve(async (req) => {
   try {
     const update = await req.json();
     if (update.callback_query) {
@@ -85,8 +84,7 @@ serve(async (req)=>{
               await sendTelegramMessage(chatId, 'Não encontrei nenhuma proposta recente ou ocorreu um erro.');
             } else {
               let proposalList = '<b>Suas 10 últimas propostas:</b>\n\n';
-              for (const p of proposals){
-                // --- LÓGICA DE STATUS E ÍCONE FINAL ---
+              for (const p of proposals) {
                 const statusMap = {
                   rascunho: 'Rascunho',
                   enviada: 'Enviada',
@@ -95,11 +93,11 @@ serve(async (req)=>{
                   rejeitada: 'Rejeitada'
                 };
                 const statusText = statusMap[p.status] || p.status.charAt(0).toUpperCase() + p.status.slice(1);
-                let statusEmoji = ''; // Ícone começa vazio
+                let statusEmoji = '';
                 if (p.status === 'rascunho') {
                   statusEmoji = '📝 ';
                 } else if (p.status === 'enviada') {
-                  statusEmoji = '📧 '; // Novo ícone para e-mail
+                  statusEmoji = '📧 ';
                 }
                 proposalList += `${statusEmoji}<b>${p.title}</b>\n`;
                 proposalList += `<i>Status:</i> ${statusText}\n`;
@@ -133,7 +131,7 @@ serve(async (req)=>{
             summary += `<b>Pagamento:</b> ${proposalData.payment_terms}\n\n`;
             summary += `<b>Itens do Orçamento:</b>\n`;
             let totalValue = 0;
-            proposalData.budget_items.forEach((item)=>{
+            proposalData.budget_items.forEach((item) => {
               const itemTotal = item.quantity * item.unit_price;
               totalValue += itemTotal;
               summary += `  - [${item.type}] ${item.description} (${item.quantity}x R$ ${item.unit_price.toFixed(2)}) = R$ ${itemTotal.toFixed(2)}\n`;
@@ -185,6 +183,8 @@ serve(async (req)=>{
           const validityDays = proposalData.validity_days || 0;
           const validityDate = new Date();
           validityDate.setDate(validityDate.getDate() + validityDays);
+          const { data: userProfile } = await supabase.from('profiles').select('name, phone').eq('user_id', session.user_id).single();
+          const { data: companyProfile } = await supabase.from('user_companies').select('name, email, phone, logo_url').eq('user_id', session.user_id).single();
           const { data: newProposal, error: proposalError } = await supabase.from('proposals').insert({
             title: proposalData.title,
             service_description: proposalData.summary,
@@ -194,13 +194,15 @@ serve(async (req)=>{
             payment_terms: proposalData.payment_terms,
             status: value === 'save' ? 'rascunho' : 'enviada',
             user_id: session.user_id,
-            client_id: clientId
-          }).select().single();
+            client_id: clientId,
+            user_profile: userProfile,
+            company_profile: companyProfile
+          }).select('id, public_hash, title').single();
           if (proposalError) throw new Error(`Erro ao criar proposta: ${proposalError.message}`);
-          const budgetItemsToInsert = proposalData.budget_items.map((item)=>({
-              ...item,
-              proposal_id: newProposal.id
-            }));
+          const budgetItemsToInsert = proposalData.budget_items.map((item) => ({
+            ...item,
+            proposal_id: newProposal.id
+          }));
           const { error: itemsError } = await supabase.from('proposal_budget_items').insert(budgetItemsToInsert);
           if (itemsError) throw new Error(`Erro ao inserir itens: ${itemsError.message}`);
           const proposalUrl = `https://www.borafecharai.com/propostas/${newProposal.id}/visualizar`;
@@ -213,46 +215,17 @@ serve(async (req)=>{
                 public_hash: publicHash
               }).eq('id', newProposal.id);
             }
-            const publicUrl = `https://www.borafecharai.com/proposta/${publicHash}`;
-            const { data: senderProfile } = await supabase.from('profiles').select('name').eq('user_id', session.user_id).single();
-            const { data: companyProfile } = await supabase.from('user_companies').select('name, email, phone').eq('user_id', session.user_id).single();
-            const emailMessageHtml = `
-                    <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
-                      <p style="margin-bottom: 8px;">Olá ${clientData.name},</p>
-                      <p style="margin-top: 8px; margin-bottom: 8px;">Espero que esteja bem!</p>
-                      <p style="margin-top: 8px; margin-bottom: 8px;">Sua proposta para o projeto "<strong>${newProposal.title}</strong>" está finalizada e disponível para visualização.</p>
-                      <p style="margin-top: 8px; margin-bottom: 8px;">Preparamos esta proposta cuidadosamente para atender às suas necessidades específicas. Para acessar todos os detalhes, clique no botão abaixo:</p>
-                      <div style="text-align: center; margin: 24px 0;">
-                        <a href="${publicUrl}" target="_blank" style="background-color: #2563eb; color: white; padding: 12px 24px; text-align: center; text-decoration: none; display: inline-block; border-radius: 8px; font-weight: bold;">
-                          📄 Visualizar Proposta
-                        </a>
-                      </div>
-                      <p style="margin-top: 8px; margin-bottom: 8px;">Fico à disposição para esclarecer qualquer dúvida e discutir os próximos passos.</p>
-                      <p style="margin-top: 8px; margin-bottom: 8px;">Aguardo seu retorno!<br>Atenciosamente,</p>
-                      <br>
-                      <p style="line-height: 1.4;">
-                        <strong>${senderProfile?.name || ''}</strong><br>
-                        ${companyProfile?.name || ''}<br>
-                        📧 ${companyProfile?.email || ''}<br>
-                        📱 ${companyProfile?.phone || ''}
-                      </p>
-                      <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
-                      <div style="font-size: 0.8em; color: #6b7280; text-align: center;">
-                        <p style="margin: 4px 0;">✨ Esta proposta foi criada com</p>
-                        <p style="margin: 4px 0;"><strong>🚀 BoraFecharAI</strong></p>
-                        <p style="margin: 4px 0;">A plataforma que transforma suas propostas em fechamentos</p>
-                        <p style="margin-top: 16px;"><small>Esta é uma mensagem automática. Não responda a este email.</small></p>
-                      </div>
-                    </div>
-                  `;
+            // --- AJUSTE FINAL AQUI ---
+            // Monta o texto simples da proposta para enviar à função de e-mail
+            const emailMessage = `Olá ${clientData.name},\n\nEspero que esteja bem!\n\nSua proposta para o projeto "${newProposal.title}" está finalizada e disponível para visualização.\n\nPreparamos esta proposta cuidadosamente para atender às suas necessidades específicas. Para acessar todos os detalhes, clique no botão abaixo:\n\n[LINK_DA_PROPOSTA]\n\n\nFico à disposição para esclarecer qualquer dúvida e discutir os próximos passos.\n\nAguardo seu retorno!\nAtenciosamente,\n\n${userProfile?.name || ''}\n${companyProfile?.name || ''}\n${companyProfile?.email || ''}\n${companyProfile?.phone || ''}`;
+            // Invoca a função de e-mail com o payload completo que ela espera
             const { error: emailError } = await supabase.functions.invoke('send-proposal-email', {
               body: {
                 proposalId: newProposal.id,
                 recipientEmail: clientData.email,
                 recipientName: clientData.name,
                 emailSubject: `Sua proposta para o projeto "${newProposal.title}" está pronta!`,
-                emailMessage: emailMessageHtml,
-                publicUrl: publicUrl
+                emailMessage: emailMessage
               }
             });
             if (emailError) throw new Error(`Erro ao invocar função de email: ${emailError.message}`);
@@ -315,7 +288,7 @@ serve(async (req)=>{
       if (!session) {
         return new Response('OK');
       }
-      switch(session.step){
+      switch (session.step) {
         case 'awaiting_email':
           const email = text?.toLowerCase().trim();
           if (!email || !email.includes('@')) {
@@ -365,7 +338,7 @@ serve(async (req)=>{
           await sendTelegramMessage(chatId, 'Ótimo! Agora, informe os dados do cliente:\n\n<code>Nome Completo, email, telefone</code>');
           break;
         case 'awaiting_client_info':
-          const clientInfo = text.split(',').map((item)=>item.trim());
+          const clientInfo = text.split(',').map((item) => item.trim());
           if (clientInfo.length < 2) {
             await sendTelegramMessage(chatId, '❌ Formato inválido. Envie pelo menos nome e e-mail.');
             break;
@@ -425,7 +398,7 @@ serve(async (req)=>{
           await sendTelegramMessage(chatId, 'Para finalizar, adicione os itens do orçamento no formato:\n\n<code>Tipo, Descrição, Quantidade, Valor Unitário</code>\n\n<b>IMPORTANTE:</b> O "Tipo" deve ser <b>Material</b> ou <b>Mão de Obra</b>.');
           break;
         case 'awaiting_budget_item':
-          const parts = text.split(',').map((p)=>p.trim());
+          const parts = text.split(',').map((p) => p.trim());
           if (parts.length !== 4) {
             await sendTelegramMessage(chatId, '❌ Formato inválido. Tente novamente: <code>Tipo, Descrição, Qtd, Valor</code>');
             break;
