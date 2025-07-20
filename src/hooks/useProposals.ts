@@ -19,6 +19,7 @@ export interface Proposal {
   public_hash?: string;
   template_id?: string;
   views?: number;
+  proposal_number?: string;
   clients?: {
     id: string;
     name: string;

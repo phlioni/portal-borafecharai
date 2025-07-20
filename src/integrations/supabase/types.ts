@@ -344,6 +344,30 @@ export type Database = {
           },
         ]
       }
+      proposal_sequences: {
+        Row: {
+          created_at: string
+          id: string
+          next_sequence: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          next_sequence?: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          next_sequence?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
       proposals: {
         Row: {
           client_id: string | null
@@ -354,6 +378,7 @@ export type Database = {
           last_viewed_at: string | null
           observations: string | null
           payment_terms: string | null
+          proposal_number: string | null
           public_hash: string | null
           service_description: string | null
           status: string | null
@@ -374,6 +399,7 @@ export type Database = {
           last_viewed_at?: string | null
           observations?: string | null
           payment_terms?: string | null
+          proposal_number?: string | null
           public_hash?: string | null
           service_description?: string | null
           status?: string | null
@@ -394,6 +420,7 @@ export type Database = {
           last_viewed_at?: string | null
           observations?: string | null
           payment_terms?: string | null
+          proposal_number?: string | null
           public_hash?: string | null
           service_description?: string | null
           status?: string | null
@@ -736,6 +763,10 @@ export type Database = {
       cleanup_expired_telegram_sessions: {
         Args: Record<PropertyKey, never>
         Returns: number
+      }
+      generate_proposal_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       get_business_types_by_segment: {
         Args: { segment_id: string }
