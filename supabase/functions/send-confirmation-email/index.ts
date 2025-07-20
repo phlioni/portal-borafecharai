@@ -38,7 +38,7 @@ serve(async (req) => {
     console.log('User email:', user.email);
 
     const emailPayload = {
-      from: 'BoraFecharAI - Propostas Inteligentes <noreply@borafecharai.com>',
+      from: 'BoraFecharAI - Propostas Inteligentes <contato@borafecharai.com>',
       to: [user.email],
       subject: '🚀 Confirme seu cadastro e comece a criar propostas que vendem!',
       html: `
@@ -277,7 +277,7 @@ serve(async (req) => {
 
               <div style="text-align: center; margin: 30px 0;">
                 <p style="color: #64748b; font-size: 14px; margin: 0;">
-                  💡 <strong>Dica:</strong> Adicione <strong>noreply@borafecharai.com</strong> aos seus contatos para não perder nenhuma atualização importante!
+                  💡 <strong>Dica:</strong> Adicione <strong>contato@borafecharai.com</strong> aos seus contatos para não perder nenhuma atualização importante!
                 </p>
               </div>
             </div>

@@ -124,18 +124,18 @@ const SendProposalModal = ({
   // Função melhorada para gerar preview do email com melhor espaçamento
   const generatePreviewMessage = () => {
     const paragraphs = formData.emailMessage.split('\n\n').filter(p => p.trim());
-    
+
     const htmlContent = paragraphs.map(paragraph => {
       if (paragraph.includes('[LINK_DA_PROPOSTA]')) {
         const beforeButton = paragraph.split('[LINK_DA_PROPOSTA]')[0];
         const afterButton = paragraph.split('[LINK_DA_PROPOSTA]')[1];
-        
+
         return `
-          ${beforeButton ? `<p style="margin: 0 0 30px 0; line-height: 1.8; color: #374151; font-size: 16px;">${beforeButton.replace(/\n/g, '<br><br>')}</p>` : ''}
-          <div style="text-align: center; margin: 40px 0;">
+          ${beforeButton ? `<p style="margin: 0 0 10px 0; line-height: 1.6; color: #374151; font-size: 16px;">${beforeButton.replace(/\n/g, '<br><br>')}</p>` : ''}
+          <div style="text-align: center; margin: 5px 0;">
             <div style="display: inline-block; 
                         background-color: #2563eb; 
-                        color: #ffffff; 
+                        color: #ffffff !important; 
                         padding: 16px 32px; 
                         border-radius: 8px; 
                         font-weight: 600; 
@@ -144,10 +144,10 @@ const SendProposalModal = ({
               📄 Visualizar Proposta
             </div>
           </div>
-          ${afterButton ? `<p style="margin: 30px 0 0 0; line-height: 1.8; color: #374151; font-size: 16px;">${afterButton.replace(/\n/g, '<br><br>')}</p>` : ''}
+          ${afterButton ? `<p style="margin: 5px 0 30px 0; color: #374151; font-size: 16px;">${afterButton.replace(/\n/g, '<br><br>')}</p>` : ''}
         `;
       } else {
-        return `<p style="margin: 0 0 30px 0; line-height: 1.8; color: #374151; font-size: 16px;">${paragraph.replace(/\n/g, '<br><br>')}</p>`;
+        return `<p style="margin: 0 0 30px 0; line-height: 1.1; color: #374151; font-size: 16px;">${paragraph.replace(/\n/g, '<br><br>')}</p>`;
       }
     }).join('');
 

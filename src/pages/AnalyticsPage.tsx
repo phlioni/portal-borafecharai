@@ -44,37 +44,37 @@ const AnalyticsPage = () => {
   const { canAccessAnalytics, loading: permissionsLoading } = useUserPermissions();
 
   if (permissionsLoading || proposalsLoading || companiesLoading) {
-    return <ModernLoader message="Carregando analytics..." fullScreen />;
+    return <ModernLoader message="Atualizando analytics..." fullScreen />;
   }
 
   // Se não tem permissão para acessar analytics
-  if (!canAccessAnalytics) {
-    return (
-      <div className="p-6 space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
-          <p className="text-gray-600 mt-1">Análise detalhada das suas propostas e performance</p>
-        </div>
+  // if (!canAccessAnalytics) {
+  //   return (
+  //     <div className="p-6 space-y-6">
+  //       <div>
+  //         <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
+  //         <p className="text-gray-600 mt-1">Análise detalhada das suas propostas e performance</p>
+  //       </div>
 
-        <Card className="border-dashed border-2 border-muted-foreground/25">
-          <CardHeader className="text-center pb-4">
-            <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-              <Lock className="w-6 h-6 text-muted-foreground" />
-            </div>
-            <CardTitle className="text-lg">Analytics Disponível no Plano Professional</CardTitle>
-            <CardDescription>Acesse relatórios detalhados e insights sobre suas propostas.</CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <Link to="/planos">
-              <Button variant="outline" className="w-full">
-                Upgrade para Professional
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  //       <Card className="border-dashed border-2 border-muted-foreground/25">
+  //         <CardHeader className="text-center pb-4">
+  //           <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+  //             <Lock className="w-6 h-6 text-muted-foreground" />
+  //           </div>
+  //           <CardTitle className="text-lg">Analytics Disponível no Plano Professional</CardTitle>
+  //           <CardDescription>Acesse relatórios detalhados e insights sobre suas propostas.</CardDescription>
+  //         </CardHeader>
+  //         <CardContent className="text-center">
+  //           <Link to="/planos">
+  //             <Button variant="outline" className="w-full">
+  //               Upgrade para Professional
+  //             </Button>
+  //           </Link>
+  //         </CardContent>
+  //       </Card>
+  //     </div>
+  //   );
+  // }
 
   // Calcular estatísticas
   const totalProposals = proposals?.length || 0;
