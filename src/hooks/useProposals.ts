@@ -1,4 +1,3 @@
-
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -34,6 +33,27 @@ export interface Proposal {
     unit_price: number;
     total_price?: number;
   }>;
+  companies?: {
+    id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+    logo_url?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    zip_code?: string;
+    cnpj?: string;
+    website?: string;
+    business_segment?: string;
+    business_type_detail?: string;
+  };
+  user_profile?: {
+    id: string;
+    name?: string;
+    phone?: string;
+    avatar_url?: string;
+  };
 }
 
 export const useProposals = () => {
@@ -288,7 +308,37 @@ export const useProposal = (id?: string) => {
         .single();
 
       if (error) throw error;
-      return data as Proposal;
+
+      // Buscar informações da empresa do usuário
+      const { data: companyData, error: companyError } = await supabase
+        .from('user_companies')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (companyError) {
+        console.error('Erro ao buscar empresa:', companyError);
+      }
+
+      // Buscar informações do perfil do usuário
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error('Erro ao buscar perfil:', profileError);
+      }
+
+      // Compor a proposta completa com as informações adicionais
+      const completeProposal = {
+        ...data,
+        companies: companyData,
+        user_profile: profileData
+      } as Proposal;
+
+      return completeProposal;
     },
   });
 };
