@@ -45,9 +45,9 @@ const StandardProposalTemplate = ({ proposal, companyLogo, className = '' }: Sta
       <div className="flex justify-between items-start mb-8">
         <div className="flex-1">
           {logoUrl && (
-            <img 
-              src={logoUrl} 
-              alt="Logo da empresa" 
+            <img
+              src={logoUrl}
+              alt="Logo da empresa"
               className="h-16 w-auto mb-4"
             />
           )}
@@ -182,7 +182,15 @@ const StandardProposalTemplate = ({ proposal, companyLogo, className = '' }: Sta
         </div>
       )}
 
-      {/* Observations */}
+      {/* Delivery Time */}
+      {proposal?.payment_terms && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">Forma de Pagamento</h3>
+          <p className="text-gray-700">{proposal.payment_terms}</p>
+        </div>
+      )}
+
+      {/* Payment Terms */}
       {proposal?.observations && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-3">Observações</h3>
