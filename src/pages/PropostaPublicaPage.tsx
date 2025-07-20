@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import ProposalTemplateRenderer from '@/components/ProposalTemplateRenderer';
+import StandardProposalTemplate from '@/components/StandardProposalTemplate';
 import { Check, X, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -285,11 +285,11 @@ const PropostaPublicaPage = () => {
         </div>
       </div>
 
-      {/* Conteúdo da Proposta - Ajustado padding para mobile */}
+      {/* Conteúdo da Proposta - Usando StandardProposalTemplate */}
       <div className="pt-32 sm:pt-24 pb-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div className="bg-white rounded-lg shadow-sm">
-            <ProposalTemplateRenderer 
+            <StandardProposalTemplate 
               proposal={proposal} 
               companyLogo={proposal.user_companies?.logo_url || ""} 
             />
