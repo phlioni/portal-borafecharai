@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -20,7 +21,7 @@ const PropostaPublicaPage = () => {
       
       console.log('Buscando proposta com hash:', hash);
       
-      // Buscar pelo public_hash primeiro com joins completos
+      // Buscar proposta com todos os dados necessários (igual ao preview)
       const { data: proposalData, error: proposalError } = await supabase
         .from('proposals')
         .select(`
@@ -50,15 +51,15 @@ const PropostaPublicaPage = () => {
 
       console.log('Proposta encontrada por hash:', proposalData);
       
-      // Buscar dados adicionais da empresa do usuário que criou a proposta
-      const { data: userCompany, error: companyError } = await supabase
-        .from('companies')
+      // Buscar informações da empresa do usuário na tabela user_companies
+      const { data: userCompanyData, error: userCompanyError } = await supabase
+        .from('user_companies')
         .select('*')
         .eq('user_id', proposalData.user_id)
-        .single();
+        .maybeSingle();
         
-      if (companyError) {
-        console.error('Erro ao buscar empresa:', companyError);
+      if (userCompanyError) {
+        console.error('Erro ao buscar empresa do usuário:', userCompanyError);
       }
       
       // Buscar dados do perfil do usuário
@@ -88,7 +89,7 @@ const PropostaPublicaPage = () => {
       // Retornar dados completos incluindo empresa e perfil
       return {
         ...proposalData,
-        companies: userCompany,
+        user_companies: userCompanyData,
         user_profile: userProfile
       };
     },
@@ -210,45 +211,47 @@ const PropostaPublicaPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Ações Fixas */}
+      {/* Ações Fixas - Ajustado para mobile */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <div className="flex-1 min-w-0">
-              <h2 className="font-semibold text-gray-900 truncate">
+              <h2 className="font-semibold text-gray-900 truncate text-sm sm:text-base">
                 {proposal.title}
               </h2>
-              <p className="text-sm text-gray-600 truncate">
+              <p className="text-xs sm:text-sm text-gray-600 truncate">
                 Para: {proposal.clients?.name}
               </p>
               {proposal.status !== 'enviada' && (
-                <div className="mt-2">
+                <div className="mt-1 sm:mt-2">
                   {proposal.status === 'aceita' && (
-                    <div className="flex items-center gap-2 text-green-700">
-                      <Check className="h-4 w-4" />
-                      <span className="text-sm font-medium">Proposta Aceita</span>
+                    <div className="flex items-center gap-1 sm:gap-2 text-green-700">
+                      <Check className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span className="text-xs sm:text-sm font-medium">Proposta Aceita</span>
                     </div>
                   )}
                   {proposal.status === 'perdida' && (
-                    <div className="flex items-center gap-2 text-red-700">
-                      <X className="h-4 w-4" />
-                      <span className="text-sm font-medium">Proposta Rejeitada</span>
+                    <div className="flex items-center gap-1 sm:gap-2 text-red-700">
+                      <X className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span className="text-xs sm:text-sm font-medium">Proposta Rejeitada</span>
                     </div>
                   )}
                 </div>
               )}
             </div>
             
-            {/* Botões de Ação */}
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            {/* Botões de Ação - Melhorados para mobile */}
+            <div className="flex flex-col gap-2 sm:flex-row sm:gap-2 w-full sm:w-auto">
               {/* Botão de Download sempre visível */}
               <Button
                 variant="outline"
                 onClick={handleDownloadPDF}
-                className="flex items-center justify-center gap-2 w-full sm:w-auto"
+                className="flex items-center justify-center gap-2 h-9 text-xs sm:text-sm px-3 sm:px-4"
+                size="sm"
               >
-                <Download className="h-4 w-4" />
-                Baixar PDF
+                <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Baixar PDF</span>
+                <span className="xs:hidden">PDF</span>
               </Button>
 
               {/* Botões de aceitar/rejeitar apenas se a proposta estiver enviada */}
@@ -258,18 +261,22 @@ const PropostaPublicaPage = () => {
                     variant="outline"
                     onClick={handleRejectProposal}
                     disabled={isRejecting}
-                    className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50 w-full sm:w-auto"
+                    className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50 h-9 text-xs sm:text-sm px-3 sm:px-4"
+                    size="sm"
                   >
-                    <X className="h-4 w-4 mr-2" />
-                    {isRejecting ? 'Rejeitando...' : 'Rejeitar'}
+                    <X className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    <span className="hidden xs:inline">{isRejecting ? 'Rejeitando...' : 'Rejeitar'}</span>
+                    <span className="xs:hidden">✗</span>
                   </Button>
                   <Button
                     onClick={handleAcceptProposal}
                     disabled={isAccepting}
-                    className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
+                    className="bg-green-600 hover:bg-green-700 h-9 text-xs sm:text-sm px-3 sm:px-4"
+                    size="sm"
                   >
-                    <Check className="h-4 w-4 mr-2" />
-                    {isAccepting ? 'Aceitando...' : 'Aceitar Proposta'}
+                    <Check className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    <span className="hidden xs:inline">{isAccepting ? 'Aceitando...' : 'Aceitar Proposta'}</span>
+                    <span className="xs:hidden">✓</span>
                   </Button>
                 </>
               )}
@@ -278,13 +285,13 @@ const PropostaPublicaPage = () => {
         </div>
       </div>
 
-      {/* Conteúdo da Proposta */}
-      <div className="pt-24 sm:pt-20 pb-8">
+      {/* Conteúdo da Proposta - Ajustado padding para mobile */}
+      <div className="pt-32 sm:pt-24 pb-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div className="bg-white rounded-lg shadow-sm">
             <ProposalTemplateRenderer 
               proposal={proposal} 
-              companyLogo={proposal.companies?.logo_url || ""} 
+              companyLogo={proposal.user_companies?.logo_url || ""} 
             />
           </div>
         </div>
