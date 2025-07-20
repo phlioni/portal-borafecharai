@@ -190,10 +190,10 @@ const ProfileTab = () => {
         </CardContent>
       </Card>
 
-      <BonusCelebration
+      {/* <BonusCelebration
         show={showCelebration}
         onComplete={handleCelebrationComplete}
-      />
+      /> */}
     </>
   );
 };

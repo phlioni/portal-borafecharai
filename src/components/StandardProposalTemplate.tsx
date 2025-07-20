@@ -1,255 +1,202 @@
 
 import React from 'react';
-import { useBudgetItems } from '@/hooks/useBudgetItems';
-
-interface ProposalData {
-  id: string;
-  title: string;
-  companies?: {
-    name: string;
-    email?: string;
-    phone?: string;
-    logo_url?: string;
-  };
-  clients?: {
-    name: string;
-    email?: string;
-    phone?: string;
-  };
-  user_profile?: {
-    name?: string;
-    phone?: string;
-  };
-  value?: number;
-  delivery_time?: string;
-  service_description?: string;
-  detailed_description?: string;
-  observations?: string;
-  validity_date?: string;
-  created_at: string;
-  proposal_budget_items?: any[];
-  user_id?: string;
-}
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface StandardProposalTemplateProps {
-  proposal: ProposalData;
-  className?: string;
+  proposal: any;
   companyLogo?: string;
+  className?: string;
 }
 
-const StandardProposalTemplate = ({ proposal, className = "", companyLogo }: StandardProposalTemplateProps) => {
-  
-  // Usar hook apenas se não temos dados diretos da proposta e se temos user_id
-  const { data: hookBudgetItems = [] } = useBudgetItems(
-    proposal.id && proposal.id !== 'temp-id' && proposal.user_id ? proposal.id : ''
-  );
+const StandardProposalTemplate = ({ proposal, companyLogo, className = '' }: StandardProposalTemplateProps) => {
+  console.log('StandardProposalTemplate - Dados da proposta:', proposal);
 
-  // Usar dados diretos da proposta ou do hook
-  const budgetItems = proposal.proposal_budget_items && proposal.proposal_budget_items.length > 0 
-    ? proposal.proposal_budget_items 
-    : hookBudgetItems;
-
-  const formatCurrency = (value?: number) => {
-    if (!value && value !== 0) return 'R$ 0,00';
-    return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
   };
 
-  const getCurrentDate = () => {
-    return new Date().toLocaleDateString('pt-BR');
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), 'dd/MM/yyyy', { locale: ptBR });
+    } catch {
+      return dateString;
+    }
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'Não informado';
-    return new Date(dateString).toLocaleDateString('pt-BR');
+  const calculateTotal = () => {
+    if (proposal?.proposal_budget_items?.length) {
+      return proposal.proposal_budget_items.reduce((total: number, item: any) => {
+        return total + (item.total_price || (item.quantity * item.unit_price));
+      }, 0);
+    }
+    return proposal?.value || 0;
   };
 
-  const getProposalNumber = () => {
-    const shortId = proposal.id.slice(-6).toUpperCase();
-    return `016-${shortId}`;
-  };
-
-  // Separar itens por tipo
-  const services = budgetItems.filter(item => item.type === 'labor');
-  const materials = budgetItems.filter(item => item.type === 'material');
-  
-  const servicesTotal = services.reduce((total, item) => total + (item.total_price || 0), 0);
-  const materialsTotal = materials.reduce((total, item) => total + (item.total_price || 0), 0);
-  const grandTotal = servicesTotal + materialsTotal;
-
-  // Usar logo passada como prop ou da empresa
-  const logoToUse = companyLogo || proposal.companies?.logo_url;
-
-  console.log('Dados da empresa na proposta:', {
-    companies: proposal.companies,
-    logoToUse,
-    companyName: proposal.companies?.name
-  });
+  // Usar a logo da empresa do usuário se disponível
+  const logoUrl = proposal?.user_companies?.logo_url || proposal?.companies?.logo_url || companyLogo;
 
   return (
-    <div className={`bg-white p-8 max-w-4xl mx-auto font-sans text-gray-800 ${className}`}>
-      {/* Cabeçalho da Empresa */}
-      <div className="mb-8">
-        <div className="flex justify-between items-start">
+    <div className={`bg-white p-8 ${className}`}>
+      {/* Header */}
+      <div className="flex justify-between items-start mb-8">
+        <div className="flex-1">
+          {logoUrl && (
+            <img 
+              src={logoUrl} 
+              alt="Logo da empresa" 
+              className="h-16 w-auto mb-4"
+            />
+          )}
           <div>
-            {logoToUse && (
-              <img 
-                src={logoToUse} 
-                alt="Logo da Empresa" 
-                className="h-16 w-auto object-contain mb-4" 
-              />
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">PROPOSTA COMERCIAL</h1>
+            {proposal?.proposal_number && (
+              <p className="text-lg text-gray-600 font-medium">Nº {proposal.proposal_number}</p>
             )}
-            <h1 className="text-xl font-bold text-gray-900 mb-1">
-              {proposal.companies?.name || 'Nome da Empresa'}
-            </h1>
-            <div className="text-sm text-gray-600 space-y-1">
-              <p><strong>Responsável:</strong> {proposal.user_profile?.name || 'Responsável'}</p>
-              <p><strong>E-mail:</strong> {proposal.companies?.email || 'email@empresa.com'}</p>
-              <p><strong>Telefone:</strong> {proposal.companies?.phone || proposal.user_profile?.phone || 'Telefone não informado'}</p>
-            </div>
-          </div>
-          <div className="text-right text-sm">
-            <p>📅 {getCurrentDate()}</p>
           </div>
         </div>
-      </div>
-
-      {/* Número do Orçamento */}
-      <div className="mb-6 bg-gray-100 p-4">
-        <h2 className="text-lg font-bold">Orçamento {getProposalNumber()}</h2>
-      </div>
-
-      {/* Cliente */}
-      <div className="mb-6">
-        <h3 className="font-bold mb-2">Cliente: {proposal.clients?.name || 'Nome do Cliente'}</h3>
-      </div>
-
-      {/* Serviços */}
-      {services.length > 0 && (
-        <div className="mb-6">
-          <h3 className="font-bold mb-3 bg-gray-100 p-2">Serviços</h3>
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left py-2">Descrição</th>
-                <th className="text-center py-2">Unidade</th>
-                <th className="text-center py-2">Preço unitário</th>
-                <th className="text-center py-2">Qtd.</th>
-                <th className="text-right py-2">Preço</th>
-              </tr>
-            </thead>
-            <tbody>
-              {services.map((item, index) => (
-                <tr key={index} className="border-b">
-                  <td className="py-2">{item.description}</td>
-                  <td className="text-center py-2">unidade</td>
-                  <td className="text-center py-2">{formatCurrency(item.unit_price)}</td>
-                  <td className="text-center py-2">{item.quantity}</td>
-                  <td className="text-right py-2">{formatCurrency(item.total_price)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Materiais */}
-      {materials.length > 0 && (
-        <div className="mb-6">
-          <h3 className="font-bold mb-3 bg-gray-100 p-2">Materiais</h3>
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left py-2">Descrição</th>
-                <th className="text-center py-2">Unidade</th>
-                <th className="text-center py-2">Preço unitário</th>
-                <th className="text-center py-2">Qtd.</th>
-                <th className="text-right py-2">Preço</th>
-              </tr>
-            </thead>
-            <tbody>
-              {materials.map((item, index) => (
-                <tr key={index} className="border-b">
-                  <td className="py-2">{item.description}</td>
-                  <td className="text-center py-2">unidade</td>
-                  <td className="text-center py-2">{formatCurrency(item.unit_price)}</td>
-                  <td className="text-center py-2">{item.quantity}</td>
-                  <td className="text-right py-2">{formatCurrency(item.total_price)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Totais */}
-      {budgetItems.length > 0 && (
-        <div className="mb-6 text-right">
-          <div className="space-y-1">
-            <p>Serviços: {formatCurrency(servicesTotal)}</p>
-            <p>Materiais: {formatCurrency(materialsTotal)}</p>
-            <p className="font-bold text-lg">Total: {formatCurrency(grandTotal)}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Informações Adicionais da Proposta */}
-      <div className="mb-6 space-y-4">
-        {/* Resumo do Serviço */}
-        {proposal.service_description && (
-          <div>
-            <h3 className="font-bold mb-2 bg-gray-100 p-2">Resumo do Serviço</h3>
-            <p className="text-sm leading-relaxed">{proposal.service_description}</p>
-          </div>
-        )}
-
-        {/* Descrição Detalhada */}
-        {proposal.detailed_description && (
-          <div>
-            <h3 className="font-bold mb-2 bg-gray-100 p-2">Descrição Detalhada</h3>
-            <div className="text-sm leading-relaxed whitespace-pre-wrap">{proposal.detailed_description}</div>
-          </div>
-        )}
-
-        {/* Prazo e Validade */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {proposal.delivery_time && (
-            <div>
-              <h4 className="font-bold mb-1">Prazo de Entrega</h4>
-              <p className="text-sm">{proposal.delivery_time}</p>
-            </div>
-          )}
-          
-          {proposal.validity_date && (
-            <div>
-              <h4 className="font-bold mb-1">Validade da Proposta</h4>
-              <p className="text-sm">{formatDate(proposal.validity_date)}</p>
-            </div>
+        <div className="text-right">
+          <p className="text-sm text-gray-600">Data: {formatDate(proposal?.created_at || new Date().toISOString())}</p>
+          {proposal?.validity_date && (
+            <p className="text-sm text-gray-600">Validade: {formatDate(proposal.validity_date)}</p>
           )}
         </div>
+      </div>
 
-        {/* Observações */}
-        {proposal.observations && (
-          <div>
-            <h3 className="font-bold mb-2 bg-gray-100 p-2">Observações</h3>
-            <div className="text-sm leading-relaxed whitespace-pre-wrap">{proposal.observations}</div>
+      {/* Company Info */}
+      {(proposal?.user_companies || proposal?.companies || proposal?.user_profile) && (
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Dados da Empresa</h2>
+          <div className="bg-gray-50 p-4 rounded-lg">
+            {(proposal?.user_companies || proposal?.companies) && (
+              <div>
+                <p className="font-semibold">{(proposal?.user_companies || proposal?.companies)?.name}</p>
+                {(proposal?.user_companies || proposal?.companies)?.email && <p>Email: {(proposal?.user_companies || proposal?.companies)?.email}</p>}
+                {(proposal?.user_companies || proposal?.companies)?.phone && <p>Telefone: {(proposal?.user_companies || proposal?.companies)?.phone}</p>}
+                {(proposal?.user_companies || proposal?.companies)?.address && (
+                  <p>Endereço: {(proposal?.user_companies || proposal?.companies)?.address}{(proposal?.user_companies || proposal?.companies)?.city && `, ${(proposal?.user_companies || proposal?.companies)?.city}`}{(proposal?.user_companies || proposal?.companies)?.state && ` - ${(proposal?.user_companies || proposal?.companies)?.state}`}</p>
+                )}
+                {(proposal?.user_companies || proposal?.companies)?.cnpj && <p>CNPJ: {(proposal?.user_companies || proposal?.companies)?.cnpj}</p>}
+              </div>
+            )}
+            {proposal?.user_profile && !(proposal?.user_companies || proposal?.companies) && (
+              <div>
+                <p className="font-semibold">{proposal.user_profile.name}</p>
+                {proposal.user_profile.phone && <p>Telefone: {proposal.user_profile.phone}</p>}
+              </div>
+            )}
           </div>
-        )}
+        </div>
+      )}
+
+      {/* Client Info */}
+      {proposal?.clients && (
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Cliente</h2>
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <p className="font-semibold">{proposal.clients.name}</p>
+            {proposal.clients.email && <p>Email: {proposal.clients.email}</p>}
+            {proposal.clients.phone && <p>Telefone: {proposal.clients.phone}</p>}
+          </div>
+        </div>
+      )}
+
+      {/* Proposal Title */}
+      <div className="mb-8">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">{proposal?.title}</h2>
       </div>
 
-      {/* Pagamento */}
-      <div className="mb-6">
-        <h3 className="font-bold mb-2 bg-gray-100 p-2">Forma de Pagamento</h3>
-        <div className="text-sm">
-          <p>Boleto, transferência bancária, dinheiro, cheque, cartão de crédito ou cartão de débito.</p>
+      {/* Service Description */}
+      {proposal?.service_description && (
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">Resumo do Serviço</h3>
+          <p className="text-gray-700 leading-relaxed">{proposal.service_description}</p>
         </div>
-      </div>
+      )}
+
+      {/* Detailed Description */}
+      {proposal?.detailed_description && (
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">Descrição Detalhada</h3>
+          <div className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+            {proposal.detailed_description}
+          </div>
+        </div>
+      )}
+
+      {/* Budget Items */}
+      {proposal?.proposal_budget_items && proposal.proposal_budget_items.length > 0 && (
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Itens do Orçamento</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse border border-gray-300">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border border-gray-300 p-3 text-left">Tipo</th>
+                  <th className="border border-gray-300 p-3 text-left">Descrição</th>
+                  <th className="border border-gray-300 p-3 text-center">Qtd</th>
+                  <th className="border border-gray-300 p-3 text-right">Valor Unit.</th>
+                  <th className="border border-gray-300 p-3 text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {proposal.proposal_budget_items.map((item: any, index: number) => (
+                  <tr key={index}>
+                    <td className="border border-gray-300 p-3">{item.type}</td>
+                    <td className="border border-gray-300 p-3">{item.description}</td>
+                    <td className="border border-gray-300 p-3 text-center">{item.quantity}</td>
+                    <td className="border border-gray-300 p-3 text-right">{formatCurrency(item.unit_price)}</td>
+                    <td className="border border-gray-300 p-3 text-right">{formatCurrency(item.total_price || (item.quantity * item.unit_price))}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="bg-gray-100 font-semibold">
+                  <td colSpan={4} className="border border-gray-300 p-3 text-right">Total Geral:</td>
+                  <td className="border border-gray-300 p-3 text-right">{formatCurrency(calculateTotal())}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Value (if no budget items) */}
+      {(!proposal?.proposal_budget_items || proposal.proposal_budget_items.length === 0) && proposal?.value && (
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">Valor</h3>
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <p className="text-2xl font-bold text-blue-900">{formatCurrency(proposal.value)}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Delivery Time */}
+      {proposal?.delivery_time && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">Prazo de Entrega</h3>
+          <p className="text-gray-700">{proposal.delivery_time}</p>
+        </div>
+      )}
+
+      {/* Observations */}
+      {proposal?.observations && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">Observações</h3>
+          <div className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+            {proposal.observations}
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
-      <div className="text-center pt-6 mt-8 border-t border-gray-300">
-        <div className="mt-8 pt-4 border-t border-gray-200">
-          <p className="font-bold">{proposal.companies?.name || 'Nome da Empresa'}</p>
-          <p className="text-sm">{proposal.user_profile?.name || 'Responsável'}</p>
-        </div>
+      <div className="mt-12 pt-8 border-t border-gray-200">
+        <p className="text-center text-gray-600">
+          Esta proposta é válida por {proposal?.validity_date ? `até ${formatDate(proposal.validity_date)}` : '30 dias'}.
+        </p>
       </div>
     </div>
   );

@@ -38,26 +38,10 @@ Deno.serve(async (req) => {
       emailSubject 
     })
 
-    // Buscar proposta com cliente
+    // Buscar proposta básica para garantir hash público
     const { data: proposal, error: proposalError } = await supabase
       .from('proposals')
-      .select(`
-        *,
-        clients (
-          id,
-          name,
-          email,
-          phone
-        ),
-        proposal_budget_items (
-          id,
-          description,
-          quantity,
-          unit_price,
-          total_price,
-          type
-        )
-      `)
+      .select('id, public_hash, user_id')
       .eq('id', proposalId)
       .single()
 
@@ -73,14 +57,12 @@ Deno.serve(async (req) => {
     let finalPublicHash = proposal.public_hash
     if (!finalPublicHash || finalPublicHash.length < 16) {
       console.log('Gerando novo hash público para a proposta')
-      // Gerar hash mais robusto usando crypto
       const encoder = new TextEncoder()
       const data = encoder.encode(`${proposalId}-${Date.now()}-${Math.random()}`)
       const hashBuffer = await crypto.subtle.digest('SHA-256', data)
       const hashArray = Array.from(new Uint8Array(hashBuffer))
       finalPublicHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32)
       
-      // Atualizar proposta com o novo hash
       const { error: updateError } = await supabase
         .from('proposals')
         .update({ 
@@ -98,31 +80,15 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Construir URL pública correta
     const finalPublicUrl = `https://www.borafecharai.com/proposta/${finalPublicHash}`
     console.log('URL final da proposta:', finalPublicUrl)
 
-    // Buscar dados da empresa do usuário
-    const { data: userCompany } = await supabase
-      .from('companies')
-      .select('*')
-      .eq('user_id', proposal.user_id)
-      .single()
-
-    // Calcular valor total da proposta
-    const totalValue = proposal.proposal_budget_items?.reduce((total: number, item: any) => {
-      return total + (item.quantity * item.unit_price)
-    }, 0) || proposal.value || 0
-
-    // Gerar HTML bem formatado com o botão e melhor espaçamento
-    const generateEmailHTML = (message: string, proposalUrl: string) => {
-      // Converter quebras de linha em parágrafos com melhor espaçamento
+    // Processar template de e-mail apenas com mensagem simples
+    const processEmailMessage = (message: string, proposalUrl: string) => {
       const paragraphs = message.split('\n\n').filter(p => p.trim());
       
-      // Processar cada parágrafo com espaçamento aumentado
-      const htmlContent = paragraphs.map(paragraph => {
+      return paragraphs.map(paragraph => {
         if (paragraph.includes('[LINK_DA_PROPOSTA]')) {
-          // Substituir o placeholder pelo botão
           const beforeButton = paragraph.split('[LINK_DA_PROPOSTA]')[0];
           const afterButton = paragraph.split('[LINK_DA_PROPOSTA]')[1];
           
@@ -147,10 +113,14 @@ Deno.serve(async (req) => {
             ${afterButton ? `<p style="margin: 32px 0 0 0; line-height: 1.9; color: #374151; font-size: 16px;">${afterButton.replace(/\n/g, '<br><br>')}</p>` : ''}
           `;
         } else {
-          // Parágrafo normal com melhor espaçamento
           return `<p style="margin: 0 0 32px 0; line-height: 1.9; color: #374151; font-size: 16px;">${paragraph.replace(/\n/g, '<br><br>')}</p>`;
         }
       }).join('');
+    };
+
+    // Gerar HTML do email apenas com mensagem simples
+    const generateEmailHTML = (message: string, proposalUrl: string) => {
+      const processedMessage = processEmailMessage(message, proposalUrl);
 
       return `
         <!DOCTYPE html>
@@ -168,15 +138,10 @@ Deno.serve(async (req) => {
               </h1>
             </div>
             <div style="padding: 40px;">
-              ${htmlContent}
-              
-              <!-- Separador elegante -->
-              <div style="margin: 60px 0 40px 0; text-align: center;">
-                <div style="height: 1px; background: linear-gradient(to right, transparent, #e5e7eb, transparent);"></div>
-              </div>
+              ${processedMessage}
               
               <!-- Footer BoraFecharAI -->
-              <div style="text-align: center; padding: 32px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 8px; border: 1px solid #e2e8f0;">
+              <div style="text-align: center; padding: 32px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 40px;">
                 <p style="margin: 0 0 16px 0; color: #64748b; font-size: 14px; font-weight: 500;">
                   ✨ Esta proposta foi criada com
                 </p>
