@@ -12,7 +12,7 @@ const ProposalTemplateRenderer = ({ proposal, companyLogo }: ProposalTemplateRen
 
   // Usar sempre o novo template padrão
   return (
-    <StandardProposalTemplate 
+    <StandardProposalTemplate
       proposal={proposal}
       companyLogo={companyLogo}
       className="max-w-4xl mx-auto"

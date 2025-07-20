@@ -15,16 +15,16 @@ interface ProposalCreatePreviewModalProps {
   isLoading?: boolean;
 }
 
-const ProposalCreatePreviewModal = ({ 
-  isOpen, 
-  onClose, 
+const ProposalCreatePreviewModal = ({
+  isOpen,
+  onClose,
   onSaveAsDraft,
   onSendEmail,
-  proposal, 
+  proposal,
   companyLogo,
   isLoading = false
 }: ProposalCreatePreviewModalProps) => {
-  
+
   console.log('ProposalCreatePreviewModal - Dados da proposta:', {
     value: proposal?.value,
     title: proposal?.title,
@@ -43,7 +43,7 @@ const ProposalCreatePreviewModal = ({
             </Button>
           </DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-6">
           <div className="bg-gray-50 p-4 rounded-lg">
             <p className="text-sm text-gray-600 mb-2">
@@ -53,13 +53,13 @@ const ProposalCreatePreviewModal = ({
               <strong>Cliente:</strong> {proposal?.clients?.name || 'Não informado'}
             </p>
             <p className="text-sm text-gray-600">
-              <strong>Valor:</strong> {proposal?.value 
+              <strong>Valor:</strong> {proposal?.value
                 ? `R$ ${proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
                 : 'Não informado'
               }
             </p>
           </div>
-          
+
           {/* Proposal Preview */}
           <div className="border rounded-lg p-1 bg-white shadow-inner">
             <div className="transform scale-90 origin-top">
@@ -69,19 +69,19 @@ const ProposalCreatePreviewModal = ({
             </div>
           </div>
         </div>
-        
+
         <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t bg-gray-50 -mx-6 -mb-6 px-6 py-4">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={onClose}
             disabled={isLoading}
             className="order-3 sm:order-1"
           >
             Cancelar
           </Button>
-          
-          <Button 
-            variant="outline" 
+
+          <Button
+            variant="outline"
             onClick={onSaveAsDraft}
             disabled={isLoading}
             className="order-2 sm:order-2"
@@ -89,8 +89,8 @@ const ProposalCreatePreviewModal = ({
             <FileText className="h-4 w-4 mr-2" />
             Salvar como Rascunho
           </Button>
-          
-          <Button 
+
+          <Button
             onClick={onSendEmail}
             disabled={isLoading}
             className="bg-blue-600 hover:bg-blue-700 order-1 sm:order-3"

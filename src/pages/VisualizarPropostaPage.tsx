@@ -28,20 +28,20 @@ const VisualizarPropostaPage = () => {
   useEffect(() => {
     const processPendingItems = async () => {
       if (itemsProcessed) return; // Evita processamento duplo
-      
+
       const pendingItems = sessionStorage.getItem('pendingBudgetItems');
       if (pendingItems && id) {
         try {
           const items = JSON.parse(pendingItems);
           console.log('Processando itens pendentes:', items);
-          
+
           // Marcar como processado antes de salvar para evitar loops
           setItemsProcessed(true);
           sessionStorage.removeItem('pendingBudgetItems');
-          
+
           // Salvar cada item no banco de dados
           await Promise.all(
-            items.map((item: any) => 
+            items.map((item: any) =>
               createBudgetItem.mutateAsync({
                 proposal_id: id,
                 type: item.type,
@@ -51,9 +51,8 @@ const VisualizarPropostaPage = () => {
               })
             )
           );
-          
           toast.success('Itens do orçamento salvos com sucesso!');
-          
+
           // Recarregar os dados da proposta para incluir os novos itens
           refetch();
         } catch (error) {
@@ -82,7 +81,7 @@ const VisualizarPropostaPage = () => {
 
   const handleViewPublic = () => {
     if (!proposal) return;
-    
+
     // Usar o hash público se existir, senão usar base64 do ID
     const hash = proposal.public_hash || btoa(proposal.id);
     const publicUrl = `/proposta/${hash}`;
@@ -92,7 +91,7 @@ const VisualizarPropostaPage = () => {
 
   const handleDownloadPDF = () => {
     if (!proposal) return;
-    
+
     // Usar o hash público se existir, senão usar base64 do ID
     const hash = proposal.public_hash || btoa(proposal.id);
     const publicUrl = `/proposta/${hash}`;

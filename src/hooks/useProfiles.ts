@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
+import { useToast } from './use-toast';
 
 interface Profile {
   id: string;
@@ -20,6 +21,7 @@ export const useProfiles = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const queryClient = useQueryClient();
+  const { toast: shadcnToast } = useToast();
 
   const fetchProfile = async () => {
     if (!user) {
@@ -38,7 +40,10 @@ export const useProfiles = () => {
 
       if (error) {
         console.error('Error fetching profile:', error);
-        toast.error('Erro ao carregar perfil');
+        shadcnToast({
+          title: "Erro!",
+          description: "Erro ao carregar perfil",
+        });
         return;
       }
 
@@ -46,7 +51,10 @@ export const useProfiles = () => {
       setProfile(data);
     } catch (error) {
       console.error('Error fetching profile:', error);
-      toast.error('Erro ao carregar perfil');
+      shadcnToast({
+        title: "Erro!",
+        description: "Erro ao carregar perfil",
+      });
     } finally {
       setLoading(false);
     }
@@ -57,7 +65,7 @@ export const useProfiles = () => {
 
     try {
       console.log('Verificando se deve acionar bônus após atualização do perfil');
-      
+
       // Aguardar um pouco para garantir que os dados foram salvos
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ['profile-completion'] });
@@ -83,7 +91,10 @@ export const useProfiles = () => {
           .maybeSingle();
 
         if (existingProfile) {
-          toast.error('Este número já está sendo utilizado por outro usuário');
+          shadcnToast({
+            title: "Erro!",
+            description: "Este número já está sendo utilizado por outro usuário.",
+          });
           return { error: 'Phone already in use' };
         }
       }
@@ -108,7 +119,7 @@ export const useProfiles = () => {
           .eq('user_id', user.id)
           .select()
           .single();
-        
+
         data = result.data;
         error = result.error;
       } else {
@@ -122,34 +133,46 @@ export const useProfiles = () => {
           })
           .select()
           .single();
-        
+
         data = result.data;
         error = result.error;
       }
 
       if (error) {
         console.error('Error updating profile:', error);
-        
+
         // Verificar se é erro de telefone duplicado
         if (error.code === '23505' && error.message?.includes('profiles_phone_key')) {
-          toast.error('Este número de telefone já está cadastrado no sistema. Por favor, utilize outro número.');
+          shadcnToast({
+            title: "Erro!",
+            description: "Este número de telefone já está cadastrado no sistema. Por favor, utilize outro número.",
+          });
           return { error: 'Phone already exists' };
         }
-        
-        toast.error('Erro ao salvar perfil');
+        shadcnToast({
+          title: "Erro!",
+          description: "Erro ao salvar perfil",
+        });
         return { error };
       }
 
+      shadcnToast({
+        title: "Sucesso!",
+        description: "Perfil atualizado com sucesso!",
+      });
       console.log('Perfil atualizado com sucesso:', data);
       setProfile(data);
-      
+
       // Verificar bônus após atualização
-      checkAndTriggerBonus();
-      
+      //checkAndTriggerBonus();
+
       return { data };
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error('Erro ao salvar perfil');
+      shadcnToast({
+        title: "Erro!",
+        description: "Erro ao salvar perfil",
+      });
       return { error };
     }
   };
@@ -162,11 +185,11 @@ export const useProfiles = () => {
 
     try {
       console.log('Iniciando upload do avatar para usuário:', user.id);
-      
+
       // Criar nome único para o arquivo
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-      
+
       console.log('Nome do arquivo:', fileName);
 
       // Upload do arquivo
@@ -178,7 +201,10 @@ export const useProfiles = () => {
 
       if (uploadError) {
         console.error('Error uploading avatar:', uploadError);
-        toast.error('Erro ao fazer upload da imagem');
+        shadcnToast({
+          title: "Erro!",
+          description: "Erro ao fazer upload da imagem",
+        });
         return null;
       }
 
@@ -191,7 +217,10 @@ export const useProfiles = () => {
       return data.publicUrl;
     } catch (error) {
       console.error('Error uploading avatar:', error);
-      toast.error('Erro ao fazer upload da imagem');
+      shadcnToast({
+        title: "Erro!",
+        description: "Erro ao fazer upload da imagem",
+      });
       return null;
     }
   };

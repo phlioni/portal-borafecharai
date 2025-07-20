@@ -37,16 +37,19 @@ interface StandardProposalTemplateProps {
   companyLogo?: string;
 }
 
+
+
 const StandardProposalTemplate = ({ proposal, className = "", companyLogo }: StandardProposalTemplateProps) => {
-  
+
+  console.log('Proposta Completa recebida:', proposal);
   // Usar hook apenas se não temos dados diretos da proposta e se temos user_id
   const { data: hookBudgetItems = [] } = useBudgetItems(
     proposal.id && proposal.id !== 'temp-id' && proposal.user_id ? proposal.id : ''
   );
 
   // Usar dados diretos da proposta ou do hook
-  const budgetItems = proposal.proposal_budget_items && proposal.proposal_budget_items.length > 0 
-    ? proposal.proposal_budget_items 
+  const budgetItems = proposal.proposal_budget_items && proposal.proposal_budget_items.length > 0
+    ? proposal.proposal_budget_items
     : hookBudgetItems;
 
   const formatCurrency = (value?: number) => {
@@ -71,7 +74,7 @@ const StandardProposalTemplate = ({ proposal, className = "", companyLogo }: Sta
   // Separar itens por tipo
   const services = budgetItems.filter(item => item.type === 'labor');
   const materials = budgetItems.filter(item => item.type === 'material');
-  
+
   const servicesTotal = services.reduce((total, item) => total + (item.total_price || 0), 0);
   const materialsTotal = materials.reduce((total, item) => total + (item.total_price || 0), 0);
   const grandTotal = servicesTotal + materialsTotal;
@@ -92,10 +95,10 @@ const StandardProposalTemplate = ({ proposal, className = "", companyLogo }: Sta
         <div className="flex justify-between items-start">
           <div>
             {logoToUse && (
-              <img 
-                src={logoToUse} 
-                alt="Logo da Empresa" 
-                className="h-16 w-auto object-contain mb-4" 
+              <img
+                src={logoToUse}
+                alt="Logo da Empresa"
+                className="h-16 w-auto object-contain mb-4"
               />
             )}
             <h1 className="text-xl font-bold text-gray-900 mb-1">
@@ -218,7 +221,7 @@ const StandardProposalTemplate = ({ proposal, className = "", companyLogo }: Sta
               <p className="text-sm">{proposal.delivery_time}</p>
             </div>
           )}
-          
+
           {proposal.validity_date && (
             <div>
               <h4 className="font-bold mb-1">Validade da Proposta</h4>
