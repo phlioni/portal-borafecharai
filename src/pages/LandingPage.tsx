@@ -1,33 +1,11 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  ArrowRight, 
-  CheckCircle, 
-  FileText, 
-  MessageCircle,
-  Bot,
-  Clock,
-  Sparkles,
-  Eye,
-  Mail,
-  BarChart3,
-  Users,
-  Zap,
-  Download,
-  Bell,
-  TrendingUp,
-  Target,
-  Smartphone,
-  Timer
-} from 'lucide-react';
+import { ArrowRight, CheckCircle, FileText, MessageCircle, Bot, Clock, Sparkles, Eye, Mail, BarChart3, Users, Zap, Download, Bell, TrendingUp, Target, Smartphone, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-
 const LandingPage = () => {
-  return (
-    <div className="min-h-screen bg-white">
+  return <div className="min-h-screen bg-white">
       {/* Navigation */}
       <nav className="border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -68,10 +46,7 @@ const LandingPage = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
               <Button size="lg" className="text-lg px-8 py-6 h-auto" asChild>
-                <Link to="/login">
-                  Experimente Grátis - 20 Propostas
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
+                
               </Button>
               <Button size="lg" variant="outline" className="text-lg px-8 py-6 h-auto">
                 <a href="#recursos" className="flex items-center">
@@ -569,8 +544,6 @@ const LandingPage = () => {
           </div>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default LandingPage;
