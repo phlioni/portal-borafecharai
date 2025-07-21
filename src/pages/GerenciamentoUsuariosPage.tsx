@@ -45,8 +45,7 @@ const GerenciamentoUsuariosPage = () => {
     
     const term = searchTerm.toLowerCase();
     return users.filter(user => 
-      user.email.toLowerCase().includes(term) ||
-      (user.profile?.name && user.profile.name.toLowerCase().includes(term))
+      user.email.toLowerCase().includes(term)
     );
   }, [users, searchTerm]);
 
