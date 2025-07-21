@@ -104,19 +104,28 @@ export const useAdminOperations = () => {
     try {
       console.log(`useAdminOperations - Changing role for user ${userId} to ${newRole}`);
 
-      // Usar UPSERT para evitar erro de duplicação
-      const { error } = await supabase
+      // Primeiro, remover todas as roles existentes do usuário
+      const { error: deleteError } = await supabase
         .from('user_roles')
-        .upsert({
+        .delete()
+        .eq('user_id', userId);
+
+      if (deleteError) {
+        console.error('useAdminOperations - Error deleting existing roles:', deleteError);
+        throw deleteError;
+      }
+
+      // Depois, inserir a nova role
+      const { error: insertError } = await supabase
+        .from('user_roles')
+        .insert({
           user_id: userId,
           role: newRole
-        }, {
-          onConflict: 'user_id,role'
         });
 
-      if (error) {
-        console.error('useAdminOperations - Error updating role:', error);
-        throw error;
+      if (insertError) {
+        console.error('useAdminOperations - Error inserting new role:', insertError);
+        throw insertError;
       }
 
       console.log(`useAdminOperations - Successfully changed role for user ${userId} to ${newRole}`);
