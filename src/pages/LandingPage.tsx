@@ -4,10 +4,8 @@ import { ArrowRight, CheckCircle, FileText, MessageCircle, Bot, Clock, Sparkles,
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-
 const LandingPage = () => {
-  return (
-    <div className="min-h-screen bg-white">
+  return <div className="min-h-screen bg-white">
       {/* Navigation */}
       <nav className="border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -431,7 +429,7 @@ const LandingPage = () => {
                   </div>
                   <div className="flex items-center justify-center text-blue-600 font-medium text-sm">
                     <CheckCircle className="h-4 w-4 mr-2" />
-                    Suporte especializado
+                    Suporte brasileiro especializado
                   </div>
                 </div>
               </div>
@@ -461,14 +459,8 @@ const LandingPage = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8 text-blue-200 text-sm max-w-2xl mx-auto">
-            <div className="flex items-center justify-center">
-              <CheckCircle className="h-4 w-4 mr-2" />
-              20 propostas gratuitas
-            </div>
-            <div className="flex items-center justify-center">
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Sem cartão de crédito
-            </div>
+            
+            
             <div className="flex items-center justify-center">
               <CheckCircle className="h-4 w-4 mr-2" />
               Resultados imediatos
@@ -526,8 +518,6 @@ const LandingPage = () => {
           </div>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default LandingPage;
