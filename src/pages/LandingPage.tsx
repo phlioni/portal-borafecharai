@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CheckCircle, Clock, FileText, Eye, Users, BarChart3, Zap, Target, MessageSquare, TrendingUp } from 'lucide-react';
+import { ArrowRight, CheckCircle, Clock, FileText, Eye, Users, BarChart3, Zap, Target, MessageSquare, TrendingUp, DollarSign, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +20,9 @@ const LandingPage = () => {
               <span className="text-xl font-bold text-gray-900">BoraFecharAI</span>
             </div>
             <div className="flex items-center space-x-4">
+              <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                100% GRATUITO
+              </Badge>
               <Button asChild className="bg-green-600 hover:bg-green-700">
                 <Link to="/login">Começar Grátis</Link>
               </Button>
@@ -31,6 +34,13 @@ const LandingPage = () => {
       {/* Hero Section */}
       <section className="pt-16 pb-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-gray-50 via-white to-blue-50">
         <div className="max-w-4xl mx-auto text-center">
+          <div className="mb-6">
+            <Badge className="mb-4 bg-green-100 text-green-800 hover:bg-green-100 text-lg px-4 py-2">
+              <Gift className="w-5 h-5 mr-2" />
+              100% GRATUITO PARA SEMPRE
+            </Badge>
+          </div>
+          
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
             Deixe de perder tempo com propostas.{' '}
             <span className="text-blue-600">Foque em fechar mais negócios.</span>
@@ -39,11 +49,12 @@ const LandingPage = () => {
           <p className="text-lg sm:text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
             Nossa IA cria propostas que convertem, economizando 90% do seu tempo. 
             Junte-se a PMEs e autônomos que já estão vendendo mais e mais rápido.
+            <span className="font-semibold text-green-700"> Completamente grátis!</span>
           </p>
 
           <Button size="lg" className="bg-green-600 hover:bg-green-700 text-lg px-8 py-6 h-auto mb-6" asChild>
             <Link to="/login">
-              Começar Grátis
+              Começar Grátis Agora
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
           </Button>
@@ -107,7 +118,16 @@ const LandingPage = () => {
               </CardContent>
             </Card>
 
-            <Card className="p-6 text-center hover:shadow-lg transition-shadow sm:col-span-2 lg:col-span-1">
+            <Card className="p-6 text-center hover:shadow-lg transition-shadow">
+              <CardContent className="p-0">
+                <DollarSign className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                <p className="text-gray-700 font-medium">
+                  Paga caro por ferramentas que prometem muito e entregam pouco?
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="p-6 text-center hover:shadow-lg transition-shadow">
               <CardContent className="p-0">
                 <TrendingUp className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
                 <p className="text-gray-700 font-medium">
@@ -131,7 +151,7 @@ const LandingPage = () => {
               </h3>
               <p className="text-lg text-gray-600 leading-relaxed">
                 Nossa inteligência artificial cria documentos profissionais enquanto você toma um café. 
-                Ganhe 90% do seu tempo de volta.
+                Ganhe 90% do seu tempo de volta. <span className="font-semibold text-green-700">Sem pagar nada!</span>
               </p>
             </div>
             <div className="bg-white rounded-xl shadow-lg p-8">
@@ -164,7 +184,7 @@ const LandingPage = () => {
               </h3>
               <p className="text-lg text-gray-600 leading-relaxed">
                 Receba notificações quando seu cliente visualizar a proposta e veja quais partes ele mais leu. 
-                Faça o follow-up na hora certa.
+                Faça o follow-up na hora certa. <span className="font-semibold text-green-700">Recursos premium, totalmente grátis!</span>
               </p>
             </div>
           </div>
@@ -177,6 +197,7 @@ const LandingPage = () => {
               </h3>
               <p className="text-lg text-gray-600 leading-relaxed">
                 Entenda sua taxa de conversão, desempenho por cliente e melhore seus resultados a cada envio.
+                <span className="font-semibold text-green-700"> Analytics profissionais sem custo algum!</span>
               </p>
             </div>
             <div className="bg-white rounded-xl shadow-lg p-8">
@@ -191,12 +212,17 @@ const LandingPage = () => {
           </div>
 
           {/* Differentiator Callout */}
-          <div className="bg-blue-600 rounded-2xl p-8 text-center text-white">
-            <Badge className="mb-4 bg-white text-blue-600 hover:bg-white">
-              Inteligência Artificial Brasileira
+          <div className="bg-green-600 rounded-2xl p-8 text-center text-white">
+            <Badge className="mb-4 bg-white text-green-600 hover:bg-white">
+              <Gift className="w-4 h-4 mr-2" />
+              100% Gratuito Para Sempre
             </Badge>
-            <p className="text-lg">
-              Nossa tecnologia é a única com um assistente IA 24/7 e suporte especializado em português.
+            <p className="text-lg mb-4">
+              Enquanto a concorrência cobra R$200+ por mês, oferecemos a melhor tecnologia de IA 
+              para propostas completamente grátis. Sem pegadinhas, sem limitações escondidas.
+            </p>
+            <p className="text-sm opacity-90">
+              Nossa missão é democratizar o acesso a ferramentas profissionais para PMEs e autônomos.
             </p>
           </div>
         </div>
@@ -213,8 +239,9 @@ const LandingPage = () => {
             <CardContent className="p-0 text-center">
               <div className="w-16 h-16 bg-gray-300 rounded-full mx-auto mb-4"></div>
               <blockquote className="text-lg sm:text-xl text-gray-700 italic mb-4">
-                "Eu gastava um dia inteiro para montar uma proposta. Com o BoraFecharAI, faço em minutos 
-                e minhas propostas nunca pareceram tão profissionais. Minha taxa de fechamento aumentou 30%."
+                "Eu gastava um dia inteiro para montar uma proposta e ainda pagava R$300 por mês por uma ferramenta 
+                inferior. Com o BoraFecharAI, faço em minutos, de graça, e minhas propostas nunca pareceram tão profissionais. 
+                Minha taxa de fechamento aumentou 30%."
               </blockquote>
               <div className="font-semibold text-gray-900">João Silva</div>
               <div className="text-gray-600">Agência de Marketing Digital</div>
@@ -235,16 +262,26 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
+      {/* Free Access Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-green-50 to-blue-50">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-12">
-            Comece a vender mais hoje, sem compromisso.
+          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-6">
+            Comece a vender mais hoje, sem pagar nada.
           </h2>
+          
+          <p className="text-xl text-gray-600 mb-8">
+            Enquanto outras ferramentas cobram centenas de reais por mês, 
+            oferecemos acesso completo e gratuito à melhor IA do mercado.
+          </p>
 
-          <Card className="max-w-md mx-auto p-8 shadow-lg">
+          <Card className="max-w-md mx-auto p-8 shadow-lg border-2 border-green-200">
             <CardContent className="p-0">
-              <h3 className="text-2xl font-bold text-gray-900 mb-6">Teste Grátis</h3>
+              <div className="flex items-center justify-center mb-4">
+                <Badge className="bg-green-100 text-green-800 hover:bg-green-100 text-lg px-4 py-2">
+                  <Gift className="w-5 h-5 mr-2" />
+                  100% GRATUITO
+                </Badge>
+              </div>
               
               <Button size="lg" className="w-full bg-green-600 hover:bg-green-700 text-lg py-6 mb-6" asChild>
                 <Link to="/login">
@@ -270,17 +307,25 @@ const LandingPage = () => {
                   <CheckCircle className="h-5 w-5 text-green-600 mr-3 flex-shrink-0" />
                   Assistente IA 24/7
                 </li>
+                <li className="flex items-center">
+                  <CheckCircle className="h-5 w-5 text-green-600 mr-3 flex-shrink-0" />
+                  Download em PDF
+                </li>
+                <li className="flex items-center">
+                  <CheckCircle className="h-5 w-5 text-green-600 mr-3 flex-shrink-0" />
+                  Suporte especializado
+                </li>
               </ul>
             </CardContent>
           </Card>
 
           <div className="mt-8 space-y-4">
             <p className="text-lg text-gray-600">
-              Após o teste, nossos planos custam menos de R$3 por dia. Você economiza dezenas de horas 
-              e aumenta sua conversão em até 67%.
+              <span className="font-semibold">Para sempre gratuito.</span> Economize centenas de horas 
+              e aumente sua conversão em até 67%, sem gastar um centavo.
             </p>
             <p className="text-sm text-gray-500">
-              A tecnologia mais avançada, por um preço justo para o pequeno negócio.
+              A tecnologia mais avançada, democratizada para o pequeno negócio brasileiro.
             </p>
           </div>
         </div>
@@ -289,13 +334,16 @@ const LandingPage = () => {
       {/* Final CTA Section */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-blue-600 text-white">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-8">
+          <h2 className="text-3xl sm:text-4xl font-bold mb-4">
             Pronto para acelerar suas vendas?
           </h2>
+          <p className="text-xl mb-8 opacity-90">
+            Junte-se a milhares de empreendedores que já descobriram o poder da IA gratuita.
+          </p>
           
           <Button size="lg" className="bg-green-600 hover:bg-green-700 text-lg px-8 py-6 h-auto" asChild>
             <Link to="/login">
-              Começar Grátis
+              Começar Grátis Agora
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
           </Button>
@@ -314,7 +362,7 @@ const LandingPage = () => {
                 <span className="text-xl font-bold">BoraFecharAI</span>
               </div>
               <p className="text-gray-400 text-sm">
-                A solução definitiva para PMEs criarem propostas inteligentes e acelerar suas vendas.
+                A solução definitiva e gratuita para PMEs criarem propostas inteligentes e acelerar suas vendas.
               </p>
             </div>
 
