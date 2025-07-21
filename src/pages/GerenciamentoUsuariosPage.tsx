@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+
+import React, { useState, useMemo } from 'react';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useAdminOperations } from '@/hooks/useAdminOperations';
+import { useUserStats } from '@/hooks/useUserStats';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +15,9 @@ import { Label } from '@/components/ui/label';
 import UserStatusBadges from '@/components/UserStatusBadges';
 import UserActionsDropdown from '@/components/UserActionsDropdown';
 import MobileUserCard from '@/components/MobileUserCard';
+import UserStatsCards from '@/components/admin/UserStatsCards';
+import UserEvolutionChart from '@/components/admin/UserEvolutionChart';
+import UserSearchFilter from '@/components/admin/UserSearchFilter';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const GerenciamentoUsuariosPage = () => {
@@ -27,10 +32,23 @@ const GerenciamentoUsuariosPage = () => {
     changeUserRole,
     normalizeAllUserRoles
   } = useAdminOperations();
+  const { stats, loading: statsLoading, loadStats } = useUserStats();
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
   const [showCreateAdminDialog, setShowCreateAdminDialog] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const isMobile = useIsMobile();
+
+  // Filtrar usuários baseado no termo de busca
+  const filteredUsers = useMemo(() => {
+    if (!searchTerm.trim()) return users;
+    
+    const term = searchTerm.toLowerCase();
+    return users.filter(user => 
+      user.email.toLowerCase().includes(term) ||
+      (user.profile?.name && user.profile.name.toLowerCase().includes(term))
+    );
+  }, [users, searchTerm]);
 
   const handleCreateAdmin = async () => {
     if (!newAdminEmail) {
@@ -62,10 +80,10 @@ const GerenciamentoUsuariosPage = () => {
 
   const handleRefresh = async () => {
     try {
-      await loadUsers();
-      toast.success('Lista de usuários atualizada!');
+      await Promise.all([loadUsers(), loadStats()]);
+      toast.success('Dados atualizados!');
     } catch (error) {
-      toast.error('Erro ao atualizar lista de usuários');
+      toast.error('Erro ao atualizar dados');
     }
   };
 
@@ -122,9 +140,9 @@ const GerenciamentoUsuariosPage = () => {
           <Button 
             onClick={handleRefresh} 
             variant="outline"
-            disabled={loading}
+            disabled={loading || statsLoading}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 mr-2 ${(loading || statsLoading) ? 'animate-spin' : ''}`} />
             Atualizar
           </Button>
 
@@ -177,6 +195,12 @@ const GerenciamentoUsuariosPage = () => {
         </div>
       </div>
 
+      {/* Cards de Estatísticas */}
+      <UserStatsCards stats={stats} loading={statsLoading} />
+
+      {/* Gráfico de Evolução */}
+      <UserEvolutionChart monthlyUsers={stats.monthlyUsers} loading={statsLoading} />
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -185,9 +209,18 @@ const GerenciamentoUsuariosPage = () => {
           </CardTitle>
           <CardDescription>
             Total de {users.length} usuários cadastrados
+            {filteredUsers.length !== users.length && (
+              <span> • {filteredUsers.length} encontrados</span>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Filtro de Busca */}
+          <UserSearchFilter 
+            searchTerm={searchTerm} 
+            onSearchChange={setSearchTerm} 
+          />
+
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className="text-center">
@@ -195,15 +228,17 @@ const GerenciamentoUsuariosPage = () => {
                 <p className="mt-2 text-muted-foreground">Carregando usuários...</p>
               </div>
             </div>
-          ) : users.length === 0 ? (
+          ) : filteredUsers.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">Nenhum usuário encontrado</p>
+              <p className="text-muted-foreground">
+                {searchTerm ? 'Nenhum usuário encontrado para a busca' : 'Nenhum usuário encontrado'}
+              </p>
             </div>
           ) : (
             <>
               {isMobile ? (
                 <div className="space-y-4">
-                  {users.map((user) => (
+                  {filteredUsers.map((user) => (
                     <MobileUserCard
                       key={user.id}
                       user={{
@@ -232,7 +267,7 @@ const GerenciamentoUsuariosPage = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {users.map((user) => (
+                      {filteredUsers.map((user) => (
                         <TableRow key={user.id}>
                           <TableCell className="font-medium">
                             {user.email}
