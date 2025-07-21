@@ -1,14 +1,11 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, CheckCircle, Clock, FileText, Eye, Users, BarChart3, Target, MessageSquare, TrendingUp, DollarSign, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-
 const LandingPage = () => {
-  return (
-    <div className="min-h-screen bg-white">
+  return <div className="min-h-screen bg-white">
       {/* Navigation */}
       <nav className="border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -20,9 +17,7 @@ const LandingPage = () => {
               <span className="text-xl font-bold text-gray-900">BoraFecharAI</span>
             </div>
             <div className="flex items-center space-x-4">
-              <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-                100% GRATUITO
-              </Badge>
+              
               <Button asChild className="bg-green-600 hover:bg-green-700">
                 <Link to="/login">Começar Grátis</Link>
               </Button>
@@ -386,8 +381,6 @@ const LandingPage = () => {
           </div>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default LandingPage;
