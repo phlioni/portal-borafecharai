@@ -77,10 +77,7 @@ const MobileLayout = ({ children }: MobileLayoutProps) => {
       {/* Mobile Header - altura reduzida para otimizar espaço */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-card border-b border-border">
         <div className="flex items-center justify-between p-3 h-12">
-          <div className="flex items-center space-x-2">
-            <img src="/lovable-uploads/1aa6fa57-41aa-4696-b67f-81c39b66ee79.png" alt="BoraFecharAI" className="h-6 w-6 object-contain" />
-            <h1 className="text-base sm:text-lg font-bold text-primary truncate">BoraFecharAI</h1>
-          </div>
+          <h1 className="text-base sm:text-lg font-bold text-primary truncate">BoraFecharAI</h1>
 
           <div className="flex items-center gap-2">
             <Avatar className="w-7 h-7 sm:w-8 sm:h-8">

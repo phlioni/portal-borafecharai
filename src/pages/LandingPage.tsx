@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -28,7 +29,9 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-2">
-              <img src="/lovable-uploads/1aa6fa57-41aa-4696-b67f-81c39b66ee79.png" alt="BoraFecharAI" className="h-8 w-8 object-contain" />
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                <FileText className="h-5 w-5 text-white" />
+              </div>
               <span className="text-xl font-bold text-gray-900">BoraFecharAI</span>
             </div>
             <div className="flex items-center space-x-4">
@@ -449,7 +452,9 @@ const LandingPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center space-x-2 mb-4">
-                <img src="/lovable-uploads/1aa6fa57-41aa-4696-b67f-81c39b66ee79.png" alt="BoraFecharAI" className="h-8 w-8 object-contain" />
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-white" />
+                </div>
                 <span className="text-xl font-bold">BoraFecharAI</span>
               </div>
               <p className="text-gray-400">

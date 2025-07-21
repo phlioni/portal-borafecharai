@@ -243,7 +243,7 @@ const Login = () => {
           <div className="mb-8">
             <div className="flex items-center mb-4">
               <div className="bg-white/20 p-2 rounded-xl backdrop-blur-sm">
-                <img src="/lovable-uploads/1aa6fa57-41aa-4696-b67f-81c39b66ee79.png" alt="BoraFecharAI" className="h-8 w-8 object-contain" />
+                <FileText className="h-6 w-6 text-white" />
               </div>
               <div className="ml-3">
                 <h1 className="text-2xl font-bold">BoraFecharAI</h1>
@@ -296,7 +296,7 @@ const Login = () => {
           <div className="xl:hidden text-center mb-6">
             <div className="flex items-center justify-center mb-3">
               <div className="bg-blue-600 p-2 rounded-xl">
-                <img src="/lovable-uploads/1aa6fa57-41aa-4696-b67f-81c39b66ee79.png" alt="BoraFecharAI" className="h-8 w-8 object-contain" />
+                <FileText className="h-6 w-6 text-white" />
               </div>
             </div>
             <h1 className="text-xl font-bold text-gray-900 mb-1">BoraFecharAI</h1>

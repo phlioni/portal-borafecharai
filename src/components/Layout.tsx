@@ -75,10 +75,7 @@ const Layout = ({ children }: LayoutProps) => {
       <div className="w-64 bg-card border-r border-border flex flex-col">
         {/* Logo */}
         <div className="p-6 border-b border-border">
-          <div className="flex items-center space-x-3">
-            <img src="/lovable-uploads/1aa6fa57-41aa-4696-b67f-81c39b66ee79.png" alt="BoraFecharAI" className="h-8 w-8 object-contain" />
-            <h1 className="text-xl font-bold text-primary">BoraFecharAI</h1>
-          </div>
+          <h1 className="text-xl font-bold text-primary">BoraFecharAI</h1>
         </div>
 
         {/* Navigation */}
