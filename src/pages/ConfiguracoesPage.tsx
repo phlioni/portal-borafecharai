@@ -208,7 +208,7 @@ const ConfiguracoesPage = () => {
             </TabsTrigger>
           </TabsList>
 
-          <div className="grid grid-cols-2 gap-2">
+          {/* <div className="grid grid-cols-2 gap-2">
             <Button
               variant={activeTab === 'email' ? 'default' : 'outline'}
               className="flex items-center justify-center gap-2 p-3"
@@ -225,7 +225,7 @@ const ConfiguracoesPage = () => {
               <CreditCard className="h-4 w-4" />
               <span className="text-xs">Planos</span>
             </Button>
-          </div>
+          </div> */}
 
           <div className="grid grid-cols-2 gap-2">
             <Button
@@ -415,7 +415,7 @@ const ConfiguracoesPage = () => {
                 <p className="text-muted-foreground">Selecione o plano que melhor atende às suas necessidades</p>
               </div>
 
-              <div className=" grid grid-cols-1 gap-6 opacity-50">
+              {/* <div className=" grid grid-cols-1 gap-6 opacity-50">
                 {plans.map((plan) => (
                   <Card key={plan.name} className={`relative ${plan.popular ? 'border-blue-600 shadow-lg' : ''} ${plan.current ? 'ring-2 ring-green-500' : ''}`}>
                     {plan.popular && (
@@ -448,18 +448,18 @@ const ConfiguracoesPage = () => {
                           </li>
                         ))}
                       </ul>
-                      {/* <Button
+                     <Button
                         onClick={() => handleSubscribe(plan.priceId, plan.name)}
                         disabled={plan.current || subscription.loading}
                         variant={plan.current ? 'outline' : plan.popular ? 'default' : 'outline'}
                         className="w-full"
                       >
                         {plan.buttonText}
-                      </Button> */}
-                    </CardContent>
-                  </Card>
+                      </Button> 
+            </CardContent>
+          </Card>
                 ))}
-              </div>
+      </div> */}
 
 
               {/* {isProfessional && (
@@ -487,8 +487,8 @@ const ConfiguracoesPage = () => {
                   </CardContent>
                 </Card>
               )} */}
-            </div>
-          </TabsContent>
+            </div >
+          </TabsContent >
 
           <TabsContent value="telegram" className="mt-4">
             {isAdmin ? (
@@ -498,13 +498,15 @@ const ConfiguracoesPage = () => {
             )}
           </TabsContent>
 
-          {isAdmin && (
-            <TabsContent value="admin" className="mt-4">
-              <GerenciamentoUsuariosPage />
-            </TabsContent>
-          )}
-        </Tabs>
-      </div>
+          {
+            isAdmin && (
+              <TabsContent value="admin" className="mt-4">
+                <GerenciamentoUsuariosPage />
+              </TabsContent>
+            )
+          }
+        </Tabs >
+      </div >
     );
   }
 
@@ -516,7 +518,7 @@ const ConfiguracoesPage = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-6' : 'grid-cols-5'}`}>
+        <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-5' : 'grid-cols-4'}`}>
           <TabsTrigger value="perfil" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Perfil
@@ -529,10 +531,10 @@ const ConfiguracoesPage = () => {
             <Mail className="h-4 w-4" />
             Templates Email
           </TabsTrigger>
-          <TabsTrigger value="planos" className="flex items-center gap-2">
+          {/* <TabsTrigger value="planos" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
             Planos
-          </TabsTrigger>
+          </TabsTrigger> */}
           <TabsTrigger value="telegram" className="flex items-center gap-2">
             <MessageSquare className="h-4 w-4" />
             Bot Telegram

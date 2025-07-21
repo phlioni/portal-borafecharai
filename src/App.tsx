@@ -41,8 +41,8 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/termos" element={<TermosDeUso />} />
               <Route path="/proposta/:hash" element={<PropostaPublicaPage />} />
-              <Route path="/planos" element={<Planos />} />
-              
+              {/* <Route path="/planos" element={<Planos />} /> */}
+
               <Route element={<ProtectedRoute><Layout><Outlet /></Layout></ProtectedRoute>}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/propostas" element={<Propostas />} />
@@ -62,7 +62,7 @@ function App() {
                 <Route path="/test-business" element={<TestBusinessSegments />} />
                 <Route path="/admin/usuarios" element={<GerenciamentoUsuariosPage />} />
               </Route>
-              
+
               <Route path="*" element={<NotFound />} />
             </Routes>
             <Toaster />

@@ -185,11 +185,10 @@ const Dashboard = () => {
       )} */}
       <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
         <h3 className="text-lg font-semibold text-green-900 mb-2">
-          🎁 Acesso Especial Liberado até 30/10/2025
+          🏆 Deixe sua Concorrência para Trás.
         </h3>
         <p className="text-green-700">
-          Como forma de reconhecimento pela sua importância para nós neste início, liberamos para você todos os recursos premium, sem necessidade de assinatura, até o dia <strong>30/10/2025</strong>.<br />
-          Explore tudo, envie suas propostas com inteligência e nos ajude a tornar o BoraFecharAI ainda melhor!
+          Enquanto seus concorrentes enviam orçamentos informais, você envia <strong>propostas profissionais em minutos</strong>. Oferecemos a você essa <strong>vantagem competitiva</strong> de forma <strong>100% gratuita</strong>, pois acreditamos que as melhores ferramentas devem ser acessíveis a todos. Explore a plataforma e comece a <strong>impressionar seus clientes</strong> agora mesmo.
         </p>
       </div>
       {/* Trial Call to Action */}

@@ -9,7 +9,8 @@ import {
   BarChart3,
   LogOut,
   MessageSquare,
-  PlusCircle
+  PlusCircle,
+  Send
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfiles } from '@/hooks/useProfiles';
@@ -57,6 +58,12 @@ const Layout = ({ children }: LayoutProps) => {
     return 'U';
   };
 
+  const handleTelegramBot = () => {
+    // Abrir o bot do Telegram
+    window.open('https://t.me/borafecharai_bot', '_blank');
+  };
+
+
   // Reorganizamos os itens do menu para dar destaque ao Chat Proposta
   const menuItems = [
     { path: '/dashboard', icon: Home, label: 'Dashboard' },
@@ -83,7 +90,6 @@ const Layout = ({ children }: LayoutProps) => {
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
-
             return (
               <NavLink
                 key={item.path}
@@ -105,6 +111,16 @@ const Layout = ({ children }: LayoutProps) => {
               </NavLink>
             );
           })}
+          {/* Telegram Bot Highlight - Novo destaque */}
+          <div>
+            <Button
+              onClick={handleTelegramBot}
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white gap-2 min-h-[44px]"
+            >
+              <Send className="w-5 h-5" />
+              <span>Assistente no Telegram</span>
+            </Button>
+          </div>
         </nav>
 
         {/* User Profile & Logout */}
