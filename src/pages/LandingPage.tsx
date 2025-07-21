@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CheckCircle, Clock, FileText, Eye, Users, BarChart3, Zap, Target, MessageSquare, TrendingUp, DollarSign, Gift } from 'lucide-react';
+import { ArrowRight, CheckCircle, Clock, FileText, Eye, Users, BarChart3, Target, MessageSquare, TrendingUp, DollarSign, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -37,7 +37,7 @@ const LandingPage = () => {
           <div className="mb-6">
             <Badge className="mb-4 bg-green-100 text-green-800 hover:bg-green-100 text-lg px-4 py-2">
               <Gift className="w-5 h-5 mr-2" />
-              100% GRATUITO PARA SEMPRE
+              100% GRATUITO
             </Badge>
           </div>
           
@@ -48,7 +48,7 @@ const LandingPage = () => {
           
           <p className="text-lg sm:text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
             Nossa IA cria propostas que convertem, economizando 90% do seu tempo. 
-            Junte-se a PMEs e autônomos que já estão vendendo mais e mais rápido.
+            Junte-se a PMEs, autônomos e prestadores de serviços que já estão vendendo mais e mais rápido.
             <span className="font-semibold text-green-700"> Completamente grátis!</span>
           </p>
 
@@ -215,14 +215,14 @@ const LandingPage = () => {
           <div className="bg-green-600 rounded-2xl p-8 text-center text-white">
             <Badge className="mb-4 bg-white text-green-600 hover:bg-white">
               <Gift className="w-4 h-4 mr-2" />
-              100% Gratuito Para Sempre
+              100% Gratuito
             </Badge>
             <p className="text-lg mb-4">
               Enquanto a concorrência cobra R$200+ por mês, oferecemos a melhor tecnologia de IA 
               para propostas completamente grátis. Sem pegadinhas, sem limitações escondidas.
             </p>
             <p className="text-sm opacity-90">
-              Nossa missão é democratizar o acesso a ferramentas profissionais para PMEs e autônomos.
+              Nossa missão é democratizar o acesso a ferramentas profissionais para PMEs, autônomos e prestadores de serviços.
             </p>
           </div>
         </div>
@@ -235,25 +235,13 @@ const LandingPage = () => {
             Milhares de empreendedores já confiam no BoraFecharAI
           </h2>
 
-          <Card className="max-w-4xl mx-auto p-8 shadow-lg mb-12">
-            <CardContent className="p-0 text-center">
-              <div className="w-16 h-16 bg-gray-300 rounded-full mx-auto mb-4"></div>
-              <blockquote className="text-lg sm:text-xl text-gray-700 italic mb-4">
-                "Eu gastava um dia inteiro para montar uma proposta e ainda pagava R$300 por mês por uma ferramenta 
-                inferior. Com o BoraFecharAI, faço em minutos, de graça, e minhas propostas nunca pareceram tão profissionais. 
-                Minha taxa de fechamento aumentou 30%."
-              </blockquote>
-              <div className="font-semibold text-gray-900">João Silva</div>
-              <div className="text-gray-600">Agência de Marketing Digital</div>
-            </CardContent>
-          </Card>
-
           <div className="text-center">
-            <p className="text-lg text-gray-600 mb-6">Usado por empresas em segmentos como:</p>
+            <p className="text-lg text-gray-600 mb-6">Usado por profissionais em segmentos como:</p>
             <div className="flex flex-wrap justify-center items-center gap-6 text-gray-500">
               <span className="px-4 py-2 bg-gray-100 rounded-lg">Advogados</span>
               <span className="px-4 py-2 bg-gray-100 rounded-lg">Agências</span>
               <span className="px-4 py-2 bg-gray-100 rounded-lg">Freelancers</span>
+              <span className="px-4 py-2 bg-gray-100 rounded-lg">Prestadores de Serviços</span>
               <span className="px-4 py-2 bg-gray-100 rounded-lg">Fotógrafos</span>
               <span className="px-4 py-2 bg-gray-100 rounded-lg">Clínicas</span>
               <span className="px-4 py-2 bg-gray-100 rounded-lg">Consultores</span>
@@ -321,7 +309,7 @@ const LandingPage = () => {
 
           <div className="mt-8 space-y-4">
             <p className="text-lg text-gray-600">
-              <span className="font-semibold">Para sempre gratuito.</span> Economize centenas de horas 
+              <span className="font-semibold">Plataforma gratuita.</span> Economize centenas de horas 
               e aumente sua conversão em até 67%, sem gastar um centavo.
             </p>
             <p className="text-sm text-gray-500">
@@ -362,7 +350,7 @@ const LandingPage = () => {
                 <span className="text-xl font-bold">BoraFecharAI</span>
               </div>
               <p className="text-gray-400 text-sm">
-                A solução definitiva e gratuita para PMEs criarem propostas inteligentes e acelerar suas vendas.
+                A solução definitiva e gratuita para PMEs e prestadores de serviços criarem propostas inteligentes e acelerar suas vendas.
               </p>
             </div>
 
