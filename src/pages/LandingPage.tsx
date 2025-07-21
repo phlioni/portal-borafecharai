@@ -18,7 +18,7 @@ const LandingPage = () => {
             </div>
             <div className="flex items-center space-x-4">
               <Button variant="ghost" asChild>
-                <Link to="/login">Entrar</Link>
+                
               </Button>
               <Button asChild>
                 <Link to="/login">Começar Grátis</Link>
@@ -188,27 +188,7 @@ const LandingPage = () => {
           </div>
 
           {/* Demonstração visual do rastreamento */}
-          <div className="bg-white rounded-xl p-6 sm:p-8 shadow-lg">
-            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6 text-center">
-              Exemplo de Rastreamento em Ação
-            </h3>
-            <div className="space-y-4 max-w-2xl mx-auto">
-              <div className="flex items-start space-x-4 p-4 bg-blue-50 rounded-lg">
-                <Bell className="h-5 w-5 text-blue-600 mt-1" />
-                <div>
-                  <p className="font-medium text-blue-900">João visualizou sua proposta</p>
-                  <p className="text-blue-700 text-sm">Há 2 minutos • Tempo de leitura: 3min 45s</p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-4 p-4 bg-green-50 rounded-lg">
-                <CheckCircle className="h-5 w-5 text-green-600 mt-1" />
-                <div>
-                  <p className="font-medium text-green-900">Proposta aceita por João!</p>
-                  <p className="text-green-700 text-sm">Há 15 minutos</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          
         </div>
       </section>
 
