@@ -44,10 +44,48 @@ async function answerCallbackQuery(callbackQueryId, text = '') {
     console.error("Erro ao enviar answerCallbackQuery:", error);
   }
 }
-async function checkUserPermissions(userId) {
-  return {
-    canCreate: true
-  };
+// Função auxiliar para mostrar o resumo e evitar repetição de código
+async function showProposalSummary(session, chatId) {
+  await supabase.from('telegram_sessions').update({
+    step: 'awaiting_proposal_confirmation'
+  }).eq('id', session.id);
+  const proposalData = session.session_data.proposal;
+  let summary = `📝 <b>Resumo da Proposta</b> 📝\n\n`;
+  summary += `<b>Título:</b> ${proposalData.title}\n`;
+  summary += `<b>Cliente:</b> ${proposalData.new_client?.name || 'Cliente Existente'}\n`;
+  summary += `<b>Resumo:</b> ${proposalData.summary}\n`;
+  summary += `<b>Prazo:</b> ${proposalData.delivery_time}\n`;
+  summary += `<b>Validade:</b> ${proposalData.validity_days} dias\n`;
+  summary += `<b>Pagamento:</b> ${proposalData.payment_terms}\n\n`;
+  summary += `<b>Itens do Orçamento:</b>\n`;
+  let totalValue = 0;
+  proposalData.budget_items.forEach((item) => {
+    const itemTotal = item.quantity * item.unit_price;
+    totalValue += itemTotal;
+    summary += `  - [${item.type}] ${item.description} (${item.quantity}x R$ ${item.unit_price.toFixed(2)}) = R$ ${itemTotal.toFixed(2)}\n`;
+  });
+  summary += `\n<b>Valor Total: R$ ${totalValue.toFixed(2)}</b>\n\n`;
+  summary += `Tudo certo?`;
+  proposalData.total_value = totalValue;
+  await supabase.from('telegram_sessions').update({
+    session_data: session.session_data
+  }).eq('id', session.id);
+  await sendTelegramMessage(chatId, summary, {
+    inline_keyboard: [
+      [
+        {
+          text: '✅ Salvar como Rascunho',
+          callback_data: 'proposal_confirm:save'
+        }
+      ],
+      [
+        {
+          text: '🚀 Salvar e Enviar por E-mail',
+          callback_data: 'proposal_confirm:send'
+        }
+      ]
+    ]
+  });
 }
 // --- SERVIDOR PRINCIPAL DO WEBHOOK ---
 serve(async (req) => {
@@ -111,53 +149,57 @@ serve(async (req) => {
             }
           }
         }
-        if (action === 'add_more_items') {
-          if (value === 'yes') {
+        if (action === 'use_template') {
+          if (value === 'none') {
             await supabase.from('telegram_sessions').update({
               step: 'awaiting_budget_item'
             }).eq('id', session.id);
-            await sendTelegramMessage(chatId, 'Ok, vamos adicionar outro item. Envie no formato:\n\n<code>Tipo, Descrição, Quantidade, Valor Unitário</code>\n\n(Lembre-se: Tipo deve ser <b>Material</b> ou <b>Mão de Obra</b>)');
+            await sendTelegramMessage(chatId, 'Ok, vamos começar do zero. Envie um ou mais itens separados por ponto e vírgula (<b>;</b>).\n\n<u>Formato por item:</u>\n<code>Tipo, Descrição, Quantidade, Valor (ex: 25.50)</code>');
           } else {
-            await supabase.from('telegram_sessions').update({
-              step: 'awaiting_proposal_confirmation'
-            }).eq('id', session.id);
-            const proposalData = session.session_data.proposal;
-            let summary = `📝 <b>Resumo da Proposta</b> 📝\n\n`;
-            summary += `<b>Título:</b> ${proposalData.title}\n`;
-            summary += `<b>Cliente:</b> ${proposalData.new_client?.name || 'Cliente Existente'}\n`;
-            summary += `<b>Resumo:</b> ${proposalData.summary}\n`;
-            summary += `<b>Prazo:</b> ${proposalData.delivery_time}\n`;
-            summary += `<b>Validade:</b> ${proposalData.validity_days} dias\n`;
-            summary += `<b>Pagamento:</b> ${proposalData.payment_terms}\n\n`;
-            summary += `<b>Itens do Orçamento:</b>\n`;
-            let totalValue = 0;
-            proposalData.budget_items.forEach((item) => {
-              const itemTotal = item.quantity * item.unit_price;
-              totalValue += itemTotal;
-              summary += `  - [${item.type}] ${item.description} (${item.quantity}x R$ ${item.unit_price.toFixed(2)}) = R$ ${itemTotal.toFixed(2)}\n`;
-            });
-            summary += `\n<b>Valor Total: R$ ${totalValue.toFixed(2)}</b>\n\n`;
-            summary += `Tudo certo?`;
-            proposalData.total_value = totalValue;
-            await supabase.from('telegram_sessions').update({
-              session_data: session.session_data
-            }).eq('id', session.id);
-            await sendTelegramMessage(chatId, summary, {
-              inline_keyboard: [
-                [
-                  {
-                    text: '✅ Salvar como Rascunho',
-                    callback_data: 'proposal_confirm:save'
-                  }
-                ],
-                [
-                  {
-                    text: '🚀 Salvar e Enviar por E-mail',
-                    callback_data: 'proposal_confirm:send'
-                  }
-                ]
-              ]
-            });
+            const templateId = value;
+            const { data: template } = await supabase.from('budget_templates').select('name, items:budget_template_items(type, description)').eq('id', templateId).single();
+            if (!template || !template.items || template.items.length === 0) {
+              await sendTelegramMessage(chatId, '❌ Não foi possível carregar os itens deste modelo. Vamos começar do zero.');
+              await supabase.from('telegram_sessions').update({
+                step: 'awaiting_budget_item'
+              }).eq('id', session.id);
+              await sendTelegramMessage(chatId, 'Envie o primeiro item no formato:\n\n<code>Tipo, Descrição, Quantidade, Valor (ex: 25.50)</code>');
+            } else {
+              const templateItems = template.items;
+              let listMessage = `Ok, você selecionou o modelo "<b>${template.name}</b>".\nEle contém os seguintes itens:\n\n`;
+              templateItems.forEach((item) => {
+                listMessage += `• ${item.description}\n`;
+              });
+              listMessage += `\nAgora, vamos definir as quantidades e valores.`;
+              await sendTelegramMessage(chatId, listMessage);
+              session.session_data.proposal.template_items = templateItems;
+              session.session_data.proposal.current_item_index = 0;
+              await supabase.from('telegram_sessions').update({
+                step: 'awaiting_template_item_details',
+                session_data: session.session_data
+              }).eq('id', session.id);
+              const firstItem = templateItems[0];
+              await sendTelegramMessage(chatId, `Item 1 de ${templateItems.length}: <b>${firstItem.description}</b>\n\nEnvie a <b>Quantidade</b> e o <b>Valor Unitário</b>, separados por vírgula.\n\nExemplo: <code>1, 2500.00 (use . para centavos)</code>`);
+            }
+          }
+        }
+        if (action === 'save_template') {
+          if (value === 'yes') {
+            const { count } = await supabase.from('budget_templates').select('*', {
+              count: 'exact',
+              head: true
+            }).eq('user_id', session.user_id);
+            if (count !== null && count >= 15) {
+              await sendTelegramMessage(chatId, '❌ Você atingiu o limite de 15 Modelos de Orçamento.');
+              await showProposalSummary(session, chatId);
+            } else {
+              await supabase.from('telegram_sessions').update({
+                step: 'awaiting_template_name'
+              }).eq('id', session.id);
+              await sendTelegramMessage(chatId, 'Ótimo! Qual nome você quer dar a este Modelo de Orçamento?\n\n(Ex: Instalação de Câmeras)');
+            }
+          } else {
+            await showProposalSummary(session, chatId);
           }
         }
         if (action === 'proposal_confirm') {
@@ -208,17 +250,7 @@ serve(async (req) => {
           const proposalUrl = `https://www.borafecharai.com/propostas/${newProposal.id}/visualizar`;
           let finalMessage = `✅ Proposta salva com sucesso como <b>rascunho</b>!\n\n<a href="${proposalUrl}">Acesse sua proposta aqui.</a>`;
           if (value === 'send') {
-            let publicHash = newProposal.public_hash;
-            if (!publicHash || publicHash.length < 16) {
-              publicHash = btoa(`${newProposal.id}-${Date.now()}-${Math.random()}`).replace(/[+=\/]/g, '').substring(0, 32);
-              await supabase.from('proposals').update({
-                public_hash: publicHash
-              }).eq('id', newProposal.id);
-            }
-            // --- AJUSTE FINAL AQUI ---
-            // Monta o texto simples da proposta para enviar à função de e-mail
             const emailMessage = `Olá ${clientData.name},\n\nEspero que esteja bem!\n\nSua proposta para o projeto "${newProposal.title}" está finalizada e disponível para visualização.\n\nPreparamos esta proposta cuidadosamente para atender às suas necessidades específicas. Para acessar todos os detalhes, clique no botão abaixo:\n\n[LINK_DA_PROPOSTA]\n\n\nFico à disposição para esclarecer qualquer dúvida e discutir os próximos passos.\n\nAguardo seu retorno!\nAtenciosamente,\n\n${userProfile?.name || ''}\n${companyProfile?.name || ''}\n${companyProfile?.email || ''}\n${companyProfile?.phone || ''}`;
-            // Invoca a função de e-mail com o payload completo que ela espera
             const { error: emailError } = await supabase.functions.invoke('send-proposal-email', {
               body: {
                 proposalId: newProposal.id,
@@ -250,6 +282,9 @@ serve(async (req) => {
       const chatId = chat.id;
       const telegramUserId = from.id;
       let { data: session } = await supabase.from('telegram_sessions').select('*').eq('chat_id', chatId).eq('telegram_user_id', telegramUserId).maybeSingle();
+      if (!session) {
+        return new Response('OK');
+      }
       const sessionExpired = session && new Date(session.expires_at) < new Date();
       if (text === '/start') {
         if (session && !sessionExpired && session.user_id) {
@@ -392,59 +427,157 @@ serve(async (req) => {
         case 'awaiting_payment_method':
           session.session_data.proposal.payment_terms = text;
           await supabase.from('telegram_sessions').update({
-            step: 'awaiting_budget_item',
+            step: 'awaiting_budget_method',
             session_data: session.session_data
           }).eq('id', session.id);
-          await sendTelegramMessage(chatId, 'Para finalizar, adicione os itens do orçamento no formato:\n\n<code>Tipo, Descrição, Quantidade, Valor Unitário</code>\n\n<b>IMPORTANTE:</b> O "Tipo" deve ser <b>Material</b> ou <b>Mão de Obra</b>.');
+          const { data: templates, count } = await supabase.from('budget_templates').select('id, name', {
+            count: 'exact'
+          }).eq('user_id', session.user_id).limit(15);
+          if (templates && templates.length > 0) {
+            let message = `Você tem <b>${count} de 15</b> Modelos de Orçamento salvos. Escolha um para carregar ou adicione os itens manualmente.`;
+            const buttons = templates.map((t) => {
+              const buttonText = t.name.length > 40 ? t.name.substring(0, 37) + '...' : t.name;
+              return [
+                {
+                  text: buttonText,
+                  callback_data: `use_template:${t.id}`
+                }
+              ];
+            });
+            const keyboard = [
+              ...buttons,
+              [
+                {
+                  text: '➕ Adicionar itens manualmente',
+                  callback_data: 'use_template:none'
+                }
+              ]
+            ];
+            await sendTelegramMessage(chatId, message, {
+              inline_keyboard: keyboard
+            });
+          } else {
+            await supabase.from('telegram_sessions').update({
+              step: 'awaiting_budget_item'
+            }).eq('id', session.id);
+            await sendTelegramMessage(chatId, 'Você ainda não tem Modelos de Orçamento. Vamos adicionar os itens manualmente.\n\nEnvie um ou mais itens separados por ponto e vírgula (<b>;</b>).\n\n<u>Formato por item:</u>\n<code>Tipo, Descrição, Quantidade, Valor (ex: 25.50)</code>');
+          }
           break;
         case 'awaiting_budget_item':
-          const parts = text.split(',').map((p) => p.trim());
-          if (parts.length !== 4) {
-            await sendTelegramMessage(chatId, '❌ Formato inválido. Tente novamente: <code>Tipo, Descrição, Qtd, Valor</code>');
-            break;
+          const itemStrings = text.split(';');
+          const addedItems = [];
+          const errors = [];
+          for (const itemString of itemStrings) {
+            if (itemString.trim() === '') continue;
+            const parts = itemString.split(',').map((p) => p.trim());
+            if (parts.length !== 4) {
+              errors.push(`Formato inválido: "${itemString}"`);
+              continue;
+            }
+            const [typeInput, description, quantityStr, unitPriceStr] = parts;
+            let dbType = '';
+            const normalizedType = typeInput.toLowerCase().replace(/ /g, '').normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            if (normalizedType.startsWith('material')) {
+              dbType = 'material';
+            } else if (normalizedType.startsWith('maodeobra')) {
+              dbType = 'labor';
+            } else {
+              errors.push(`Tipo inválido em "${itemString}"`);
+              continue;
+            }
+            const quantity = parseInt(quantityStr, 10);
+            const unit_price = parseFloat(unitPriceStr.replace(',', '.'));
+            if (isNaN(quantity) || isNaN(unit_price)) {
+              errors.push(`Quantidade ou valor inválido em "${itemString}"`);
+              continue;
+            }
+            addedItems.push({
+              type: dbType,
+              description,
+              quantity,
+              unit_price
+            });
           }
-          const [typeInput, description, quantityStr, unitPriceStr] = parts;
-          let dbType = '';
-          const normalizedType = typeInput.toLowerCase().replace(/ /g, '').normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-          if (normalizedType.startsWith('material')) {
-            dbType = 'material';
-          } else if (normalizedType.startsWith('maodeobra')) {
-            dbType = 'labor';
-          } else {
-            await sendTelegramMessage(chatId, '❌ Tipo inválido. Por favor, use <b>Material</b> ou <b>Mão de Obra</b> como o primeiro item.');
-            break;
+          if (addedItems.length > 0) {
+            session.session_data.proposal.budget_items.push(...addedItems);
+            await supabase.from('telegram_sessions').update({
+              session_data: session.session_data
+            }).eq('id', session.id);
           }
-          const quantity = parseInt(quantityStr, 10);
-          const unit_price = parseFloat(unitPriceStr.replace(',', '.'));
-          if (isNaN(quantity) || isNaN(unit_price)) {
-            await sendTelegramMessage(chatId, '❌ Quantidade ou valor inválido. Tente novamente.');
-            break;
+          let responseMessage = `${addedItems.length} ite${addedItems.length > 1 ? 'ns' : 'm'} adicionado${addedItems.length > 1 ? 's' : ''} com sucesso!`;
+          if (errors.length > 0) {
+            responseMessage += `\n\n<b>Erros encontrados:</b>\n- ${errors.join('\n- ')}`;
           }
-          session.session_data.proposal.budget_items.push({
-            type: dbType,
-            description,
-            quantity,
-            unit_price
-          });
+          await sendTelegramMessage(chatId, responseMessage);
           await supabase.from('telegram_sessions').update({
-            session_data: session.session_data
+            step: 'awaiting_save_template_choice'
           }).eq('id', session.id);
-          await sendTelegramMessage(chatId, 'Item adicionado! Deseja adicionar outro item?', {
+          await sendTelegramMessage(chatId, 'Gostaria de salvar este grupo de itens como um novo Modelo de Orçamento para usar no futuro?', {
             inline_keyboard: [
               [
                 {
-                  text: '👍 Sim',
-                  callback_data: 'add_more_items:yes'
+                  text: '👍 Sim, salvar',
+                  callback_data: 'save_template:yes'
                 }
               ],
               [
                 {
-                  text: '✅ Não, ir para o resumo',
-                  callback_data: 'add_more_items:no'
+                  text: '👎 Não, ir para o resumo',
+                  callback_data: 'save_template:no'
                 }
               ]
             ]
           });
+          break;
+        case 'awaiting_template_item_details':
+          const proposalData = session.session_data.proposal;
+          const index = proposalData.current_item_index;
+          const currentItem = proposalData.template_items[index];
+          const details = text.split(',').map((p) => p.trim());
+          if (details.length !== 2) {
+            await sendTelegramMessage(chatId, '❌ Formato inválido. Envie <code>Quantidade, Valor (ex: 25.50)</code>');
+            break;
+          }
+          const qty = parseInt(details[0], 10);
+          const price = parseFloat(details[1].replace(',', '.'));
+          if (isNaN(qty) || isNaN(price)) {
+            await sendTelegramMessage(chatId, '❌ Quantidade ou valor inválido.');
+            break;
+          }
+          proposalData.budget_items.push({
+            type: currentItem.type,
+            description: currentItem.description,
+            quantity: qty,
+            unit_price: price
+          });
+          const nextIndex = index + 1;
+          if (nextIndex < proposalData.template_items.length) {
+            proposalData.current_item_index = nextIndex;
+            await supabase.from('telegram_sessions').update({
+              session_data: session.session_data
+            }).eq('id', session.id);
+            const nextItem = proposalData.template_items[nextIndex];
+            await sendTelegramMessage(chatId, `Item ${nextIndex + 1} de ${proposalData.template_items.length}: <b>${nextItem.description}</b>\n\nEnvie a <b>Quantidade</b> e o <b>Valor Unitário</b>:`);
+          } else {
+            await showProposalSummary(session, chatId);
+          }
+          break;
+        case 'awaiting_template_name':
+          const templateName = text;
+          const { data: newTemplate, error: templateError } = await supabase.from('budget_templates').insert({
+            name: templateName,
+            user_id: session.user_id
+          }).select().single();
+          if (templateError) throw new Error('Erro ao salvar o modelo.');
+          const itemsToSave = session.session_data.proposal.budget_items.map((item) => ({
+            template_id: newTemplate.id,
+            user_id: session.user_id,
+            type: item.type,
+            description: item.description
+          }));
+          await supabase.from('budget_template_items').insert(itemsToSave);
+          await sendTelegramMessage(chatId, `✅ Modelo "${templateName}" salvo com sucesso!`);
+          await showProposalSummary(session, chatId);
           break;
         default:
           await sendTelegramMessage(chatId, 'Não entendi. Se travou, digite /start para recomeçar.');

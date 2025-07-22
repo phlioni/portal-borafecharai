@@ -12,7 +12,8 @@ import {
   PlusCircle,
   Menu,
   X,
-  Send
+  Send,
+  Calculator
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfiles } from '@/hooks/useProfiles';
@@ -66,6 +67,7 @@ const MobileLayout = ({ children }: MobileLayoutProps) => {
     { path: '/propostas', icon: FileText, label: 'Propostas' },
     // ...(canCreateProposal ? [{ path: '/nova-proposta', icon: PlusCircle, label: 'Nova Proposta' }] : []),
     { path: '/clientes', icon: Users, label: 'Clientes' },
+    { path: '/modelos-orcamento', icon: Calculator, label: 'Modelos Orçamento' },
     { path: '/analytics', icon: BarChart3, label: 'Analytics' },
     { path: '/configuracoes', icon: Settings, label: 'Configurações' },
   ];
