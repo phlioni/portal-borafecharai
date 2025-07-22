@@ -1,154 +1,172 @@
 
-import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Menu, X, Home, FileText, Users, Settings, BarChart3, Calendar, LogOut, Plus, Bot, MessageCircle, Palette, User } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import {
+  Home,
+  FileText,
+  Users,
+  Settings,
+  BarChart3,
+  LogOut,
+  MessageSquare,
+  PlusCircle,
+  Send,
+  Calculator
+} from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProfiles } from '@/hooks/useProfiles';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { useUserPermissions } from '@/hooks/useUserPermissions';
+import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
-import MobileLayout from '@/components/MobileLayout';
-import SimpleUserMenu from '@/components/SimpleUserMenu';
-import { TrialCallToActionWrapper } from '@/components/TrialCallToActionWrapper';
+import MobileLayout from './MobileLayout';
 
-export const Layout = ({ children }: { children: React.ReactNode }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { signOut } = useAuth();
+interface LayoutProps {
+  children: React.ReactNode;
+}
+
+const Layout = ({ children }: LayoutProps) => {
   const isMobile = useIsMobile();
+  const { signOut, user } = useAuth();
+  const { profile } = useProfiles();
+  const { isAdmin, canCreateProposal } = useUserPermissions();
+  const location = useLocation();
+  const navigate = useNavigate();
 
+  // Se for mobile, usa o MobileLayout
   if (isMobile) {
     return <MobileLayout>{children}</MobileLayout>;
   }
 
-  const menuItems = [
-    { icon: Home, label: 'Dashboard', path: '/dashboard' },
-    { icon: Plus, label: 'Nova Proposta', path: '/nova-proposta' },
-    { icon: FileText, label: 'Propostas', path: '/propostas' },
-    { icon: Calendar, label: 'Ordens de Serviço', path: '/ordens-de-servico' },
-    { icon: Users, label: 'Clientes', path: '/clientes' },
-    { icon: BarChart3, label: 'Analytics', path: '/analytics' },
-    { icon: Palette, label: 'Modelos de Orçamento', path: '/modelos-orcamento' },
-  ];
-
-  const botMenuItems = [
-    { icon: Bot, label: 'Bot Telegram', path: '/telegram-bot' },
-    { icon: MessageCircle, label: 'Bot WhatsApp', path: '/whatsapp-bot' },
-  ];
-
-  const handleLogout = async () => {
+  const handleSignOut = async () => {
     try {
       await signOut();
       navigate('/login');
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
+      toast.error('Erro ao fazer logout');
     }
   };
 
+  const getInitials = () => {
+    if (profile?.name) {
+      return profile.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    }
+    if (user?.email) {
+      return user.email.charAt(0).toUpperCase();
+    }
+    return 'U';
+  };
+
+  const handleTelegramBot = () => {
+    // Abrir o bot do Telegram
+    window.open('https://t.me/borafecharai_bot', '_blank');
+  };
+
+
+  // Reorganizamos os itens do menu para dar destaque ao Chat Proposta
+  const menuItems = [
+    { path: '/dashboard', icon: Home, label: 'Dashboard' },
+    // Movemos o Chat Proposta para uma posição mais destacada
+    { path: '/chat-proposta', icon: MessageSquare, label: 'Chat Proposta', highlight: true },
+    { path: '/propostas', icon: FileText, label: 'Propostas' },
+    // ...(canCreateProposal ? [{ path: '/nova-proposta', icon: PlusCircle, label: 'Nova Proposta' }] : []),
+    { path: '/clientes', icon: Users, label: 'Clientes' },
+    { path: '/modelos-orcamento', icon: Calculator, label: 'Modelos Orçamento' },
+    { path: '/analytics', icon: BarChart3, label: 'Analytics' },
+    { path: '/configuracoes', icon: Settings, label: 'Configurações' },
+  ];
+
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-background">
       {/* Sidebar */}
-      <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0`}>
-        <div className="flex items-center justify-between h-16 px-6 border-b">
+      <div className="w-64 bg-card border-r border-border flex flex-col">
+        {/* Logo */}
+        <div className="p-6 border-b border-border">
           <h1 className="text-xl font-bold text-primary">BoraFecharAI</h1>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          >
-            <X className="h-5 w-5" />
-          </Button>
         </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-          {menuItems.map((item) => (
-            <Button
-              key={item.path}
-              variant={location.pathname === item.path ? "default" : "ghost"}
-              className="w-full justify-start"
-              onClick={() => {
-                navigate(item.path);
-                setSidebarOpen(false);
-              }}
-            >
-              <item.icon className="mr-3 h-5 w-5" />
-              {item.label}
-            </Button>
-          ))}
-          
-          <div className="pt-4">
-            <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-              Assistentes
-            </h3>
-            {botMenuItems.map((item) => (
-              <Button
+        {/* Navigation */}
+        <nav className="flex-1 p-4 space-y-2">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+            return (
+              <NavLink
                 key={item.path}
-                variant={location.pathname === item.path ? "default" : "ghost"}
-                className="w-full justify-start"
-                onClick={() => {
-                  navigate(item.path);
-                  setSidebarOpen(false);
-                }}
+                to={item.path}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
+                  ? 'bg-primary text-primary-foreground'
+                  : item.highlight
+                    ? 'bg-accent text-accent-foreground hover:bg-accent/80'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}
               >
-                <item.icon className="mr-3 h-5 w-5" />
+                <Icon className={`w-4 h-4 ${item.highlight && !isActive ? 'animate-pulse' : ''}`} />
                 {item.label}
-              </Button>
-            ))}
-          </div>
-
-          <div className="pt-4 border-t">
+                {item.highlight && !isActive && (
+                  <span className="ml-auto text-xs font-medium bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">
+                    Novo
+                  </span>
+                )}
+              </NavLink>
+            );
+          })}
+          {/* Telegram Bot Highlight - Novo destaque */}
+          <div>
             <Button
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={() => {
-                navigate('/configuracoes');
-                setSidebarOpen(false);
-              }}
+              onClick={handleTelegramBot}
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white gap-2 min-h-[44px]"
             >
-              <Settings className="mr-3 h-5 w-5" />
-              Configurações
+              <Send className="w-5 h-5" />
+              <span>Assistente no Telegram</span>
             </Button>
           </div>
         </nav>
 
-        <div className="border-t p-4">
-          <SimpleUserMenu />
-        </div>
-      </div>
+        {/* User Profile & Logout */}
+        <div className="p-4 border-t border-border">
+          <div className="flex items-center gap-3 mb-3">
+            <Avatar className="w-8 h-8">
+              {profile?.avatar_url ? (
+                <AvatarImage src={profile.avatar_url} alt="Avatar" />
+              ) : (
+                <AvatarFallback className="text-sm">
+                  {getInitials()}
+                </AvatarFallback>
+              )}
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">
+                {profile?.name || user?.email || 'Usuário'}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                {user?.email}
+              </p>
+            </div>
+          </div>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="bg-white shadow-sm border-b h-16 flex items-center justify-between px-6 lg:px-8">
           <Button
             variant="ghost"
             size="sm"
-            className="lg:hidden"
-            onClick={() => setSidebarOpen(true)}
+            onClick={handleSignOut}
+            className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
           >
-            <Menu className="h-5 w-5" />
+            <LogOut className="w-4 h-4" />
+            Sair
           </Button>
-          
-          <div className="flex-1" />
-          
-          <div className="flex items-center space-x-4">
-            <TrialCallToActionWrapper />
-          </div>
-        </header>
+        </div>
+      </div>
 
-        {/* Page content */}
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>
       </div>
-
-      {/* Overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
     </div>
   );
 };
+
+export default Layout;

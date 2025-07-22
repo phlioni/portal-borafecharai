@@ -20,8 +20,6 @@ export interface Proposal {
   template_id?: string;
   views?: number;
   proposal_number?: string;
-  company_profile?: any;
-  user_profile?: any;
   clients?: {
     id: string;
     name: string;
@@ -51,20 +49,11 @@ export interface Proposal {
     business_segment?: string;
     business_type_detail?: string;
   };
-  user_companies?: {
+  user_profile?: {
     id: string;
-    name: string;
-    email?: string;
+    name?: string;
     phone?: string;
-    logo_url?: string;
-    address?: string;
-    city?: string;
-    state?: string;
-    zip_code?: string;
-    cnpj?: string;
-    website?: string;
-    business_segment?: string;
-    business_type_detail?: string;
+    avatar_url?: string;
   };
 }
 
