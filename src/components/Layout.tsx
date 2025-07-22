@@ -5,8 +5,8 @@ import { Menu, X, Home, FileText, Users, Settings, BarChart3, Calendar, LogOut, 
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { MobileLayout } from '@/components/MobileLayout';
-import { UserActionsDropdown } from '@/components/UserActionsDropdown';
+import MobileLayout from '@/components/MobileLayout';
+import UserActionsDropdown from '@/components/UserActionsDropdown';
 import { TrialCallToActionWrapper } from '@/components/TrialCallToActionWrapper';
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {

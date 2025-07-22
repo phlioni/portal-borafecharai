@@ -42,9 +42,13 @@ export const useServiceAvailability = () => {
 
   const saveAvailability = async (dayOfWeek: number, startTime: string, endTime: string, isAvailable: boolean) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       const { error } = await supabase
         .from('service_availability')
         .upsert({
+          user_id: user.id,
           day_of_week: dayOfWeek,
           start_time: startTime,
           end_time: endTime,
