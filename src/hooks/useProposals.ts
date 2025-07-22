@@ -91,13 +91,7 @@ export const useProposals = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
-      // Type assertion para garantir compatibilidade de tipos
-      return (data || []).map(proposal => ({
-        ...proposal,
-        user_profile: proposal.user_profile as Proposal['user_profile'],
-        company_profile: proposal.company_profile as any
-      })) as Proposal[];
+      return data as Proposal[];
     },
   });
 };
@@ -342,8 +336,7 @@ export const useProposal = (id?: string) => {
       const completeProposal = {
         ...data,
         user_companies: userCompanyData,
-        user_profile: profileData,
-        company_profile: data.company_profile as any
+        user_profile: profileData
       } as Proposal;
 
       return completeProposal;
