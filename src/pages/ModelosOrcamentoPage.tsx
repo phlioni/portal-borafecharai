@@ -3,12 +3,13 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Trash2, Edit, Package, Wrench } from 'lucide-react';
+import { Plus, Trash2, Edit, Package, Wrench, AlertCircle } from 'lucide-react';
 import { useBudgetTemplates } from '@/hooks/useBudgetTemplates';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const ModelosOrcamentoPage = () => {
   const { toast } = useToast();
@@ -20,6 +21,9 @@ const ModelosOrcamentoPage = () => {
     deleteTemplate,
     createTemplateItem,
     deleteTemplateItem,
+    hasReachedLimit,
+    remainingTemplates,
+    maxTemplatesLimit,
   } = useBudgetTemplates();
 
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
@@ -50,7 +54,7 @@ const ModelosOrcamentoPage = () => {
     } catch (error) {
       toast({
         title: "Erro",
-        description: "Erro ao criar modelo",
+        description: error instanceof Error ? error.message : "Erro ao criar modelo",
         variant: "destructive",
       });
     }
@@ -141,11 +145,15 @@ const ModelosOrcamentoPage = () => {
           <p className="text-gray-600 mt-2">
             Gerencie seus modelos de orçamento e itens pré-cadastrados
           </p>
+          <p className="text-sm text-gray-500 mt-1">
+            {templates?.length || 0} de {maxTemplatesLimit} modelos criados
+            {remainingTemplates > 0 && ` • ${remainingTemplates} restantes`}
+          </p>
         </div>
         
         <Dialog open={isCreateTemplateOpen} onOpenChange={setIsCreateTemplateOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button disabled={hasReachedLimit}>
               <Plus className="w-4 h-4 mr-2" />
               Novo Modelo
             </Button>
@@ -176,6 +184,16 @@ const ModelosOrcamentoPage = () => {
           </DialogContent>
         </Dialog>
       </div>
+
+      {hasReachedLimit && (
+        <Alert className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Você atingiu o limite máximo de {maxTemplatesLimit} modelos de orçamento. 
+            Para criar novos modelos, exclua alguns existentes primeiro.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Lista de Modelos */}

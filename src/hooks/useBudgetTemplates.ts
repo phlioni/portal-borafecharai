@@ -28,6 +28,8 @@ export interface CreateTemplateItemData {
   description: string;
 }
 
+const MAX_TEMPLATES_LIMIT = 15;
+
 export const useBudgetTemplates = () => {
   const queryClient = useQueryClient();
 
@@ -67,9 +69,18 @@ export const useBudgetTemplates = () => {
     },
   });
 
+  // Verificar se atingiu o limite
+  const hasReachedLimit = (templates?.length || 0) >= MAX_TEMPLATES_LIMIT;
+  const remainingTemplates = MAX_TEMPLATES_LIMIT - (templates?.length || 0);
+
   // Criar template
   const createTemplate = useMutation({
     mutationFn: async (templateData: CreateTemplateData) => {
+      // Verificar limite antes de criar
+      if (hasReachedLimit) {
+        throw new Error(`Você pode ter no máximo ${MAX_TEMPLATES_LIMIT} modelos de orçamento`);
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
@@ -159,5 +170,8 @@ export const useBudgetTemplates = () => {
     deleteTemplate,
     createTemplateItem,
     deleteTemplateItem,
+    hasReachedLimit,
+    remainingTemplates,
+    maxTemplatesLimit: MAX_TEMPLATES_LIMIT,
   };
 };
