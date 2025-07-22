@@ -1,168 +1,130 @@
 
-import React from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import {
-  Home,
-  FileText,
-  Users,
-  Settings,
-  BarChart3,
-  LogOut,
+import { useState } from "react";
+import { Outlet, Link, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { useMobile } from "@/hooks/use-mobile";
+import { MobileLayout } from "./MobileLayout";
+import { LoadingSpinner } from "./LoadingSpinner";
+import { 
+  BarChart3, 
+  Users, 
+  FileText, 
+  Settings, 
+  Menu,
+  Calculator,
   MessageSquare,
-  PlusCircle,
-  Send,
-  Calculator
-} from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useProfiles } from '@/hooks/useProfiles';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { useUserPermissions } from '@/hooks/useUserPermissions';
-import { toast } from 'sonner';
-import { useIsMobile } from '@/hooks/use-mobile';
-import MobileLayout from './MobileLayout';
+  ClipboardList,
+  Calendar
+} from "lucide-react";
 
-interface LayoutProps {
-  children: React.ReactNode;
-}
-
-const Layout = ({ children }: LayoutProps) => {
-  const isMobile = useIsMobile();
-  const { signOut, user } = useAuth();
-  const { profile } = useProfiles();
-  const { isAdmin, canCreateProposal } = useUserPermissions();
+const Layout = () => {
+  const { user, signOut, loading } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
+  const isMobile = useMobile();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Se for mobile, usa o MobileLayout
-  if (isMobile) {
-    return <MobileLayout>{children}</MobileLayout>;
+  if (loading) {
+    return <LoadingSpinner />;
   }
 
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      navigate('/login');
-    } catch (error) {
-      console.error('Erro ao fazer logout:', error);
-      toast.error('Erro ao fazer logout');
-    }
-  };
+  if (isMobile) {
+    return <MobileLayout />;
+  }
 
-  const getInitials = () => {
-    if (profile?.name) {
-      return profile.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-    }
-    if (user?.email) {
-      return user.email.charAt(0).toUpperCase();
-    }
-    return 'U';
-  };
-
-  const handleTelegramBot = () => {
-    // Abrir o bot do Telegram
-    window.open('https://t.me/borafecharai_bot', '_blank');
-  };
-
-
-  // Reorganizamos os itens do menu para dar destaque ao Chat Proposta
-  const menuItems = [
-    { path: '/dashboard', icon: Home, label: 'Dashboard' },
-    // Movemos o Chat Proposta para uma posição mais destacada
-    { path: '/chat-proposta', icon: MessageSquare, label: 'Chat Proposta', highlight: true },
-    { path: '/propostas', icon: FileText, label: 'Propostas' },
-    // ...(canCreateProposal ? [{ path: '/nova-proposta', icon: PlusCircle, label: 'Nova Proposta' }] : []),
-    { path: '/clientes', icon: Users, label: 'Clientes' },
-    { path: '/modelos-orcamento', icon: Calculator, label: 'Modelos Orçamento' },
-    { path: '/analytics', icon: BarChart3, label: 'Analytics' },
-    { path: '/configuracoes', icon: Settings, label: 'Configurações' },
+  const navigation = [
+    { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
+    { name: "Propostas", href: "/propostas", icon: FileText },
+    { name: "Clientes", href: "/clientes", icon: Users },
+    { name: "Chat Proposta", href: "/chat-proposta", icon: MessageSquare },
+    { name: "Templates Personalizados", href: "/templates-personalizados", icon: ClipboardList },
+    { name: "Modelos de Orçamento", href: "/modelos-orcamento", icon: Calculator },
+    { name: "Ordens de Serviço", href: "/ordens-servico", icon: Calendar },
+    { name: "Configurações", href: "/configuracoes", icon: Settings },
   ];
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
-      <div className="w-64 bg-card border-r border-border flex flex-col">
-        {/* Logo */}
-        <div className="p-6 border-b border-border">
-          <h1 className="text-xl font-bold text-primary">BoraFecharAI</h1>
+      <div className={cn(
+        "fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
+        sidebarOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
+        <div className="flex items-center justify-center h-16 px-4 border-b">
+          <Link to="/dashboard" className="text-xl font-bold text-blue-600">
+            BoraFecharAI
+          </Link>
         </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
-                  ? 'bg-primary text-primary-foreground'
-                  : item.highlight
-                    ? 'bg-accent text-accent-foreground hover:bg-accent/80'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                  }`}
-              >
-                <Icon className={`w-4 h-4 ${item.highlight && !isActive ? 'animate-pulse' : ''}`} />
-                {item.label}
-                {item.highlight && !isActive && (
-                  <span className="ml-auto text-xs font-medium bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">
-                    Novo
-                  </span>
-                )}
-              </NavLink>
-            );
-          })}
-          {/* Telegram Bot Highlight - Novo destaque */}
-          <div>
-            <Button
-              onClick={handleTelegramBot}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white gap-2 min-h-[44px]"
-            >
-              <Send className="w-5 h-5" />
-              <span>Assistente no Telegram</span>
-            </Button>
+        
+        <nav className="mt-5 px-2">
+          <div className="space-y-1">
+            {navigation.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={cn(
+                    "group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors",
+                    location.pathname === item.href
+                      ? "bg-blue-100 text-blue-900"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  )}
+                >
+                  <Icon className="mr-3 h-5 w-5" />
+                  {item.name}
+                </Link>
+              );
+            })}
           </div>
         </nav>
 
-        {/* User Profile & Logout */}
-        <div className="p-4 border-t border-border">
-          <div className="flex items-center gap-3 mb-3">
-            <Avatar className="w-8 h-8">
-              {profile?.avatar_url ? (
-                <AvatarImage src={profile.avatar_url} alt="Avatar" />
-              ) : (
-                <AvatarFallback className="text-sm">
-                  {getInitials()}
-                </AvatarFallback>
-              )}
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">
-                {profile?.name || user?.email || 'Usuário'}
-              </p>
-              <p className="text-xs text-muted-foreground truncate">
+        <div className="absolute bottom-0 w-full p-4 border-t">
+          <div className="flex items-center">
+            <div className="ml-3">
+              <div className="text-base font-medium text-gray-800">
                 {user?.email}
-              </p>
+              </div>
             </div>
           </div>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleSignOut}
-            className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+          <Button 
+            onClick={signOut} 
+            variant="outline" 
+            className="mt-3 w-full"
           >
-            <LogOut className="w-4 h-4" />
             Sair
           </Button>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <main className="flex-1 overflow-y-auto">
-          {children}
+      {/* Mobile menu button */}
+      <div className="lg:hidden">
+        <div className="flex items-center justify-between h-16 px-4 bg-white border-b">
+          <Button
+            variant="ghost"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+          >
+            <Menu className="h-6 w-6" />
+          </Button>
+          <Link to="/dashboard" className="text-xl font-bold text-blue-600">
+            BoraFecharAI
+          </Link>
+        </div>
+      </div>
+
+      {/* Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-gray-600 bg-opacity-75 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
+        <main className="flex-1 relative overflow-y-auto focus:outline-none">
+          <Outlet />
         </main>
       </div>
     </div>

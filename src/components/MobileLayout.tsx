@@ -1,203 +1,119 @@
 
-import React, { useState } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import {
-  Home,
-  FileText,
-  Users,
-  Settings,
-  BarChart3,
-  LogOut,
-  Bot,
-  PlusCircle,
+import { useState } from "react";
+import { Outlet, Link, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
+import { LoadingSpinner } from "./LoadingSpinner";
+import { 
+  BarChart3, 
+  Users, 
+  FileText, 
+  Settings, 
   Menu,
-  X,
-  Send,
-  Calculator
-} from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useProfiles } from '@/hooks/useProfiles';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { useUserPermissions } from '@/hooks/useUserPermissions';
-import { toast } from 'sonner';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+  Calculator,
+  MessageSquare,
+  ClipboardList,
+  Calendar
+} from "lucide-react";
 
-interface MobileLayoutProps {
-  children: React.ReactNode;
-}
-
-const MobileLayout = ({ children }: MobileLayoutProps) => {
-  const { signOut, user } = useAuth();
-  const { profile } = useProfiles();
-  const { isAdmin, canCreateProposal } = useUserPermissions();
+export const MobileLayout = () => {
+  const { user, signOut, loading } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [open, setOpen] = useState(false);
 
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      navigate('/login');
-    } catch (error) {
-      console.error('Erro ao fazer logout:', error);
-      toast.error('Erro ao fazer logout');
-    }
-  };
+  if (loading) {
+    return <LoadingSpinner />;
+  }
 
-  const handleTelegramBot = () => {
-    // Abrir o bot do Telegram
-    window.open('https://t.me/borafecharai_bot', '_blank');
-    closeMenu();
-  };
-
-  const getInitials = () => {
-    if (profile?.name) {
-      return profile.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-    }
-    if (user?.email) {
-      return user.email.charAt(0).toUpperCase();
-    }
-    return 'U';
-  };
-
-  const menuItems = [
-    { path: '/dashboard', icon: Home, label: 'Dashboard' },
-    { path: '/chat-proposta', icon: Bot, label: 'Chat Proposta', highlight: true },
-    { path: '/propostas', icon: FileText, label: 'Propostas' },
-    // ...(canCreateProposal ? [{ path: '/nova-proposta', icon: PlusCircle, label: 'Nova Proposta' }] : []),
-    { path: '/clientes', icon: Users, label: 'Clientes' },
-    { path: '/modelos-orcamento', icon: Calculator, label: 'Modelos Orçamento' },
-    { path: '/analytics', icon: BarChart3, label: 'Analytics' },
-    { path: '/configuracoes', icon: Settings, label: 'Configurações' },
+  const navigation = [
+    { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
+    { name: "Propostas", href: "/propostas", icon: FileText },
+    { name: "Clientes", href: "/clientes", icon: Users },
+    { name: "Chat Proposta", href: "/chat-proposta", icon: MessageSquare },
+    { name: "Templates Personalizados", href: "/templates-personalizados", icon: ClipboardList },
+    { name: "Modelos de Orçamento", href: "/modelos-orcamento", icon: Calculator },
+    { name: "Ordens de Serviço", href: "/ordens-servico", icon: Calendar },
+    { name: "Configurações", href: "/configuracoes", icon: Settings },
   ];
 
-  const closeMenu = () => setIsMenuOpen(false);
-
   return (
-    <div className="flex h-screen bg-background">
-      {/* Mobile Header - altura reduzida para otimizar espaço */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-card border-b border-border">
-        <div className="flex items-center justify-between p-3 h-12">
-          <h1 className="text-base sm:text-lg font-bold text-primary truncate">BoraFecharAI</h1>
-
-          <div className="flex items-center gap-2">
-            <Avatar className="w-7 h-7 sm:w-8 sm:h-8">
-              {profile?.avatar_url ? (
-                <AvatarImage src={profile.avatar_url} alt="Avatar" />
-              ) : (
-                <AvatarFallback className="text-xs">
-                  {getInitials()}
-                </AvatarFallback>
-              )}
-            </Avatar>
-
-            <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="sm" className="p-2">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-72 p-0 flex flex-col max-h-screen">
-                <div className="flex flex-col h-full overflow-hidden">
-                  {/* Menu Header - altura reduzida */}
-                  <div className="p-3 border-b border-border flex-shrink-0">
-                    <div className="flex items-center justify-between">
-                      <h2 className="font-semibold text-sm">Menu</h2>
-                      <Button variant="ghost" size="sm" onClick={closeMenu} className="p-1">
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Telegram Bot Highlight - Novo destaque */}
-                  <div className="p-3 border-b border-border flex-shrink-0">
-                    <Button
-                      onClick={handleTelegramBot}
-                      className="w-full bg-blue-500 hover:bg-blue-600 text-white gap-2 min-h-[44px]"
-                    >
-                      <Send className="w-5 h-5" />
-                      <span>Assistente no Telegram</span>
-                    </Button>
-                  </div>
-
-                  {/* Navigation - área scrollável */}
-                  <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-                    {menuItems.map((item) => {
-                      const Icon = item.icon;
-                      const isActive = location.pathname === item.path;
-
-                      return (
-                        <NavLink
-                          key={item.path}
-                          to={item.path}
-                          onClick={closeMenu}
-                          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${isActive
-                              ? 'bg-primary text-primary-foreground'
-                              : item.highlight
-                                ? 'bg-accent text-accent-foreground hover:bg-accent/80'
-                                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                            }`}
-                        >
-                          <Icon className={`w-5 h-5 flex-shrink-0 ${item.highlight && !isActive ? 'animate-pulse' : ''}`} />
-                          <span className="truncate">{item.label}</span>
-                          {item.highlight && !isActive && (
-                            <span className="ml-auto text-xs font-medium bg-primary/20 text-primary px-1.5 py-0.5 rounded-full flex-shrink-0">
-                              IA
-                            </span>
-                          )}
-                        </NavLink>
-                      );
-                    })}
-                  </nav>
-
-                  {/* User Profile & Logout - área fixa no rodapé */}
-                  <div className="p-3 border-t border-border flex-shrink-0">
-                    <div className="flex items-center gap-3 mb-3">
-                      <Avatar className="w-9 h-9 flex-shrink-0">
-                        {profile?.avatar_url ? (
-                          <AvatarImage src={profile.avatar_url} alt="Avatar" />
-                        ) : (
-                          <AvatarFallback className="text-sm">
-                            {getInitials()}
-                          </AvatarFallback>
+    <div className="flex h-screen bg-gray-100">
+      {/* Mobile Header */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b">
+        <div className="flex items-center justify-between h-16 px-4">
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Menu className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="p-0 w-64">
+              <div className="flex items-center justify-center h-16 px-4 border-b">
+                <Link 
+                  to="/dashboard" 
+                  className="text-xl font-bold text-blue-600"
+                  onClick={() => setOpen(false)}
+                >
+                  BoraFecharAI
+                </Link>
+              </div>
+              
+              <nav className="mt-5 px-2">
+                <div className="space-y-1">
+                  {navigation.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.name}
+                        to={item.href}
+                        onClick={() => setOpen(false)}
+                        className={cn(
+                          "group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors",
+                          location.pathname === item.href
+                            ? "bg-blue-100 text-blue-900"
+                            : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                         )}
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">
-                          {profile?.name || user?.email || 'Usuário'}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {user?.email}
-                        </p>
-                      </div>
-                    </div>
+                      >
+                        <Icon className="mr-3 h-5 w-5" />
+                        {item.name}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </nav>
 
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleSignOut}
-                      className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground min-h-[44px]"
-                    >
-                      <LogOut className="w-4 w-4" />
-                      Sair
-                    </Button>
+              <div className="absolute bottom-0 w-full p-4 border-t">
+                <div className="flex items-center">
+                  <div className="ml-3">
+                    <div className="text-base font-medium text-gray-800">
+                      {user?.email}
+                    </div>
                   </div>
                 </div>
-              </SheetContent>
-            </Sheet>
-          </div>
+                <Button 
+                  onClick={signOut} 
+                  variant="outline" 
+                  className="mt-3 w-full"
+                >
+                  Sair
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
+          
+          <Link to="/dashboard" className="text-xl font-bold text-blue-600">
+            BoraFecharAI
+          </Link>
+          <div className="w-10" /> {/* Spacer for alignment */}
         </div>
       </div>
 
-      {/* Main Content - altura ajustada para header menor */}
-      <div className="flex-1 pt-12 overflow-hidden">
-        <main className="h-full overflow-y-auto">
-          {children}
-        </main>
+      {/* Main content */}
+      <div className="flex-1 pt-16 overflow-y-auto">
+        <Outlet />
       </div>
     </div>
   );
 };
-
-export default MobileLayout;
