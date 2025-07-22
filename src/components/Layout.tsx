@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import MobileLayout from '@/components/MobileLayout';
-import UserActionsDropdown from '@/components/UserActionsDropdown';
+import SimpleUserMenu from '@/components/SimpleUserMenu';
 import { TrialCallToActionWrapper } from '@/components/TrialCallToActionWrapper';
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -112,7 +112,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
         </nav>
 
         <div className="border-t p-4">
-          <UserActionsDropdown />
+          <SimpleUserMenu />
         </div>
       </div>
 
