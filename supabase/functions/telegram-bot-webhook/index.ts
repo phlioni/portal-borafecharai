@@ -52,7 +52,7 @@ async function showProposalSummary(session, chatId) {
   const proposalData = session.session_data.proposal;
   let summary = `📝 <b>Resumo da Proposta</b> 📝\n\n`;
   summary += `<b>Título:</b> ${proposalData.title}\n`;
-  summary += `<b>Cliente:</b> ${proposalData.new_client?.name || 'Cliente Existente'}\n`;
+  summary += `<b>Cliente:</b> ${proposalData.client_name || 'Cliente a ser criado'}\n`;
   summary += `<b>Resumo:</b> ${proposalData.summary}\n`;
   summary += `<b>Prazo:</b> ${proposalData.delivery_time}\n`;
   summary += `<b>Validade:</b> ${proposalData.validity_days} dias\n`;
@@ -154,7 +154,7 @@ serve(async (req) => {
             await supabase.from('telegram_sessions').update({
               step: 'awaiting_budget_item'
             }).eq('id', session.id);
-            await sendTelegramMessage(chatId, 'Ok, vamos começar do zero. Envie um ou mais itens separados por ponto e vírgula (<b>;</b>).\n\n<u>Formato por item:</u>\n<code>Tipo, Descrição, Quantidade, Valor (ex: 25.50)</code>');
+            await sendTelegramMessage(chatId, 'Ok, vamos começar do zero. Envie um ou mais itens separados por ponto e vírgula (<b>;</b>).\n\n<u>Formato por item:</u>\n<code>Tipo, Descrição, Quantidade, Valor (ex: 25.50)</code>\n\n<b>IMPORTANTE:</b> O "Tipo" deve ser <b>Material</b> ou <b>Mão de Obra</b>.');
           } else {
             const templateId = value;
             const { data: template } = await supabase.from('budget_templates').select('name, items:budget_template_items(type, description)').eq('id', templateId).single();
@@ -163,7 +163,7 @@ serve(async (req) => {
               await supabase.from('telegram_sessions').update({
                 step: 'awaiting_budget_item'
               }).eq('id', session.id);
-              await sendTelegramMessage(chatId, 'Envie o primeiro item no formato:\n\n<code>Tipo, Descrição, Quantidade, Valor (ex: 25.50)</code>');
+              await sendTelegramMessage(chatId, 'Envie o primeiro item no formato:\n\n<code>Tipo, Descrição, Quantidade, Valor (ex: 25.50)</code>\n\n<b>IMPORTANTE:</b> O "Tipo" deve ser <b>Material</b> ou <b>Mão de Obra</b>.');
             } else {
               const templateItems = template.items;
               let listMessage = `Ok, você selecionou o modelo "<b>${template.name}</b>".\nEle contém os seguintes itens:\n\n`;
@@ -200,6 +200,23 @@ serve(async (req) => {
             }
           } else {
             await showProposalSummary(session, chatId);
+          }
+        }
+        if (action === 'confirm_client') {
+          if (value === 'yes') {
+            session.session_data.proposal.client_id = session.session_data.found_client.id;
+            session.session_data.proposal.client_name = session.session_data.found_client.name;
+            delete session.session_data.found_client;
+            await supabase.from('telegram_sessions').update({
+              step: 'awaiting_service_summary',
+              session_data: session.session_data
+            }).eq('id', session.id);
+            await sendTelegramMessage(chatId, 'Perfeito. Agora, um <b>resumo do que será feito</b> (escopo):');
+          } else {
+            await supabase.from('telegram_sessions').update({
+              step: 'awaiting_client_info'
+            }).eq('id', session.id);
+            await sendTelegramMessage(chatId, 'Ok. Por favor, digite os dados do cliente novamente:\n\n<code>Nome Completo, email, telefone</code>');
           }
         }
         if (action === 'proposal_confirm') {
@@ -375,25 +392,56 @@ serve(async (req) => {
         case 'awaiting_client_info':
           const clientInfo = text.split(',').map((item) => item.trim());
           if (clientInfo.length < 2) {
-            await sendTelegramMessage(chatId, '❌ Formato inválido. Envie pelo menos nome e e-mail.');
+            await sendTelegramMessage(chatId, '❌ Formato inválido. Envie pelo menos <b>Nome</b> e <b>E-mail</b>.');
             break;
           }
           const [clientName, clientEmail, clientPhone] = clientInfo;
-          const { data: existingClient } = await supabase.from('clients').select('id').eq('email', clientEmail).eq('user_id', session.user_id).maybeSingle();
+          const rawPhone = clientPhone ? clientPhone.replace(/\D/g, '') : '';
+          const phoneToSearch = rawPhone ? `+55${rawPhone}` : null;
+          const { data: existingClient, error: searchError } = await supabase.from('clients').select('*').eq('user_id', session.user_id).or(`email.eq.${clientEmail}${phoneToSearch ? `,phone.eq.${phoneToSearch}` : ''}`).maybeSingle();
+          if (searchError) {
+            throw new Error("Erro ao buscar cliente.");
+          }
           if (existingClient) {
-            session.session_data.proposal.client_id = existingClient.id;
+            session.session_data.found_client = existingClient;
+            await supabase.from('telegram_sessions').update({
+              step: 'awaiting_client_confirmation',
+              session_data: session.session_data
+            }).eq('id', session.id);
+            let foundMessage = `🔎 Encontrei um cliente com estes dados:\n\n`;
+            foundMessage += `<b>Nome:</b> ${existingClient.name}\n`;
+            foundMessage += `<b>E-mail:</b> ${existingClient.email}\n`;
+            if (existingClient.phone) foundMessage += `<b>Telefone:</b> ${existingClient.phone}\n`;
+            foundMessage += `\nÉ este o cliente correto?`;
+            await sendTelegramMessage(chatId, foundMessage, {
+              inline_keyboard: [
+                [
+                  {
+                    text: '✅ Sim, é este',
+                    callback_data: 'confirm_client:yes'
+                  }
+                ],
+                [
+                  {
+                    text: '❌ Não, digitar novamente',
+                    callback_data: 'confirm_client:no'
+                  }
+                ]
+              ]
+            });
           } else {
             session.session_data.proposal.new_client = {
               name: clientName,
               email: clientEmail,
-              phone: clientPhone
+              phone: phoneToSearch
             };
+            session.session_data.proposal.client_name = clientName;
+            await supabase.from('telegram_sessions').update({
+              step: 'awaiting_service_summary',
+              session_data: session.session_data
+            }).eq('id', session.id);
+            await sendTelegramMessage(chatId, `Cliente "${clientName}" não encontrado. Ele será cadastrado automaticamente. 👍\n\nAgora, um <b>resumo do que será feito</b> (escopo):`);
           }
-          await supabase.from('telegram_sessions').update({
-            step: 'awaiting_service_summary',
-            session_data: session.session_data
-          }).eq('id', session.id);
-          await sendTelegramMessage(chatId, 'Perfeito. Agora, um <b>resumo do que será feito</b> (escopo):');
           break;
         case 'awaiting_service_summary':
           session.session_data.proposal.summary = text;
@@ -460,7 +508,7 @@ serve(async (req) => {
             await supabase.from('telegram_sessions').update({
               step: 'awaiting_budget_item'
             }).eq('id', session.id);
-            await sendTelegramMessage(chatId, 'Você ainda não tem Modelos de Orçamento. Vamos adicionar os itens manualmente.\n\nEnvie um ou mais itens separados por ponto e vírgula (<b>;</b>).\n\n<u>Formato por item:</u>\n<code>Tipo, Descrição, Quantidade, Valor (ex: 25.50)</code>');
+            await sendTelegramMessage(chatId, 'Você ainda não tem Modelos de Orçamento. Vamos adicionar os itens manualmente.\n\nEnvie um ou mais itens separados por ponto e vírgula (<b>;</b>).\n\n<u>Formato por item:</u>\n<code>Tipo, Descrição, Quantidade, Valor (ex: 25.50)</code>\n\n<b>IMPORTANTE:</b> O "Tipo" deve ser <b>Material</b> ou <b>Mão de Obra</b>.');
           }
           break;
         case 'awaiting_budget_item':
@@ -482,13 +530,13 @@ serve(async (req) => {
             } else if (normalizedType.startsWith('maodeobra')) {
               dbType = 'labor';
             } else {
-              errors.push(`Tipo inválido em "${itemString}"`);
+              errors.push(`Tipo inválido no item "${description}"`);
               continue;
             }
             const quantity = parseInt(quantityStr, 10);
             const unit_price = parseFloat(unitPriceStr.replace(',', '.'));
             if (isNaN(quantity) || isNaN(unit_price)) {
-              errors.push(`Quantidade ou valor inválido em "${itemString}"`);
+              errors.push(`Valor/Qtd inválido no item "${description}"`);
               continue;
             }
             addedItems.push({
@@ -498,20 +546,17 @@ serve(async (req) => {
               unit_price
             });
           }
-          if (addedItems.length > 0) {
-            session.session_data.proposal.budget_items.push(...addedItems);
-            await supabase.from('telegram_sessions').update({
-              session_data: session.session_data
-            }).eq('id', session.id);
-          }
-          let responseMessage = `${addedItems.length} ite${addedItems.length > 1 ? 'ns' : 'm'} adicionado${addedItems.length > 1 ? 's' : ''} com sucesso!`;
           if (errors.length > 0) {
-            responseMessage += `\n\n<b>Erros encontrados:</b>\n- ${errors.join('\n- ')}`;
+            const errorMessage = `❌ Foram encontrados erros:\n- ${errors.join('\n- ')}\n\nPor favor, corrija e envie a lista de itens completa novamente.`;
+            await sendTelegramMessage(chatId, errorMessage);
+            break;
           }
-          await sendTelegramMessage(chatId, responseMessage);
+          session.session_data.proposal.budget_items.push(...addedItems);
           await supabase.from('telegram_sessions').update({
+            session_data: session.session_data,
             step: 'awaiting_save_template_choice'
           }).eq('id', session.id);
+          await sendTelegramMessage(chatId, `✅ ${addedItems.length} ite${addedItems.length > 1 ? 'ns' : 'm'} adicionado${addedItems.length > 1 ? 's' : ''} com sucesso!`);
           await sendTelegramMessage(chatId, 'Gostaria de salvar este grupo de itens como um novo Modelo de Orçamento para usar no futuro?', {
             inline_keyboard: [
               [
@@ -559,7 +604,25 @@ serve(async (req) => {
             const nextItem = proposalData.template_items[nextIndex];
             await sendTelegramMessage(chatId, `Item ${nextIndex + 1} de ${proposalData.template_items.length}: <b>${nextItem.description}</b>\n\nEnvie a <b>Quantidade</b> e o <b>Valor Unitário</b>:`);
           } else {
-            await showProposalSummary(session, chatId);
+            await supabase.from('telegram_sessions').update({
+              step: 'awaiting_save_template_choice'
+            }).eq('id', session.id);
+            await sendTelegramMessage(chatId, 'Todos os itens do modelo foram preenchidos! Gostaria de salvar este orçamento como um novo Modelo para uso futuro?', {
+              inline_keyboard: [
+                [
+                  {
+                    text: '👍 Sim, salvar',
+                    callback_data: 'save_template:yes'
+                  }
+                ],
+                [
+                  {
+                    text: '👎 Não, ir para o resumo',
+                    callback_data: 'save_template:no'
+                  }
+                ]
+              ]
+            });
           }
           break;
         case 'awaiting_template_name':
