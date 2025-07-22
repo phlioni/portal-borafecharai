@@ -39,7 +39,7 @@ export const useBudgetTemplates = () => {
   } = useQuery({
     queryKey: ['budget-templates'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('budget_templates')
         .select('*')
         .order('created_at', { ascending: false });
@@ -57,7 +57,7 @@ export const useBudgetTemplates = () => {
   } = useQuery({
     queryKey: ['budget-template-items'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('budget_template_items')
         .select('*')
         .order('created_at', { ascending: true });
@@ -73,7 +73,7 @@ export const useBudgetTemplates = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('budget_templates')
         .insert([
           {
@@ -95,7 +95,7 @@ export const useBudgetTemplates = () => {
   // Deletar template
   const deleteTemplate = useMutation({
     mutationFn: async (templateId: string) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('budget_templates')
         .delete()
         .eq('id', templateId);
@@ -114,7 +114,7 @@ export const useBudgetTemplates = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('budget_template_items')
         .insert([
           {
@@ -138,7 +138,7 @@ export const useBudgetTemplates = () => {
   // Deletar item do template
   const deleteTemplateItem = useMutation({
     mutationFn: async (itemId: number) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('budget_template_items')
         .delete()
         .eq('id', itemId);
