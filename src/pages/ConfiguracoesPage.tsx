@@ -1,10 +1,10 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CompanyTab } from "@/components/CompanyTab";
-import { ProfileTab } from "@/components/ProfileTab";
-import { EmailTemplateSettings } from "@/components/EmailTemplateSettings";
-import { TelegramBotUserGuide } from "@/components/TelegramBotUserGuide";
-import { WhatsAppBotSettings } from "@/components/WhatsAppBotSettings";
+import CompanyTab from "@/components/CompanyTab";
+import ProfileTab from "@/components/ProfileTab";
+import EmailTemplateSettings from "@/components/EmailTemplateSettings";
+import TelegramBotUserGuide from "@/components/TelegramBotUserGuide";
+import WhatsAppBotSettings from "@/components/WhatsAppBotSettings";
 import { ServiceAvailabilitySettings } from "@/components/ServiceAvailabilitySettings";
 import { Building2, User, Mail, MessageCircle, Phone, Calendar } from "lucide-react";
 

@@ -55,7 +55,14 @@ export const useServiceOrders = () => {
         .order('scheduled_date', { ascending: true });
 
       if (error) throw error;
-      setOrders(data || []);
+      
+      // Type assertion to ensure proper typing
+      const typedOrders = (data || []).map(order => ({
+        ...order,
+        status: order.status as ServiceOrder['status']
+      })) as ServiceOrder[];
+      
+      setOrders(typedOrders);
     } catch (error) {
       console.error('Error fetching service orders:', error);
       toast.error('Erro ao carregar ordens de serviço');

@@ -1,10 +1,9 @@
-
 import { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileLayout } from "./MobileLayout";
 import { LoadingSpinner } from "./LoadingSpinner";
 import { 
@@ -22,7 +21,7 @@ import {
 const Layout = () => {
   const { user, signOut, loading } = useAuth();
   const location = useLocation();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (loading) {
