@@ -21,6 +21,7 @@ import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import MobileLayout from './MobileLayout';
+import BoraFecharLogo from './BoraFecharLogo';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -64,7 +65,6 @@ const Layout = ({ children }: LayoutProps) => {
     window.open('https://t.me/borafecharai_bot', '_blank');
   };
 
-
   // Reorganizamos os itens do menu para dar destaque ao Chat Proposta
   const menuItems = [
     { path: '/dashboard', icon: Home, label: 'Dashboard' },
@@ -84,7 +84,10 @@ const Layout = ({ children }: LayoutProps) => {
       <div className="w-64 bg-card border-r border-border flex flex-col">
         {/* Logo */}
         <div className="p-6 border-b border-border">
-          <h1 className="text-xl font-bold text-primary">BoraFecharAI</h1>
+          <div className="flex items-center gap-3">
+            <BoraFecharLogo size="md" />
+            <h1 className="text-xl font-bold text-primary">BoraFecharAI</h1>
+          </div>
         </div>
 
         {/* Navigation */}

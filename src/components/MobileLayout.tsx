@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import BoraFecharLogo from './BoraFecharLogo';
 
 interface MobileLayoutProps {
   children: React.ReactNode;
@@ -79,7 +80,10 @@ const MobileLayout = ({ children }: MobileLayoutProps) => {
       {/* Mobile Header - altura reduzida para otimizar espaço */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-card border-b border-border">
         <div className="flex items-center justify-between p-3 h-12">
-          <h1 className="text-base sm:text-lg font-bold text-primary truncate">BoraFecharAI</h1>
+          <div className="flex items-center gap-2">
+            <BoraFecharLogo size="sm" />
+            <h1 className="text-base sm:text-lg font-bold text-primary truncate">BoraFecharAI</h1>
+          </div>
 
           <div className="flex items-center gap-2">
             <Avatar className="w-7 h-7 sm:w-8 sm:h-8">
@@ -103,7 +107,10 @@ const MobileLayout = ({ children }: MobileLayoutProps) => {
                   {/* Menu Header - altura reduzida */}
                   <div className="p-3 border-b border-border flex-shrink-0">
                     <div className="flex items-center justify-between">
-                      <h2 className="font-semibold text-sm">Menu</h2>
+                      <div className="flex items-center gap-2">
+                        <BoraFecharLogo size="sm" />
+                        <h2 className="font-semibold text-sm">Menu</h2>
+                      </div>
                       <Button variant="ghost" size="sm" onClick={closeMenu} className="p-1">
                         <X className="h-4 w-4" />
                       </Button>

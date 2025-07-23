@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, FileText, AlertCircle, CheckCircle, Clock, TrendingUp, Users, Zap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import BoraFecharLogo from '@/components/BoraFecharLogo';
 
 const Login = () => {
   const { signIn, signUp, user, loading } = useAuth();
@@ -242,10 +243,10 @@ const Login = () => {
           {/* Logo e título */}
           <div className="mb-8">
             <div className="flex items-center mb-4">
-              <div className="bg-white/20 p-2 rounded-xl backdrop-blur-sm">
-                <FileText className="h-6 w-6 text-white" />
+              <div className="">
+                <BoraFecharLogo size="xl" />
               </div>
-              <div className="ml-3">
+              <div className="">
                 <h1 className="text-2xl font-bold">BoraFecharAI</h1>
                 <p className="text-blue-100 text-sm">Propostas Inteligentes</p>
               </div>
