@@ -1,19 +1,20 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, CheckCircle, Clock, FileText, Eye, Users, BarChart3, Target, MessageSquare, TrendingUp, DollarSign, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import BoraFecharLogo from '@/components/BoraFecharLogo';
+
 const LandingPage = () => {
   return <div className="min-h-screen bg-white">
       {/* Navigation */}
       <nav className="border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
-                <FileText className="h-5 w-5 text-white" />
-              </div>
+            <div className="flex items-center space-x-3">
+              <BoraFecharLogo size="md" />
               <span className="text-xl font-bold text-gray-900">BoraFecharAI</span>
             </div>
             <div className="flex items-center space-x-4">
@@ -338,10 +339,8 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
-                  <FileText className="h-5 w-5 text-white" />
-                </div>
+              <div className="flex items-center space-x-3 mb-4">
+                <BoraFecharLogo size="md" />
                 <span className="text-xl font-bold">BoraFecharAI</span>
               </div>
               <p className="text-gray-400 text-sm">
@@ -383,4 +382,5 @@ const LandingPage = () => {
       </footer>
     </div>;
 };
+
 export default LandingPage;
