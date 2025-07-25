@@ -4,6 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const supabaseUrl = Deno.env.get('SUPABASE_URL');
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 const telegramBotToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 // --- FUNÇÕES AUXILIARES ---
 async function sendTelegramMessage(chatId, text, replyMarkup = {}) {
@@ -44,7 +45,6 @@ async function answerCallbackQuery(callbackQueryId, text = '') {
     console.error("Erro ao enviar answerCallbackQuery:", error);
   }
 }
-// Função auxiliar para mostrar o resumo e evitar repetição de código
 async function showProposalSummary(session, chatId) {
   await supabase.from('telegram_sessions').update({
     step: 'awaiting_proposal_confirmation'
@@ -59,10 +59,12 @@ async function showProposalSummary(session, chatId) {
   summary += `<b>Pagamento:</b> ${proposalData.payment_terms}\n\n`;
   summary += `<b>Itens do Orçamento:</b>\n`;
   let totalValue = 0;
-  proposalData.budget_items.forEach((item) => {
-    const itemTotal = item.quantity * item.unit_price;
+  (proposalData.budget_items || []).forEach((item) => {
+    const quantity = item.quantity || 0;
+    const unit_price = item.unit_price || 0;
+    const itemTotal = quantity * unit_price;
     totalValue += itemTotal;
-    summary += `  - [${item.type}] ${item.description} (${item.quantity}x R$ ${item.unit_price.toFixed(2)}) = R$ ${itemTotal.toFixed(2)}\n`;
+    summary += `  - [${item.type}] ${item.description} (${quantity}x R$ ${unit_price.toFixed(2)}) = R$ ${itemTotal.toFixed(2)}\n`;
   });
   summary += `\n<b>Valor Total: R$ ${totalValue.toFixed(2)}</b>\n\n`;
   summary += `Tudo certo?`;
@@ -82,6 +84,98 @@ async function showProposalSummary(session, chatId) {
         {
           text: '🚀 Salvar e Enviar por E-mail',
           callback_data: 'proposal_confirm:send'
+        }
+      ]
+    ]
+  });
+}
+// --- NOVAS FUNÇÕES DE IA ---
+async function transcribeAudio(file_id) {
+  const fileInfoUrl = `https://api.telegram.org/bot${telegramBotToken}/getFile?file_id=${file_id}`;
+  const fileInfoResponse = await fetch(fileInfoUrl);
+  const fileInfo = await fileInfoResponse.json();
+  if (!fileInfo.ok) throw new Error("Não foi possível obter informações do arquivo do Telegram.");
+  const filePath = fileInfo.result.file_path;
+  const fileUrl = `https://api.telegram.org/file/bot${telegramBotToken}/${filePath}`;
+  const audioResponse = await fetch(fileUrl);
+  const audioBlob = await audioResponse.blob();
+  const formData = new FormData();
+  formData.append('file', audioBlob, 'audio.oga');
+  formData.append('model', 'whisper-1');
+  const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openAIApiKey}`
+    },
+    body: formData
+  });
+  const transcriptionResult = await whisperResponse.json();
+  if (transcriptionResult.error) throw new Error(`Erro na transcrição: ${transcriptionResult.error.message}`);
+  return transcriptionResult.text;
+}
+async function extractProposalDetails(text) {
+  const systemPrompt = `Você é um assistente especialista em analisar textos e extrair informações para preencher uma proposta comercial. Analise o texto fornecido pelo usuário e extraia as seguintes informações: "summary" (resumo do escopo), "delivery_time" (prazo de entrega), "validity_days" (validade em DIAS, apenas o número), "payment_terms" (condições de pagamento), e "budget_items" (uma lista de itens, cada um com "type" ('material' ou 'labor'), "description", "quantity", e "unit_price"). Responda APENAS com um objeto JSON. Se uma informação não for encontrada, use o valor null.`;
+  const gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openAIApiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: systemPrompt
+        },
+        {
+          role: 'user',
+          content: text
+        }
+      ],
+      response_format: {
+        type: 'json_object'
+      }
+    })
+  });
+  const gptResult = await gptResponse.json();
+  if (gptResult.error) throw new Error(`Erro na análise do GPT: ${gptResult.error.message}`);
+  return JSON.parse(gptResult.choices[0].message.content);
+}
+async function showAiSummaryAndAskForEdit(session, chatId) {
+  const extractedData = session.session_data.proposal;
+  let summary = "🤖 A IA entendeu o seguinte da sua proposta:\n\n";
+  summary += `<b>Escopo:</b> ${extractedData.summary || '<i>Não encontrado</i>'}\n`;
+  summary += `<b>Prazo de Entrega:</b> ${extractedData.delivery_time || '<i>Não encontrado</i>'}\n`;
+  summary += `<b>Validade:</b> ${extractedData.validity_days || '<i>Não encontrado</i>'} dias\n`;
+  summary += `<b>Pagamento:</b> ${extractedData.payment_terms || '<i>Não encontrado</i>'}\n`;
+  if (extractedData.budget_items?.length > 0) {
+    summary += `\n<b>Itens Identificados:</b>\n`;
+    (extractedData.budget_items || []).forEach((item) => {
+      const quantity = item.quantity || 'N/A';
+      const unit_price = item.unit_price || 0;
+      summary += `  - ${item.description} (Qtd: ${quantity}, Valor: R$ ${unit_price.toFixed(2)})\n`;
+    });
+  } else {
+    summary += `\n<b>Itens:</b> Nenhum item identificado.\n`;
+  }
+  summary += `\nEstá tudo correto ou deseja editar algum campo?`;
+  await supabase.from('telegram_sessions').update({
+    step: 'awaiting_edit_confirmation',
+    session_data: session.session_data
+  }).eq('id', session.id);
+  await sendTelegramMessage(chatId, summary, {
+    inline_keyboard: [
+      [
+        {
+          text: '✅ Sim, está correto!',
+          callback_data: 'edit_proposal:confirm'
+        }
+      ],
+      [
+        {
+          text: '✏️ Não, quero editar',
+          callback_data: 'edit_proposal:start_edit'
         }
       ]
     ]
@@ -115,7 +209,8 @@ serve(async (req) => {
             await sendTelegramMessage(chatId, 'Excelente! ✨\n\nQual será o <b>título</b> desta nova proposta?');
           } else if (value === 'view_proposals') {
             await sendTelegramMessage(chatId, 'Buscando suas 10 últimas propostas... ⏳');
-            const { data: proposals, error } = await supabase.from('proposals').select(`id, title, value, status, client:clients (name)`).eq('user_id', session.user_id).order('created_at', {
+            // AJUSTE: Selecionar o 'public_hash' para montar o link correto
+            const { data: proposals, error } = await supabase.from('proposals').select(`id, public_hash, title, value, status, client:clients (name)`).eq('user_id', session.user_id).order('created_at', {
               ascending: false
             }).limit(10);
             if (error || !proposals || proposals.length === 0) {
@@ -143,7 +238,8 @@ serve(async (req) => {
                 proposalList += `<i>Valor:</i> R$ ${p.value?.toLocaleString('pt-BR', {
                   minimumFractionDigits: 2
                 }) || 'N/D'}\n`;
-                proposalList += `<a href="https://www.borafecharai.com/propostas/${p.id}/visualizar">Ver Proposta</a>\n\n`;
+                // AJUSTE: Usar o 'public_hash' no link
+                proposalList += `<a href="https://www.borafecharai.com/proposta/${p.public_hash}">Ver Proposta</a>\n\n`;
               }
               await sendTelegramMessage(chatId, proposalList);
             }
@@ -154,7 +250,7 @@ serve(async (req) => {
             await supabase.from('telegram_sessions').update({
               step: 'awaiting_budget_item'
             }).eq('id', session.id);
-            await sendTelegramMessage(chatId, 'Ok, vamos começar do zero. Envie um ou mais itens separados por ponto e vírgula (<b>;</b>).\n\n<u>Formato por item:</u>\n<code>Tipo, Descrição, Quantidade, Valor (ex: 25.50)</code>\n\n<b>IMPORTANTE:</b> O "Tipo" deve ser <b>Material</b> ou <b>Mão de Obra</b>.');
+            await sendTelegramMessage(chatId, 'Ok, vamos começar do zero. Envie um ou mais itens separados por ponto e vírgula (<b>;</b>).\n\n<u>Formato por item:</u>\n<code>Tipo, Descrição, Quantidade, Valor (ex: 25.50)</code>\n\n<b>IMPORTANTE:</b> O "Tipo" deve ser <b>Material</b> ou <b>Serviço</b>.');
           } else {
             const templateId = value;
             const { data: template } = await supabase.from('budget_templates').select('name, items:budget_template_items(type, description)').eq('id', templateId).single();
@@ -163,7 +259,7 @@ serve(async (req) => {
               await supabase.from('telegram_sessions').update({
                 step: 'awaiting_budget_item'
               }).eq('id', session.id);
-              await sendTelegramMessage(chatId, 'Envie o primeiro item no formato:\n\n<code>Tipo, Descrição, Quantidade, Valor (ex: 25.50)</code>\n\n<b>IMPORTANTE:</b> O "Tipo" deve ser <b>Material</b> ou <b>Mão de Obra</b>.');
+              await sendTelegramMessage(chatId, 'Envie o primeiro item no formato:\n\n<code>Tipo, Descrição, Quantidade, Valor (ex: 25.50)</code>\n\n<b>IMPORTANTE:</b> O "Tipo" deve ser <b>Material</b> ou <b>Serviço</b>.');
             } else {
               const templateItems = template.items;
               let listMessage = `Ok, você selecionou o modelo "<b>${template.name}</b>".\nEle contém os seguintes itens:\n\n`;
@@ -208,15 +304,160 @@ serve(async (req) => {
             session.session_data.proposal.client_name = session.session_data.found_client.name;
             delete session.session_data.found_client;
             await supabase.from('telegram_sessions').update({
-              step: 'awaiting_service_summary',
+              step: 'awaiting_proposal_method',
               session_data: session.session_data
             }).eq('id', session.id);
-            await sendTelegramMessage(chatId, 'Perfeito. Agora, um <b>resumo do que será feito</b> (escopo):');
+            await sendTelegramMessage(chatId, `Cliente definido! 👍\n\nComo você prefere detalhar a proposta?`, {
+              inline_keyboard: [
+                [
+                  {
+                    text: '🎙️ Enviar um Áudio',
+                    callback_data: 'proposal_method:audio'
+                  }
+                ],
+                [
+                  {
+                    text: '✍️ Digitar passo a passo',
+                    callback_data: 'proposal_method:text'
+                  }
+                ]
+              ]
+            });
           } else {
             await supabase.from('telegram_sessions').update({
               step: 'awaiting_client_info'
             }).eq('id', session.id);
             await sendTelegramMessage(chatId, 'Ok. Por favor, digite os dados do cliente novamente:\n\n<code>Nome Completo, email, telefone</code>');
+          }
+        }
+        if (action === 'proposal_method') {
+          if (value === 'audio') {
+            await supabase.from('telegram_sessions').update({
+              step: 'awaiting_proposal_audio'
+            }).eq('id', session.id);
+            await sendTelegramMessage(chatId, 'Ótimo! Envie um áudio explicando o que será feito, prazo de entrega, validade da proposta, formas de pagamento e os itens do orçamento.');
+          } else {
+            await supabase.from('telegram_sessions').update({
+              step: 'awaiting_service_summary'
+            }).eq('id', session.id);
+            await sendTelegramMessage(chatId, 'Ok, vamos passo a passo. Por favor, digite um <b>resumo do que será feito</b> (escopo):');
+          }
+        }
+        if (action === 'edit_proposal') {
+          if (value === 'confirm') {
+            await showProposalSummary(session, chatId);
+          } else {
+            await supabase.from('telegram_sessions').update({
+              step: 'awaiting_edit_method_choice'
+            }).eq('id', session.id);
+            await sendTelegramMessage(chatId, 'Como você prefere corrigir as informações?', {
+              inline_keyboard: [
+                [
+                  {
+                    text: '🎙️ Gravar novo áudio',
+                    callback_data: 'edit_method:audio'
+                  }
+                ],
+                [
+                  {
+                    text: '✏️ Editar campos por texto',
+                    callback_data: 'edit_method:text'
+                  }
+                ]
+              ]
+            });
+          }
+        }
+        if (action === 'edit_method') {
+          if (value === 'audio') {
+            const { proposal, ...rest } = session.session_data;
+            const { summary, delivery_time, validity_days, payment_terms, budget_items, ...proposalRest } = proposal;
+            session.session_data = {
+              ...rest,
+              proposal: {
+                ...proposalRest,
+                budget_items: []
+              }
+            };
+            await supabase.from('telegram_sessions').update({
+              step: 'awaiting_proposal_audio',
+              session_data: session.session_data
+            }).eq('id', session.id);
+            await sendTelegramMessage(chatId, 'Ok, por favor, envie um novo áudio com as informações corrigidas.');
+          } else {
+            await supabase.from('telegram_sessions').update({
+              step: 'awaiting_edit_choice'
+            }).eq('id', session.id);
+            await sendTelegramMessage(chatId, 'O que você gostaria de editar?', {
+              inline_keyboard: [
+                [
+                  {
+                    text: 'Escopo (Resumo)',
+                    callback_data: 'edit_choice:summary'
+                  }
+                ],
+                [
+                  {
+                    text: 'Prazo de Entrega',
+                    callback_data: 'edit_choice:delivery_time'
+                  }
+                ],
+                [
+                  {
+                    text: 'Validade (dias)',
+                    callback_data: 'edit_choice:validity_days'
+                  }
+                ],
+                [
+                  {
+                    text: 'Pagamento',
+                    callback_data: 'edit_choice:payment_terms'
+                  }
+                ],
+                [
+                  {
+                    text: 'Itens do Orçamento',
+                    callback_data: 'edit_choice:budget_items'
+                  }
+                ]
+              ]
+            });
+          }
+        }
+        if (action === 'edit_choice') {
+          const fieldMap = {
+            summary: {
+              step: 'awaiting_new_scope_value',
+              prompt: 'Digite o novo <b>Escopo (resumo)</b>:'
+            },
+            delivery_time: {
+              step: 'awaiting_new_delivery_time_value',
+              prompt: 'Digite o novo <b>Prazo de Entrega</b>:'
+            },
+            validity_days: {
+              step: 'awaiting_new_validity_days_value',
+              prompt: 'Digite a nova <b>Validade (apenas dias)</b>:'
+            },
+            payment_terms: {
+              step: 'awaiting_new_payment_terms_value',
+              prompt: 'Digite as novas <b>Formas de Pagamento</b>:'
+            },
+            budget_items: {
+              step: 'awaiting_budget_item',
+              prompt: 'Ok, vamos refazer os itens. Envie um ou mais itens separados por ponto e vírgula (<b>;</b>).\n\n<u>Formato por item:</u>\n<code>Tipo, Descrição, Qtd, Valor (ex: 25.50)</code>\n\n<b>IMPORTANTE:</b> O "Tipo" deve ser <b>Material</b> ou <b>Serviço</b>.'
+            }
+          };
+          const editSelection = fieldMap[value];
+          if (editSelection) {
+            if (value === 'budget_items') {
+              session.session_data.proposal.budget_items = [];
+              session.session_data.editing_ia = true;
+            }
+            await supabase.from('telegram_sessions').update({
+              step: editSelection.step,
+              session_data: session.session_data
+            }).eq('id', session.id);
+            await sendTelegramMessage(chatId, editSelection.prompt);
           }
         }
         if (action === 'proposal_confirm') {
@@ -258,13 +499,19 @@ serve(async (req) => {
             company_profile: companyProfile
           }).select('id, public_hash, title').single();
           if (proposalError) throw new Error(`Erro ao criar proposta: ${proposalError.message}`);
-          const budgetItemsToInsert = proposalData.budget_items.map((item) => ({
-            ...item,
-            proposal_id: newProposal.id
+          const budgetItemsToInsert = (proposalData.budget_items || []).map((item) => ({
+            proposal_id: newProposal.id,
+            type: item.type,
+            description: item.description,
+            quantity: item.quantity || 0,
+            unit_price: item.unit_price || 0
           }));
-          const { error: itemsError } = await supabase.from('proposal_budget_items').insert(budgetItemsToInsert);
-          if (itemsError) throw new Error(`Erro ao inserir itens: ${itemsError.message}`);
-          const proposalUrl = `https://www.borafecharai.com/propostas/${newProposal.id}/visualizar`;
+          if (budgetItemsToInsert.length > 0) {
+            const { error: itemsError } = await supabase.from('proposal_budget_items').insert(budgetItemsToInsert);
+            if (itemsError) throw new Error(`Erro ao inserir itens: ${itemsError.message}`);
+          }
+          // AJUSTE: Usar o 'public_hash' para montar o link correto
+          const proposalUrl = `https://www.borafecharai.com/proposta/${newProposal.public_hash}`;
           let finalMessage = `✅ Proposta salva com sucesso como <b>rascunho</b>!\n\n<a href="${proposalUrl}">Acesse sua proposta aqui.</a>`;
           if (value === 'send') {
             const emailMessage = `Olá ${clientData.name},\n\nEspero que esteja bem!\n\nSua proposta para o projeto "${newProposal.title}" está finalizada e disponível para visualização.\n\nPreparamos esta proposta cuidadosamente para atender às suas necessidades específicas. Para acessar todos os detalhes, clique no botão abaixo:\n\n[LINK_DA_PROPOSTA]\n\n\nFico à disposição para esclarecer qualquer dúvida e discutir os próximos passos.\n\nAguardo seu retorno!\nAtenciosamente,\n\n${userProfile?.name || ''}\n${companyProfile?.name || ''}\n${companyProfile?.email || ''}\n${companyProfile?.phone || ''}`;
@@ -295,13 +542,10 @@ serve(async (req) => {
       return new Response('OK');
     }
     if (update.message) {
-      const { chat, from, text } = update.message;
+      const { chat, from, text, audio, voice } = update.message;
       const chatId = chat.id;
       const telegramUserId = from.id;
       let { data: session } = await supabase.from('telegram_sessions').select('*').eq('chat_id', chatId).eq('telegram_user_id', telegramUserId).maybeSingle();
-      if (!session) {
-        return new Response('OK');
-      }
       const sessionExpired = session && new Date(session.expires_at) < new Date();
       if (text === '/start') {
         if (session && !sessionExpired && session.user_id) {
@@ -337,7 +581,8 @@ serve(async (req) => {
         }
         return new Response('OK');
       }
-      if (!session) {
+      if (!session || sessionExpired) {
+        await sendTelegramMessage(chatId, 'Sua sessão expirou ou não foi encontrada. Por favor, digite /start para começar.');
         return new Response('OK');
       }
       switch (session.step) {
@@ -349,7 +594,7 @@ serve(async (req) => {
           }
           const { data: subscriber, error } = await supabase.from('subscribers').select('user_id').eq('email', email).maybeSingle();
           if (error || !subscriber) {
-            await sendTelegramMessage(chatId, '❌ Email não encontrado.');
+            await sendTelegramMessage(chatId, `❌ Usuário não encontrado.\n\nParece que este e-mail ainda não está cadastrado. Por favor, crie sua conta em nossa plataforma e tente novamente!\n\n🔗 Cadastre-se aqui: https://borafecharai.com/login`);
             break;
           }
           let userName = from.first_name;
@@ -437,11 +682,68 @@ serve(async (req) => {
             };
             session.session_data.proposal.client_name = clientName;
             await supabase.from('telegram_sessions').update({
-              step: 'awaiting_service_summary',
+              step: 'awaiting_proposal_method',
               session_data: session.session_data
             }).eq('id', session.id);
-            await sendTelegramMessage(chatId, `Cliente "${clientName}" não encontrado. Ele será cadastrado automaticamente. 👍\n\nAgora, um <b>resumo do que será feito</b> (escopo):`);
+            await sendTelegramMessage(chatId, `Cliente "${clientName}" não encontrado. Ele será cadastrado automaticamente. 👍\n\nComo você prefere detalhar a proposta?`, {
+              inline_keyboard: [
+                [
+                  {
+                    text: '🎙️ Enviar um Áudio',
+                    callback_data: 'proposal_method:audio'
+                  }
+                ],
+                [
+                  {
+                    text: '✍️ Digitar passo a passo',
+                    callback_data: 'proposal_method:text'
+                  }
+                ]
+              ]
+            });
           }
+          break;
+        case 'awaiting_proposal_audio':
+          const audioFile = audio || voice;
+          if (!audioFile) {
+            await sendTelegramMessage(chatId, 'Por favor, envie um arquivo de áudio ou grave uma mensagem de voz.');
+            break;
+          }
+          await sendTelegramMessage(chatId, 'Obrigado! Recebi seu áudio. 🤖 Analisando e transcrevendo... Isso pode levar um momento.');
+          try {
+            const transcribedText = await transcribeAudio(audioFile.file_id);
+            await sendTelegramMessage(chatId, `<b>Transcrição:</b>\n<i>"${transcribedText}"</i>\n\nAgora, estou extraindo os dados...`);
+            const extractedData = await extractProposalDetails(transcribedText);
+            session.session_data.proposal = {
+              ...session.session_data.proposal,
+              ...extractedData,
+              budget_items: extractedData.budget_items || []
+            };
+            await showAiSummaryAndAskForEdit(session, chatId);
+          } catch (error) {
+            console.error("Erro no processo de IA:", error);
+            await sendTelegramMessage(chatId, `❌ Desculpe, ocorreu um erro: ${error.message}.\nVamos tentar pelo método tradicional.`);
+            await supabase.from('telegram_sessions').update({
+              step: 'awaiting_service_summary'
+            }).eq('id', session.id);
+            await sendTelegramMessage(chatId, 'Por favor, digite um <b>resumo do que será feito</b> (escopo):');
+          }
+          break;
+        case 'awaiting_new_scope_value':
+          session.session_data.proposal.summary = text;
+          await showAiSummaryAndAskForEdit(session, chatId);
+          break;
+        case 'awaiting_new_delivery_time_value':
+          session.session_data.proposal.delivery_time = text;
+          await showAiSummaryAndAskForEdit(session, chatId);
+          break;
+        case 'awaiting_new_validity_days_value':
+          session.session_data.proposal.validity_days = parseInt(text, 10) || session.session_data.proposal.validity_days;
+          await showAiSummaryAndAskForEdit(session, chatId);
+          break;
+        case 'awaiting_new_payment_terms_value':
+          session.session_data.proposal.payment_terms = text;
+          await showAiSummaryAndAskForEdit(session, chatId);
           break;
         case 'awaiting_service_summary':
           session.session_data.proposal.summary = text;
@@ -508,7 +810,7 @@ serve(async (req) => {
             await supabase.from('telegram_sessions').update({
               step: 'awaiting_budget_item'
             }).eq('id', session.id);
-            await sendTelegramMessage(chatId, 'Você ainda não tem Modelos de Orçamento. Vamos adicionar os itens manualmente.\n\nEnvie um ou mais itens separados por ponto e vírgula (<b>;</b>).\n\n<u>Formato por item:</u>\n<code>Tipo, Descrição, Quantidade, Valor (ex: 25.50)</code>\n\n<b>IMPORTANTE:</b> O "Tipo" deve ser <b>Material</b> ou <b>Mão de Obra</b>.');
+            await sendTelegramMessage(chatId, 'Você ainda não tem Modelos de Orçamento. Vamos adicionar os itens manualmente.\n\nEnvie um ou mais itens separados por ponto e vírgula (<b>;</b>).\n\n<u>Formato por item:</u>\n<code>Tipo, Descrição, Quantidade, Valor (ex: 25.50)</code>\n\n<b>IMPORTANTE:</b> O "Tipo" deve ser <b>Material</b> ou <b>Serviço</b>.');
           }
           break;
         case 'awaiting_budget_item':
@@ -527,10 +829,10 @@ serve(async (req) => {
             const normalizedType = typeInput.toLowerCase().replace(/ /g, '').normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             if (normalizedType.startsWith('material')) {
               dbType = 'material';
-            } else if (normalizedType.startsWith('maodeobra')) {
+            } else if (normalizedType.startsWith('servico')) {
               dbType = 'labor';
             } else {
-              errors.push(`Tipo inválido no item "${description}"`);
+              errors.push(`Tipo inválido no item "${description}" (use Material ou Serviço)`);
               continue;
             }
             const quantity = parseInt(quantityStr, 10);
@@ -552,27 +854,32 @@ serve(async (req) => {
             break;
           }
           session.session_data.proposal.budget_items.push(...addedItems);
-          await supabase.from('telegram_sessions').update({
-            session_data: session.session_data,
-            step: 'awaiting_save_template_choice'
-          }).eq('id', session.id);
-          await sendTelegramMessage(chatId, `✅ ${addedItems.length} ite${addedItems.length > 1 ? 'ns' : 'm'} adicionado${addedItems.length > 1 ? 's' : ''} com sucesso!`);
-          await sendTelegramMessage(chatId, 'Gostaria de salvar este grupo de itens como um novo Modelo de Orçamento para usar no futuro?', {
-            inline_keyboard: [
-              [
-                {
-                  text: '👍 Sim, salvar',
-                  callback_data: 'save_template:yes'
-                }
-              ],
-              [
-                {
-                  text: '👎 Não, ir para o resumo',
-                  callback_data: 'save_template:no'
-                }
+          if (session.session_data.editing_ia) {
+            delete session.session_data.editing_ia;
+            await showAiSummaryAndAskForEdit(session, chatId);
+          } else {
+            await supabase.from('telegram_sessions').update({
+              session_data: session.session_data,
+              step: 'awaiting_save_template_choice'
+            }).eq('id', session.id);
+            await sendTelegramMessage(chatId, `✅ ${addedItems.length} ite${addedItems.length > 1 ? 'ns' : 'm'} adicionado${addedItems.length > 1 ? 's' : ''} com sucesso!`);
+            await sendTelegramMessage(chatId, 'Gostaria de salvar este grupo de itens como um novo Modelo de Orçamento para usar no futuro?', {
+              inline_keyboard: [
+                [
+                  {
+                    text: '👍 Sim, salvar',
+                    callback_data: 'save_template:yes'
+                  }
+                ],
+                [
+                  {
+                    text: '👎 Não, ir para o resumo',
+                    callback_data: 'save_template:no'
+                  }
+                ]
               ]
-            ]
-          });
+            });
+          }
           break;
         case 'awaiting_template_item_details':
           const proposalData = session.session_data.proposal;

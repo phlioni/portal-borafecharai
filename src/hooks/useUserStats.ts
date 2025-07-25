@@ -56,22 +56,25 @@ export const useUserStats = () => {
       const totalRevenue = revenueData?.reduce((sum, proposal) => sum + (proposal.value || 0), 0) || 0;
 
       // Buscar dados mensais de usuários dos últimos 12 meses
-      const { data: monthlyData, error: monthlyError } = await supabase
-        .from('subscribers')
-        .select('created_at')
-        .gte('created_at', new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString())
-        .order('created_at', { ascending: true });
-
-      if (monthlyError) throw monthlyError;
+      // Usar a função get-users para obter todos os usuários com created_at
+      const { data: allUsersData, error: allUsersError } = await supabase.functions.invoke('get-users');
+      if (allUsersError) throw allUsersError;
 
       // Processar dados mensais
       const monthlyUsers: Array<{ month: string; count: number; year: number }> = [];
       const usersByMonth: { [key: string]: number } = {};
 
-      monthlyData?.forEach(user => {
-        const date = new Date(user.created_at);
-        const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
-        usersByMonth[monthKey] = (usersByMonth[monthKey] || 0) + 1;
+      // Filtrar usuários dos últimos 12 meses e contar por mês
+      const twelveMonthsAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+      
+      allUsersData?.forEach((user: any) => {
+        if (user.created_at) {
+          const date = new Date(user.created_at);
+          if (date >= twelveMonthsAgo) {
+            const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+            usersByMonth[monthKey] = (usersByMonth[monthKey] || 0) + 1;
+          }
+        }
       });
 
       // Preencher os últimos 12 meses
