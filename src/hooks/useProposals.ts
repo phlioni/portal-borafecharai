@@ -1,53 +1,28 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export interface Proposal {
   id: string;
-  title: string;
-  client_id?: string;
-  service_description?: string;
-  detailed_description?: string;
-  value?: number;
-  delivery_time?: string;
-  validity_date?: string;
-  observations?: string;
-  status?: string;
-  created_at: string;
-  updated_at: string;
   user_id: string;
-  public_hash?: string;
-  template_id?: string;
-  views?: number;
-  proposal_number?: string;
-  clients?: {
+  client_id: string;
+  service_description: string;
+  observations: string;
+  detailed_description: string;
+  payment_terms: string;
+  delivery_time: string;
+  total_amount: number;
+  status: string;
+  public_hash: string;
+  created_at: string;
+  last_viewed_at: string | null;
+  views: number;
+  client?: {
     id: string;
     name: string;
-    email?: string;
-    phone?: string;
-  };
-  proposal_budget_items?: Array<{
-    id: string;
-    description: string;
-    type: string;
-    quantity: number;
-    unit_price: number;
-    total_price?: number;
-  }>;
-  companies?: {
-    id: string;
-    name: string;
-    email?: string;
-    phone?: string;
-    logo_url?: string;
-    address?: string;
-    city?: string;
-    state?: string;
-    zip_code?: string;
-    cnpj?: string;
-    website?: string;
-    business_segment?: string;
-    business_type_detail?: string;
+    email: string;
+    phone: string;
+    company: string;
   };
   user_profile?: {
     id: string;
@@ -55,19 +30,20 @@ export interface Proposal {
     phone?: string;
     avatar_url?: string;
   };
+  company_profile?: any;
+  proposal_budget_items?: Array<{
+    id: string;
+    description: string;
+    quantity: number;
+    unit_price: number;
+    total_price: number;
+  }>;
 }
 
 export const useProposals = () => {
   return useQuery({
     queryKey: ['proposals'],
     queryFn: async () => {
-      // Primeiro verificar se o usuário está autenticado
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('Usuário não autenticado');
-      }
-
       const { data, error } = await supabase
         .from('proposals')
         .select(`
@@ -76,23 +52,107 @@ export const useProposals = () => {
             id,
             name,
             email,
-            phone
+            phone,
+            company
+          ),
+          profiles!proposals_user_id_fkey (
+            id,
+            name,
+            phone,
+            avatar_url
+          ),
+          companies (
+            name,
+            logo_url,
+            address,
+            phone,
+            email,
+            website
           ),
           proposal_budget_items (
             id,
             description,
-            type,
             quantity,
             unit_price,
             total_price
           )
         `)
-        .eq('user_id', user.id) // Garantir que só busque propostas do usuário atual
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as unknown as Proposal[];
+      
+      return (data || []).map(proposal => ({
+        ...proposal,
+        client: proposal.clients,
+        user_profile: proposal.profiles ? {
+          id: proposal.profiles.id,
+          name: proposal.profiles.name,
+          phone: proposal.profiles.phone,
+          avatar_url: proposal.profiles.avatar_url
+        } : undefined,
+        company_profile: proposal.companies
+      })) as unknown as Proposal[];
     },
+  });
+};
+
+export const useProposal = (id: string) => {
+  return useQuery({
+    queryKey: ['proposal', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('proposals')
+        .select(`
+          *,
+          clients (
+            id,
+            name,
+            email,
+            phone,
+            company
+          ),
+          profiles!proposals_user_id_fkey (
+            id,
+            name,
+            phone,
+            avatar_url
+          ),
+          companies (
+            name,
+            logo_url,
+            address,
+            phone,
+            email,
+            website
+          ),
+          proposal_budget_items (
+            id,
+            description,
+            quantity,
+            unit_price,
+            total_price
+          )
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      
+      const proposal = {
+        ...data,
+        client: data.clients,
+        user_profile: data.profiles ? {
+          id: data.profiles.id,
+          name: data.profiles.name,
+          phone: data.profiles.phone,
+          avatar_url: data.profiles.avatar_url
+        } : undefined,
+        company_profile: data.companies
+      };
+      
+      return proposal as unknown as Proposal;
+    },
+    enabled: !!id,
   });
 };
 
@@ -100,68 +160,21 @@ export const useCreateProposal = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (proposalData: Omit<Proposal, 'id' | 'created_at' | 'updated_at'>) => {
-      // Verificar autenticação antes de criar proposta
+    mutationFn: async (proposal: Omit<Proposal, 'id' | 'created_at' | 'last_viewed_at' | 'views' | 'client' | 'user_profile' | 'company_profile' | 'proposal_budget_items' | 'public_hash'>) => {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         throw new Error('Usuário não autenticado');
       }
 
-      // Garantir que o user_id seja sempre do usuário atual
-      const secureProposalData = {
-        ...proposalData,
-        user_id: user.id
+      const proposalWithUserId = {
+        ...proposal,
+        user_id: user.id,
       };
-
-      // Verificar se o usuário pode criar propostas antes de tentar criar
-      const { data: canCreate, error: canCreateError } = await supabase.rpc('can_create_proposal', {
-        _user_id: user.id
-      });
-
-      if (canCreateError) {
-        console.error('Erro ao verificar permissão:', canCreateError);
-        throw new Error('Erro ao verificar permissão para criar proposta');
-      }
-
-      if (!canCreate) {
-        // Buscar informações sobre o limite para mostrar mensagem específica
-        const { data: subscriberData } = await supabase
-          .from('subscribers')
-          .select('subscribed, subscription_tier, trial_end_date, trial_proposals_used')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        const { data: trialLimits } = await supabase
-          .from('trial_limits')
-          .select('trial_proposals_limit')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        const isInTrial = subscriberData?.trial_end_date && new Date(subscriberData.trial_end_date) > new Date();
-        const proposalsUsed = subscriberData?.trial_proposals_used || 0;
-        const proposalsLimit = trialLimits?.trial_proposals_limit || 20;
-
-        if (isInTrial) {
-          if (proposalsUsed >= proposalsLimit) {
-            throw new Error(`Limite de ${proposalsLimit} propostas do trial atingido. Você já criou ${proposalsUsed} propostas. Faça upgrade para continuar criando propostas.`);
-          } else {
-            throw new Error('Trial expirado. Faça upgrade para continuar criando propostas.');
-          }
-        } else {
-          const currentMonth = new Date().toISOString().slice(0, 7);
-          const { data: monthlyCount } = await supabase.rpc('get_monthly_proposal_count', {
-            _user_id: user.id,
-            _month: currentMonth
-          });
-          
-          throw new Error(`Limite de 10 propostas por mês atingido. Você já criou ${monthlyCount || 0} propostas este mês. Faça upgrade para o plano Professional para ter propostas ilimitadas.`);
-        }
-      }
 
       const { data, error } = await supabase
         .from('proposals')
-        .insert(secureProposalData)
+        .insert([proposalWithUserId])
         .select()
         .single();
 
@@ -170,11 +183,11 @@ export const useCreateProposal = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
-      queryClient.invalidateQueries({ queryKey: ['user-permissions'] });
+      toast.success('Proposta criada com sucesso!');
     },
     onError: (error) => {
       console.error('Erro ao criar proposta:', error);
-      toast.error(error.message || 'Erro ao criar proposta');
+      toast.error('Erro ao criar proposta');
     },
   });
 };
@@ -184,38 +197,19 @@ export const useUpdateProposal = () => {
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Proposal> }) => {
-      // Verificar autenticação antes de atualizar
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('Usuário não autenticado');
-      }
-
-      // Verificar se a proposta pertence ao usuário antes de atualizar
-      const { data: existingProposal, error: checkError } = await supabase
-        .from('proposals')
-        .select('user_id')
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .single();
-
-      if (checkError || !existingProposal) {
-        throw new Error('Proposta não encontrada ou acesso negado');
-      }
-
       const { data, error } = await supabase
         .from('proposals')
         .update(updates)
         .eq('id', id)
-        .eq('user_id', user.id) // Garantir que só atualize propostas do usuário atual
         .select()
         .single();
 
       if (error) throw error;
-      return data as Proposal;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
+      toast.success('Proposta atualizada com sucesso!');
     },
     onError: (error) => {
       console.error('Erro ao atualizar proposta:', error);
@@ -229,117 +223,39 @@ export const useDeleteProposal = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      // Verificar autenticação antes de deletar
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('Usuário não autenticado');
-      }
-
-      // Verificar se a proposta pertence ao usuário e se pode ser deletada
-      const { data: existingProposal, error: checkError } = await supabase
-        .from('proposals')
-        .select('user_id, status')
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .single();
-
-      if (checkError || !existingProposal) {
-        throw new Error('Proposta não encontrada ou acesso negado');
-      }
-
-      // Verificar se a proposta pode ser deletada (apenas rascunhos)
-      if (existingProposal.status && existingProposal.status !== 'rascunho') {
-        throw new Error('Propostas enviadas não podem ser excluídas');
-      }
-
       const { error } = await supabase
         .from('proposals')
         .delete()
-        .eq('id', id)
-        .eq('user_id', user.id); // Garantir que só delete propostas do usuário atual
+        .eq('id', id);
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
-      toast.success('Proposta excluída com sucesso!');
+      toast.success('Proposta removida com sucesso!');
     },
     onError: (error) => {
       console.error('Erro ao deletar proposta:', error);
-      toast.error(error.message || 'Erro ao deletar proposta');
+      toast.error('Erro ao remover proposta');
     },
   });
 };
 
-export const useProposal = (id?: string) => {
-  return useQuery({
-    queryKey: ['proposals', id],
-    queryFn: async () => {
-      if (!id) return null;
+export const useUpdateProposalViews = () => {
+  const queryClient = useQueryClient();
 
-      // Verificar autenticação antes de buscar proposta específica
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('Usuário não autenticado');
-      }
-
-      const { data, error } = await supabase
-        .from('proposals')
-        .select(`
-          *,
-          clients (
-            id,
-            name,
-            email,
-            phone
-          ),
-          proposal_budget_items (
-            id,
-            description,
-            type,
-            quantity,
-            unit_price,
-            total_price
-          )
-        `)
-        .eq('id', id)
-        .eq('user_id', user.id) // Garantir que só busque propostas do usuário atual
-        .single();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.rpc('increment_proposal_views', { row_id: id })
+        .select()
 
       if (error) throw error;
-
-      // Buscar informações da empresa do usuário na tabela user_companies
-      const { data: userCompanyData, error: userCompanyError } = await supabase
-        .from('user_companies')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (userCompanyError) {
-        console.error('Erro ao buscar empresa do usuário:', userCompanyError);
-      }
-
-      // Buscar informações do perfil do usuário
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (profileError) {
-        console.error('Erro ao buscar perfil:', profileError);
-      }
-
-      // Compor a proposta completa com as informações adicionais
-      const completeProposal = {
-        ...data,
-        user_companies: userCompanyData,
-        user_profile: profileData
-      } as unknown as Proposal;
-
-      return completeProposal;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proposals'] });
+    },
+    onError: (error) => {
+      console.error('Erro ao atualizar visualizações da proposta:', error);
     },
   });
 };

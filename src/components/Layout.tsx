@@ -10,7 +10,7 @@ import {
   Settings, 
   Menu,
   MessageSquare,
-  FileTemplate,
+  FileStack,
   Calculator,
   Bot,
   Calendar
@@ -18,11 +18,13 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import UserActionsDropdown from '@/components/UserActionsDropdown';
 import BoraFecharLogo from '@/components/BoraFecharLogo';
+import { useAdminOperations } from '@/hooks/useAdminOperations';
 
 const Layout = () => {
   const location = useLocation();
   const { user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { resetUserData, deleteUser, changeUserRole } = useAdminOperations();
 
   const menuItems = [
     { path: '/dashboard', icon: BarChart3, label: 'Dashboard' },
@@ -31,11 +33,27 @@ const Layout = () => {
     { path: '/clientes', icon: Users, label: 'Clientes' },
     // { path: '/chat-proposta', icon: MessageSquare, label: 'Chat Proposta', highlight: true },
     { path: '/modelos-orcamento', icon: Calculator, label: 'Modelos de Orçamento' },
-    { path: '/templates-personalizados', icon: FileTemplate, label: 'Templates Personalizados' },
+    { path: '/templates-personalizados', icon: FileStack, label: 'Templates Personalizados' },
     { path: '/telegram-bot', icon: Bot, label: 'Bot do Telegram' },
     { path: '/whatsapp-bot', icon: Bot, label: 'Bot do WhatsApp' },
     { path: '/configuracoes', icon: Settings, label: 'Configurações' },
   ];
+
+  const handleResetProposals = async (userId: string) => {
+    await resetUserData(userId, 'proposals');
+  };
+
+  const handleResetTrial = async (userId: string) => {
+    await resetUserData(userId, 'trial');
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    await deleteUser(userId);
+  };
+
+  const handleChangeRole = async (userId: string, role: 'user' | 'guest' | 'admin') => {
+    await changeUserRole(userId, role);
+  };
 
   return (
     <div className="flex h-screen bg-background">
@@ -123,13 +141,20 @@ const Layout = () => {
             </SheetContent>
           </Sheet>
           <BoraFecharLogo />
-          <UserActionsDropdown 
-            user={user} 
-            onResetProposals={() => {}} 
-            onResetTrial={() => {}} 
-            onDeleteUser={() => {}} 
-            onChangeRole={() => {}} 
-          />
+          {user && (
+            <UserActionsDropdown 
+              user={{
+                id: user.id,
+                email: user.email || '',
+                created_at: user.created_at || new Date().toISOString(),
+                role: 'user'
+              }}
+              onResetProposals={handleResetProposals}
+              onResetTrial={handleResetTrial}
+              onDeleteUser={handleDeleteUser}
+              onChangeRole={handleChangeRole}
+            />
+          )}
         </div>
       </div>
 
@@ -137,13 +162,20 @@ const Layout = () => {
       <div className="flex flex-col flex-1 lg:pl-64">
         <div className="hidden lg:flex lg:items-center lg:justify-between lg:h-16 lg:px-6 lg:border-b lg:border-border lg:bg-card">
           <div></div>
-          <UserActionsDropdown 
-            user={user} 
-            onResetProposals={() => {}} 
-            onResetTrial={() => {}} 
-            onDeleteUser={() => {}} 
-            onChangeRole={() => {}} 
-          />
+          {user && (
+            <UserActionsDropdown 
+              user={{
+                id: user.id,
+                email: user.email || '',
+                created_at: user.created_at || new Date().toISOString(),
+                role: 'user'
+              }}
+              onResetProposals={handleResetProposals}
+              onResetTrial={handleResetTrial}
+              onDeleteUser={handleDeleteUser}
+              onChangeRole={handleChangeRole}
+            />
+          )}
         </div>
         <main className="flex-1 overflow-y-auto pt-16 lg:pt-0">
           <Outlet />

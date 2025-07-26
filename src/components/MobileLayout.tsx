@@ -10,7 +10,7 @@ import {
   Settings, 
   Menu,
   MessageSquare,
-  FileTemplate,
+  FileStack,
   Calculator,
   Bot,
   Calendar
@@ -18,11 +18,13 @@ import {
 import UserActionsDropdown from '@/components/UserActionsDropdown';
 import BoraFecharLogo from '@/components/BoraFecharLogo';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdminOperations } from '@/hooks/useAdminOperations';
 
 const MobileLayout = () => {
   const location = useLocation();
   const { user } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { resetUserData, deleteUser, changeUserRole } = useAdminOperations();
 
   const menuItems = [
     { path: '/dashboard', icon: BarChart3, label: 'Dashboard' },
@@ -31,13 +33,29 @@ const MobileLayout = () => {
     { path: '/clientes', icon: Users, label: 'Clientes' },
     // { path: '/chat-proposta', icon: MessageSquare, label: 'Chat Proposta', highlight: true },
     { path: '/modelos-orcamento', icon: Calculator, label: 'Modelos de Orçamento' },
-    { path: '/templates-personalizados', icon: FileTemplate, label: 'Templates Personalizados' },
+    { path: '/templates-personalizados', icon: FileStack, label: 'Templates Personalizados' },
     { path: '/telegram-bot', icon: Bot, label: 'Bot do Telegram' },
     { path: '/whatsapp-bot', icon: Bot, label: 'Bot do WhatsApp' },
     { path: '/configuracoes', icon: Settings, label: 'Configurações' },
   ];
 
   const closeMenu = () => setIsMenuOpen(false);
+
+  const handleResetProposals = async (userId: string) => {
+    await resetUserData(userId, 'proposals');
+  };
+
+  const handleResetTrial = async (userId: string) => {
+    await resetUserData(userId, 'trial');
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    await deleteUser(userId);
+  };
+
+  const handleChangeRole = async (userId: string, role: 'user' | 'guest' | 'admin') => {
+    await changeUserRole(userId, role);
+  };
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -96,13 +114,20 @@ const MobileLayout = () => {
             <BoraFecharLogo />
           </div>
 
-          <UserActionsDropdown 
-            user={user} 
-            onResetProposals={() => {}} 
-            onResetTrial={() => {}} 
-            onDeleteUser={() => {}} 
-            onChangeRole={() => {}} 
-          />
+          {user && (
+            <UserActionsDropdown 
+              user={{
+                id: user.id,
+                email: user.email || '',
+                created_at: user.created_at || new Date().toISOString(),
+                role: 'user'
+              }}
+              onResetProposals={handleResetProposals}
+              onResetTrial={handleResetTrial}
+              onDeleteUser={handleDeleteUser}
+              onChangeRole={handleChangeRole}
+            />
+          )}
         </div>
       </header>
 
