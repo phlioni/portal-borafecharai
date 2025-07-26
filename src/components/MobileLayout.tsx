@@ -10,16 +10,18 @@ import {
   Settings, 
   Menu,
   MessageSquare,
-  Template,
+  FileTemplate,
   Calculator,
   Bot,
   Calendar
 } from 'lucide-react';
 import UserActionsDropdown from '@/components/UserActionsDropdown';
 import BoraFecharLogo from '@/components/BoraFecharLogo';
+import { useAuth } from '@/contexts/AuthContext';
 
 const MobileLayout = () => {
   const location = useLocation();
+  const { user } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const menuItems = [
@@ -29,7 +31,7 @@ const MobileLayout = () => {
     { path: '/clientes', icon: Users, label: 'Clientes' },
     // { path: '/chat-proposta', icon: MessageSquare, label: 'Chat Proposta', highlight: true },
     { path: '/modelos-orcamento', icon: Calculator, label: 'Modelos de Orçamento' },
-    { path: '/templates-personalizados', icon: Template, label: 'Templates Personalizados' },
+    { path: '/templates-personalizados', icon: FileTemplate, label: 'Templates Personalizados' },
     { path: '/telegram-bot', icon: Bot, label: 'Bot do Telegram' },
     { path: '/whatsapp-bot', icon: Bot, label: 'Bot do WhatsApp' },
     { path: '/configuracoes', icon: Settings, label: 'Configurações' },
@@ -94,7 +96,13 @@ const MobileLayout = () => {
             <BoraFecharLogo />
           </div>
 
-          <UserActionsDropdown />
+          <UserActionsDropdown 
+            user={user} 
+            onResetProposals={() => {}} 
+            onResetTrial={() => {}} 
+            onDeleteUser={() => {}} 
+            onChangeRole={() => {}} 
+          />
         </div>
       </header>
 

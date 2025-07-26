@@ -91,7 +91,7 @@ export const useProposals = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as Proposal[];
+      return data as unknown as Proposal[];
     },
   });
 };
@@ -337,7 +337,7 @@ export const useProposal = (id?: string) => {
         ...data,
         user_companies: userCompanyData,
         user_profile: profileData
-      } as Proposal;
+      } as unknown as Proposal;
 
       return completeProposal;
     },

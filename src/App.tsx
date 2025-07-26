@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -7,7 +6,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Layout from "@/components/Layout";
 import MobileLayout from "@/components/MobileLayout";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Pages
 import Index from "./pages/Index";
@@ -37,7 +36,7 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => {
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   
   return (
     <QueryClientProvider client={queryClient}>

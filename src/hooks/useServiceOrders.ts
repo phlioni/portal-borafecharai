@@ -62,9 +62,25 @@ export const useCreateServiceOrder = () => {
       scheduled_time: string;
       client_notes?: string;
     }) => {
+      // Para ordens criadas via proposta pública, buscar o user_id da proposta
+      const { data: proposal, error: proposalError } = await supabase
+        .from('proposals')
+        .select('user_id')
+        .eq('id', order.proposal_id)
+        .single();
+
+      if (proposalError || !proposal) {
+        throw new Error('Proposta não encontrada');
+      }
+
+      const orderWithUserId = {
+        ...order,
+        user_id: proposal.user_id
+      };
+
       const { data, error } = await supabase
         .from('service_orders')
-        .insert([order])
+        .insert([orderWithUserId])
         .select()
         .single();
 

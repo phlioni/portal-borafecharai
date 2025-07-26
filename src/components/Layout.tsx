@@ -10,7 +10,7 @@ import {
   Settings, 
   Menu,
   MessageSquare,
-  Template,
+  FileTemplate,
   Calculator,
   Bot,
   Calendar
@@ -31,7 +31,7 @@ const Layout = () => {
     { path: '/clientes', icon: Users, label: 'Clientes' },
     // { path: '/chat-proposta', icon: MessageSquare, label: 'Chat Proposta', highlight: true },
     { path: '/modelos-orcamento', icon: Calculator, label: 'Modelos de Orçamento' },
-    { path: '/templates-personalizados', icon: Template, label: 'Templates Personalizados' },
+    { path: '/templates-personalizados', icon: FileTemplate, label: 'Templates Personalizados' },
     { path: '/telegram-bot', icon: Bot, label: 'Bot do Telegram' },
     { path: '/whatsapp-bot', icon: Bot, label: 'Bot do WhatsApp' },
     { path: '/configuracoes', icon: Settings, label: 'Configurações' },
@@ -123,7 +123,13 @@ const Layout = () => {
             </SheetContent>
           </Sheet>
           <BoraFecharLogo />
-          <UserActionsDropdown />
+          <UserActionsDropdown 
+            user={user} 
+            onResetProposals={() => {}} 
+            onResetTrial={() => {}} 
+            onDeleteUser={() => {}} 
+            onChangeRole={() => {}} 
+          />
         </div>
       </div>
 
@@ -131,7 +137,13 @@ const Layout = () => {
       <div className="flex flex-col flex-1 lg:pl-64">
         <div className="hidden lg:flex lg:items-center lg:justify-between lg:h-16 lg:px-6 lg:border-b lg:border-border lg:bg-card">
           <div></div>
-          <UserActionsDropdown />
+          <UserActionsDropdown 
+            user={user} 
+            onResetProposals={() => {}} 
+            onResetTrial={() => {}} 
+            onDeleteUser={() => {}} 
+            onChangeRole={() => {}} 
+          />
         </div>
         <main className="flex-1 overflow-y-auto pt-16 lg:pt-0">
           <Outlet />

@@ -34,9 +34,20 @@ export const useCreateServiceAvailability = () => {
 
   return useMutation({
     mutationFn: async (availability: Omit<ServiceAvailability, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      const availabilityWithUserId = {
+        ...availability,
+        user_id: user.id
+      };
+
       const { data, error } = await supabase
         .from('service_availability')
-        .insert([availability])
+        .insert([availabilityWithUserId])
         .select()
         .single();
 
