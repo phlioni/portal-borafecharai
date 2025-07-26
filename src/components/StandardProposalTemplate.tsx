@@ -27,6 +27,16 @@ const StandardProposalTemplate = ({ proposal, companyLogo, className = '' }: Sta
     }
   };
 
+  const formatItemType = (type: string) => {
+    if (type === 'labor') {
+      return 'Serviço';
+    }
+    if (type === 'material') {
+      return 'Material';
+    }
+    return type;
+  };
+
   const calculateTotal = () => {
     if (proposal?.proposal_budget_items?.length) {
       return proposal.proposal_budget_items.reduce((total: number, item: any) => {
@@ -145,7 +155,7 @@ const StandardProposalTemplate = ({ proposal, companyLogo, className = '' }: Sta
               <tbody>
                 {proposal.proposal_budget_items.map((item: any, index: number) => (
                   <tr key={index}>
-                    <td className="border border-gray-300 p-3">{item.type}</td>
+                    <td className="border border-gray-300 p-3">{formatItemType(item.type)}</td>
                     <td className="border border-gray-300 p-3">{item.description}</td>
                     <td className="border border-gray-300 p-3 text-center">{item.quantity}</td>
                     <td className="border border-gray-300 p-3 text-right">{formatCurrency(item.unit_price)}</td>
