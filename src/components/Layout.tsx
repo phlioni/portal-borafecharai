@@ -1,171 +1,140 @@
 
-import React from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import {
-  Home,
-  FileText,
-  Users,
-  Settings,
-  BarChart3,
-  LogOut,
+import React, { useState } from 'react';
+import { Link, useLocation, Outlet } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { 
+  BarChart3, 
+  FileText, 
+  Users, 
+  Settings, 
+  Menu,
   MessageSquare,
-  PlusCircle,
-  Send,
-  Calculator
+  Template,
+  Calculator,
+  Bot,
+  Calendar
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useProfiles } from '@/hooks/useProfiles';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { useUserPermissions } from '@/hooks/useUserPermissions';
-import { toast } from 'sonner';
-import { useIsMobile } from '@/hooks/use-mobile';
-import MobileLayout from './MobileLayout';
-import BoraFecharLogo from './BoraFecharLogo';
+import UserActionsDropdown from '@/components/UserActionsDropdown';
+import BoraFecharLogo from '@/components/BoraFecharLogo';
 
-interface LayoutProps {
-  children: React.ReactNode;
-}
-
-const Layout = ({ children }: LayoutProps) => {
-  const isMobile = useIsMobile();
-  const { signOut, user } = useAuth();
-  const { profile } = useProfiles();
-  const { isAdmin, canCreateProposal } = useUserPermissions();
+const Layout = () => {
   const location = useLocation();
-  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Se for mobile, usa o MobileLayout
-  if (isMobile) {
-    return <MobileLayout>{children}</MobileLayout>;
-  }
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      navigate('/login');
-    } catch (error) {
-      console.error('Erro ao fazer logout:', error);
-      toast.error('Erro ao fazer logout');
-    }
-  };
-
-  const getInitials = () => {
-    if (profile?.name) {
-      return profile.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-    }
-    if (user?.email) {
-      return user.email.charAt(0).toUpperCase();
-    }
-    return 'U';
-  };
-
-  const handleTelegramBot = () => {
-    // Abrir o bot do Telegram
-    window.open('https://t.me/borafecharai_bot', '_blank');
-  };
-
-  // Reorganizamos os itens do menu para dar destaque ao Chat Proposta
   const menuItems = [
-    { path: '/dashboard', icon: Home, label: 'Dashboard' },
-    // Chat Proposta temporariamente oculto
-    // { path: '/chat-proposta', icon: MessageSquare, label: 'Chat Proposta', highlight: true },
+    { path: '/dashboard', icon: BarChart3, label: 'Dashboard' },
     { path: '/propostas', icon: FileText, label: 'Propostas' },
-    // ...(canCreateProposal ? [{ path: '/nova-proposta', icon: PlusCircle, label: 'Nova Proposta' }] : []),
+    { path: '/ordens-servico', icon: Calendar, label: 'Ordens de Serviço' },
     { path: '/clientes', icon: Users, label: 'Clientes' },
-    { path: '/modelos-orcamento', icon: Calculator, label: 'Modelos Orçamento' },
-    { path: '/analytics', icon: BarChart3, label: 'Analytics' },
+    // { path: '/chat-proposta', icon: MessageSquare, label: 'Chat Proposta', highlight: true },
+    { path: '/modelos-orcamento', icon: Calculator, label: 'Modelos de Orçamento' },
+    { path: '/templates-personalizados', icon: Template, label: 'Templates Personalizados' },
+    { path: '/telegram-bot', icon: Bot, label: 'Bot do Telegram' },
+    { path: '/whatsapp-bot', icon: Bot, label: 'Bot do WhatsApp' },
     { path: '/configuracoes', icon: Settings, label: 'Configurações' },
   ];
 
   return (
     <div className="flex h-screen bg-background">
-      {/* Sidebar */}
-      <div className="w-64 bg-card border-r border-border flex flex-col">
-        {/* Logo */}
-        <div className="p-6 border-b border-border">
-          <div className="flex items-center gap-3">
-            <BoraFecharLogo size="md" />
-            <h1 className="text-xl font-bold text-primary">BoraFecharAI</h1>
+      {/* Desktop Sidebar */}
+      <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
+        <div className="flex flex-col flex-grow border-r border-border bg-card overflow-y-auto">
+          <div className="flex items-center flex-shrink-0 px-4 py-6">
+            <BoraFecharLogo />
+          </div>
+          <div className="mt-5 flex-grow flex flex-col">
+            <nav className="flex-1 px-2 pb-4 space-y-1">
+              {menuItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path;
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-primary text-primary-foreground'
+                        : (item as any).highlight
+                          ? 'bg-accent text-accent-foreground hover:bg-accent/80'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    <Icon className={`w-4 h-4 ${(item as any).highlight && !isActive ? 'animate-pulse' : ''}`} />
+                    {item.label}
+                    {(item as any).highlight && !isActive && (
+                      <span className="ml-auto text-xs font-medium bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">
+                        Novo
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </nav>
           </div>
         </div>
+      </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
-                  ? 'bg-primary text-primary-foreground'
-                  : (item as any).highlight
-                    ? 'bg-accent text-accent-foreground hover:bg-accent/80'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                  }`}
-              >
-                <Icon className={`w-4 h-4 ${(item as any).highlight && !isActive ? 'animate-pulse' : ''}`} />
-                {item.label}
-                {(item as any).highlight && !isActive && (
-                  <span className="ml-auto text-xs font-medium bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">
-                    Novo
-                  </span>
-                )}
-              </NavLink>
-            );
-          })}
-          {/* Telegram Bot Highlight - Novo destaque */}
-          <div>
-            <Button
-              onClick={handleTelegramBot}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white gap-2 min-h-[44px]"
-            >
-              <Send className="w-5 h-5" />
-              <span>Assistente no Telegram</span>
-            </Button>
-          </div>
-        </nav>
-
-        {/* User Profile & Logout */}
-        <div className="p-4 border-t border-border">
-          <div className="flex items-center gap-3 mb-3">
-            <Avatar className="w-8 h-8">
-              {profile?.avatar_url ? (
-                <AvatarImage src={profile.avatar_url} alt="Avatar" />
-              ) : (
-                <AvatarFallback className="text-sm">
-                  {getInitials()}
-                </AvatarFallback>
-              )}
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">
-                {profile?.name || user?.email || 'Usuário'}
-              </p>
-              <p className="text-xs text-muted-foreground truncate">
-                {user?.email}
-              </p>
-            </div>
-          </div>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleSignOut}
-            className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
-          >
-            <LogOut className="w-4 h-4" />
-            Sair
-          </Button>
+      {/* Mobile Header */}
+      <div className="lg:hidden">
+        <div className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between h-16 px-4 border-b border-border bg-card">
+          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Menu className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-64">
+              <div className="flex flex-col h-full">
+                <div className="flex items-center px-2 py-4">
+                  <BoraFecharLogo />
+                </div>
+                <nav className="flex-1 px-2 space-y-1">
+                  {menuItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = location.pathname === item.path;
+                    return (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          isActive
+                            ? 'bg-primary text-primary-foreground'
+                            : (item as any).highlight
+                              ? 'bg-accent text-accent-foreground hover:bg-accent/80'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                        }`}
+                      >
+                        <Icon className={`w-4 h-4 ${(item as any).highlight && !isActive ? 'animate-pulse' : ''}`} />
+                        {item.label}
+                        {(item as any).highlight && !isActive && (
+                          <span className="ml-auto text-xs font-medium bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">
+                            Novo
+                          </span>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </nav>
+              </div>
+            </SheetContent>
+          </Sheet>
+          <BoraFecharLogo />
+          <UserActionsDropdown />
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <main className="flex-1 overflow-y-auto">
-          {children}
+      <div className="flex flex-col flex-1 lg:pl-64">
+        <div className="hidden lg:flex lg:items-center lg:justify-between lg:h-16 lg:px-6 lg:border-b lg:border-border lg:bg-card">
+          <div></div>
+          <UserActionsDropdown />
+        </div>
+        <main className="flex-1 overflow-y-auto pt-16 lg:pt-0">
+          <Outlet />
         </main>
       </div>
     </div>
