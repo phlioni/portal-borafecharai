@@ -170,24 +170,45 @@ export const useCreateProposal = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (proposal: Omit<Proposal, 'id' | 'created_at' | 'updated_at' | 'last_viewed_at' | 'views' | 'client' | 'clients' | 'user_profile' | 'company_profile' | 'proposal_budget_items' | 'public_hash' | 'profiles' | 'user_companies' | 'companies'>) => {
+    mutationFn: async (proposal: {
+      title: string;
+      client_id?: string | null;
+      service_description?: string | null;
+      detailed_description?: string | null;
+      value?: number | null;
+      delivery_time?: string | null;
+      validity_date?: string | null;
+      observations?: string | null;
+      status: string;
+      user_id: string;
+      template_id?: string;
+      payment_terms?: string | null;
+      total_amount?: number | null;
+    }) => {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
         throw new Error('Usuário não autenticado');
       }
 
-      const proposalWithUserId = {
+      const proposalWithDefaults = {
         ...proposal,
         user_id: user.id,
-        title: proposal.title || '',
+        template_id: proposal.template_id || 'moderno',
         payment_terms: proposal.payment_terms || null,
-        total_amount: proposal.total_amount || 0
+        total_amount: proposal.total_amount || proposal.value || 0,
+        value: proposal.value || proposal.total_amount || 0,
+        client_id: proposal.client_id || null,
+        service_description: proposal.service_description || null,
+        detailed_description: proposal.detailed_description || null,
+        delivery_time: proposal.delivery_time || null,
+        validity_date: proposal.validity_date || null,
+        observations: proposal.observations || null
       };
 
       const { data, error } = await supabase
         .from('proposals')
-        .insert([proposalWithUserId])
+        .insert([proposalWithDefaults])
         .select()
         .single();
 
@@ -259,11 +280,20 @@ export const useUpdateProposalViews = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      // Use a direct update query instead of RPC function
+      // Get current proposal
+      const { data: currentProposal, error: fetchError } = await supabase
+        .from('proposals')
+        .select('views')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Update with incremented views
       const { data, error } = await supabase
         .from('proposals')
         .update({ 
-          views: supabase.raw('views + 1'),
+          views: (currentProposal.views || 0) + 1,
           last_viewed_at: new Date().toISOString()
         })
         .eq('id', id)
