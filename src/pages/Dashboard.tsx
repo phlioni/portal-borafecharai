@@ -301,6 +301,9 @@ const Dashboard = () => {
             <div className="text-center py-8">
               <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-500">Nenhuma proposta criada ainda</p>
+              {/* <Button asChild className="mt-4">
+                <Link to="/propostas/nova">Criar primeira proposta</Link>
+              </Button> */}
             </div>
           ) : (
             recentProposals.map((proposal) => (
@@ -312,7 +315,7 @@ const Dashboard = () => {
                   <div className="min-w-0 flex-1">
                     <h4 className="font-medium truncate">{proposal.title}</h4>
                     <p className="text-sm text-muted-foreground">
-                      {(proposal.client || proposal.clients)?.name || 'Cliente não definido'} • {formatDate(proposal.created_at)}
+                      {proposal.clients?.name || 'Cliente não definido'} • {formatDate(proposal.created_at)}
                     </p>
                   </div>
                 </div>
@@ -322,7 +325,7 @@ const Dashboard = () => {
                   </span>
                   <div className="text-left sm:text-right">
                     <p className="font-semibold">
-                      {(proposal.value || proposal.total_amount) ? `R$ ${(proposal.value || proposal.total_amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'Valor não definido'}
+                      {proposal.value ? `R$ ${proposal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'Valor não definido'}
                     </p>
                     <Button variant="link" className="h-auto p-0 text-xs justify-start sm:justify-end" asChild>
                       <Link to={`/propostas/${proposal.id}/visualizar`}>Ver detalhes</Link>

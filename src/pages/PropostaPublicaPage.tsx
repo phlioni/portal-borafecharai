@@ -6,15 +6,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import StandardProposalTemplate from '@/components/StandardProposalTemplate';
-import ServiceOrderModal from '@/components/ServiceOrderModal';
-import { Check, X, Download, Calendar } from 'lucide-react';
+import { Check, X, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 const PropostaPublicaPage = () => {
   const { hash } = useParams();
   const [isAccepting, setIsAccepting] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
-  const [showServiceOrderModal, setShowServiceOrderModal] = useState(false);
 
   const { data: proposal, isLoading, refetch } = useQuery({
     queryKey: ['public-proposal', hash],
@@ -116,7 +114,6 @@ const PropostaPublicaPage = () => {
       if (error) throw error;
 
       toast.success('Proposta aceita com sucesso!');
-      setShowServiceOrderModal(true);
       refetch();
     } catch (error) {
       console.error('Erro ao aceitar proposta:', error);
@@ -156,11 +153,6 @@ const PropostaPublicaPage = () => {
     setTimeout(() => {
       window.print();
     }, 500);
-  };
-
-  const handleServiceOrderSuccess = () => {
-    toast.success('Serviço agendado com sucesso!');
-    refetch();
   };
 
   // Verificar se a proposta está dentro da validade (apenas se validity_date existir)
@@ -288,19 +280,6 @@ const PropostaPublicaPage = () => {
                   </Button>
                 </>
               )}
-
-              {/* Botão de agendar se a proposta foi aceita */}
-              {proposal.status === 'aceita' && (
-                <Button
-                  onClick={() => setShowServiceOrderModal(true)}
-                  className="bg-blue-600 hover:bg-blue-700 h-9 text-xs sm:text-sm px-3 sm:px-4"
-                  size="sm"
-                >
-                  <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                  <span className="hidden xs:inline">Agendar Serviço</span>
-                  <span className="xs:hidden">Agendar</span>
-                </Button>
-              )}
             </div>
           </div>
         </div>
@@ -317,15 +296,6 @@ const PropostaPublicaPage = () => {
           </div>
         </div>
       </div>
-
-      {/* Modal de Agendamento */}
-      <ServiceOrderModal
-        isOpen={showServiceOrderModal}
-        onClose={() => setShowServiceOrderModal(false)}
-        proposalId={proposal.id}
-        clientId={proposal.clients?.id}
-        onSuccess={handleServiceOrderSuccess}
-      />
     </div>
   );
 };

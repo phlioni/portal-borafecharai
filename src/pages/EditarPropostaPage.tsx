@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,7 +52,7 @@ const EditarPropostaPage = () => {
         client_id: proposal.client_id || '',
         service_description: proposal.service_description || '',
         detailed_description: proposal.detailed_description || '',
-        value: proposal.value ? proposal.value.toString() : (proposal.total_amount ? proposal.total_amount.toString() : ''),
+        value: proposal.value ? proposal.value.toString() : '',
         delivery_time: proposal.delivery_time || '',
         validity_date: proposal.validity_date || '',
         observations: proposal.observations || ''
@@ -166,10 +167,7 @@ const EditarPropostaPage = () => {
         ...proposal,
         ...formData,
         value: formData.value ? parseFloat(formData.value.replace(/[^\d,]/g, '').replace(',', '.')) : null,
-        total_amount: formData.value ? parseFloat(formData.value.replace(/[^\d,]/g, '').replace(',', '.')) : null,
         clients: formData.client_id && clients ? 
-          clients.find(c => c.id === formData.client_id) : null,
-        client: formData.client_id && clients ? 
           clients.find(c => c.id === formData.client_id) : null
       };
 
@@ -195,7 +193,6 @@ const EditarPropostaPage = () => {
         service_description: formData.service_description || null,
         detailed_description: formData.detailed_description || null,
         value: formData.value ? parseFloat(formData.value.replace(/[^\d,]/g, '').replace(',', '.')) : null,
-        total_amount: formData.value ? parseFloat(formData.value.replace(/[^\d,]/g, '').replace(',', '.')) : null,
         delivery_time: formData.delivery_time || null,
         validity_date: formData.validity_date || null,
         observations: formData.observations || null

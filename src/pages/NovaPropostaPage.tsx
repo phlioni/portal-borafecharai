@@ -131,14 +131,11 @@ const NovaPropostaPage = () => {
         service_description: formData.service_description || null,
         detailed_description: formData.detailed_description || null,
         value: totalValue > 0 ? totalValue : null,
-        total_amount: totalValue > 0 ? totalValue : null,
         delivery_time: formData.delivery_time || null,
         validity_date: formData.validity_date || null,
         observations: formData.observations || null,
         status: 'rascunho' as const,
-        user_id: user!.id,
-        template_id: 'moderno',
-        payment_terms: null
+        user_id: user!.id
       };
 
       const newProposal = await createProposal.mutateAsync(proposalData);
@@ -179,14 +176,11 @@ const NovaPropostaPage = () => {
         service_description: formData.service_description || null,
         detailed_description: formData.detailed_description || null,
         value: totalValue > 0 ? totalValue : null,
-        total_amount: totalValue > 0 ? totalValue : null,
         delivery_time: formData.delivery_time || null,
         validity_date: formData.validity_date || null,
         observations: formData.observations || null,
         status: 'enviada' as const,
-        user_id: user!.id,
-        template_id: 'moderno',
-        payment_terms: null
+        user_id: user!.id
       };
 
       const newProposal = await createProposal.mutateAsync(proposalData);
