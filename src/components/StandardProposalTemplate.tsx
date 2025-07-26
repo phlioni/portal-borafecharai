@@ -43,7 +43,7 @@ const StandardProposalTemplate = ({ proposal, companyLogo, className = '' }: Sta
         return total + (item.total_price || (item.quantity * item.unit_price));
       }, 0);
     }
-    return proposal?.value || 0;
+    return proposal?.value || proposal?.total_amount || 0;
   };
 
   // Usar a logo da empresa do usuário se disponível
@@ -103,13 +103,13 @@ const StandardProposalTemplate = ({ proposal, companyLogo, className = '' }: Sta
       )}
 
       {/* Client Info */}
-      {proposal?.clients && (
+      {(proposal?.clients || proposal?.client) && (
         <div className="mb-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Cliente</h2>
           <div className="bg-gray-50 p-4 rounded-lg">
-            <p className="font-semibold">{proposal.clients.name}</p>
-            {proposal.clients.email && <p>Email: {proposal.clients.email}</p>}
-            {proposal.clients.phone && <p>Telefone: {proposal.clients.phone}</p>}
+            <p className="font-semibold">{(proposal?.clients || proposal?.client)?.name}</p>
+            {(proposal?.clients || proposal?.client)?.email && <p>Email: {(proposal?.clients || proposal?.client)?.email}</p>}
+            {(proposal?.clients || proposal?.client)?.phone && <p>Telefone: {(proposal?.clients || proposal?.client)?.phone}</p>}
           </div>
         </div>
       )}
@@ -175,11 +175,11 @@ const StandardProposalTemplate = ({ proposal, companyLogo, className = '' }: Sta
       )}
 
       {/* Value (if no budget items) */}
-      {(!proposal?.proposal_budget_items || proposal.proposal_budget_items.length === 0) && proposal?.value && (
+      {(!proposal?.proposal_budget_items || proposal.proposal_budget_items.length === 0) && (proposal?.value || proposal?.total_amount) && (
         <div className="mb-8">
           <h3 className="text-lg font-semibold text-gray-900 mb-3">Valor</h3>
           <div className="bg-blue-50 p-4 rounded-lg">
-            <p className="text-2xl font-bold text-blue-900">{formatCurrency(proposal.value)}</p>
+            <p className="text-2xl font-bold text-blue-900">{formatCurrency(proposal?.value || proposal?.total_amount)}</p>
           </div>
         </div>
       )}
@@ -192,7 +192,7 @@ const StandardProposalTemplate = ({ proposal, companyLogo, className = '' }: Sta
         </div>
       )}
 
-      {/* Delivery Time */}
+      {/* Payment Terms */}
       {proposal?.payment_terms && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-3">Forma de Pagamento</h3>
@@ -200,7 +200,7 @@ const StandardProposalTemplate = ({ proposal, companyLogo, className = '' }: Sta
         </div>
       )}
 
-      {/* Payment Terms */}
+      {/* Observations */}
       {proposal?.observations && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-3">Observações</h3>
