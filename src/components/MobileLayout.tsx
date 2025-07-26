@@ -142,14 +142,14 @@ const MobileLayout = ({ children }: MobileLayoutProps) => {
                           onClick={closeMenu}
                           className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${isActive
                               ? 'bg-primary text-primary-foreground'
-                              : item.highlight
+                              : (item as any).highlight
                                 ? 'bg-accent text-accent-foreground hover:bg-accent/80'
                                 : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                             }`}
                         >
-                          <Icon className={`w-5 h-5 flex-shrink-0 ${item.highlight && !isActive ? 'animate-pulse' : ''}`} />
+                          <Icon className={`w-5 h-5 flex-shrink-0 ${(item as any).highlight && !isActive ? 'animate-pulse' : ''}`} />
                           <span className="truncate">{item.label}</span>
-                          {item.highlight && !isActive && (
+                          {(item as any).highlight && !isActive && (
                             <span className="ml-auto text-xs font-medium bg-primary/20 text-primary px-1.5 py-0.5 rounded-full flex-shrink-0">
                               IA
                             </span>
