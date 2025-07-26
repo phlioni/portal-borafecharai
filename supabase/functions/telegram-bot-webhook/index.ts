@@ -114,7 +114,7 @@ async function transcribeAudio(file_id) {
   return transcriptionResult.text;
 }
 async function extractProposalDetails(text) {
-  const systemPrompt = `Você é um assistente especialista em analisar textos e extrair informações para preencher uma proposta comercial. Analise o texto fornecido pelo usuário e extraia as seguintes informações: "summary" (resumo do escopo), "delivery_time" (prazo de entrega), "validity_days" (validade em DIAS, apenas o número), "payment_terms" (condições de pagamento), e "budget_items" (uma lista de itens, cada um com "type" ('material' ou 'labor'), "description", "quantity", e "unit_price"). Responda APENAS com um objeto JSON. Se uma informação não for encontrada, use o valor null.`;
+  const systemPrompt = `Você é um assistente especialista em analisar textos e extrair informações para preencher uma proposta comercial. Analise o texto fornecido pelo usuário e extraia as seguintes informações: "summary" (resumo do escopo), "delivery_time" (prazo de entrega), "validity_days" (validade em DIAS, apenas o número), "payment_terms" (condições de pagamento), e "budget_items" (uma lista de itens, cada um com "type" ('material' ou 'serviço'), "description", "quantity", e "unit_price"). Responda APENAS com um objeto JSON. Se uma informação não for encontrada, use o valor null.`;
   const gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -830,7 +830,7 @@ serve(async (req) => {
             if (normalizedType.startsWith('material')) {
               dbType = 'material';
             } else if (normalizedType.startsWith('servico')) {
-              dbType = 'labor';
+              dbType = 'serviço';
             } else {
               errors.push(`Tipo inválido no item "${description}" (use Material ou Serviço)`);
               continue;
