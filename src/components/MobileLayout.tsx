@@ -64,7 +64,8 @@ const MobileLayout = ({ children }: MobileLayoutProps) => {
 
   const menuItems = [
     { path: '/dashboard', icon: Home, label: 'Dashboard' },
-    { path: '/chat-proposta', icon: Bot, label: 'Chat Proposta', highlight: true },
+    // Chat Proposta temporariamente oculto
+    // { path: '/chat-proposta', icon: Bot, label: 'Chat Proposta', highlight: true },
     { path: '/propostas', icon: FileText, label: 'Propostas' },
     // ...(canCreateProposal ? [{ path: '/nova-proposta', icon: PlusCircle, label: 'Nova Proposta' }] : []),
     { path: '/clientes', icon: Users, label: 'Clientes' },

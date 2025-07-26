@@ -68,8 +68,8 @@ const Layout = ({ children }: LayoutProps) => {
   // Reorganizamos os itens do menu para dar destaque ao Chat Proposta
   const menuItems = [
     { path: '/dashboard', icon: Home, label: 'Dashboard' },
-    // Movemos o Chat Proposta para uma posição mais destacada
-    { path: '/chat-proposta', icon: MessageSquare, label: 'Chat Proposta', highlight: true },
+    // Chat Proposta temporariamente oculto
+    // { path: '/chat-proposta', icon: MessageSquare, label: 'Chat Proposta', highlight: true },
     { path: '/propostas', icon: FileText, label: 'Propostas' },
     // ...(canCreateProposal ? [{ path: '/nova-proposta', icon: PlusCircle, label: 'Nova Proposta' }] : []),
     { path: '/clientes', icon: Users, label: 'Clientes' },
