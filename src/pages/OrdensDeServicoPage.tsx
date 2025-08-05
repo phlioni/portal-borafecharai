@@ -22,11 +22,11 @@ import { Label } from "@/components/ui/label";
 
 export default function OrdensDeServicoPage() {
   const { workOrders, isLoading, error, updateWorkOrderStatus, isUpdating } = useWorkOrders();
-  const { clients } = useClients();
+  const { data: clients = [], isLoading: clientsLoading } = useClients();
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
 
-  if (isLoading) {
+  if (isLoading || clientsLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin" />
