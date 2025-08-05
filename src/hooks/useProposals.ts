@@ -236,7 +236,7 @@ export const useUpdateProposal = () => {
         .single();
 
       if (error) throw error;
-      return data as Proposal;
+      return data as unknown as Proposal;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
