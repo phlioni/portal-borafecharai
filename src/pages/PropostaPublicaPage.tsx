@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import StandardProposalTemplate from '@/components/StandardProposalTemplate';
 import { Check, X, Download, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { ScheduleModal } from '@/components/ScheduleModal';
+import { ImprovedScheduleModal } from '@/components/ImprovedScheduleModal';
 
 const PropostaPublicaPage = () => {
   const { hash } = useParams();
@@ -313,11 +313,12 @@ const PropostaPublicaPage = () => {
         </div>
       </div>
 
-      {/* Modal de Agendamento */}
+      {/* Modal de Agendamento Melhorado */}
       {proposal.clients && (
-        <ScheduleModal
+        <ImprovedScheduleModal
           proposalId={proposal.id}
           clientId={proposal.clients.id}
+          userId={proposal.user_id}
           open={showScheduleModal}
           onOpenChange={setShowScheduleModal}
         />
