@@ -51,7 +51,7 @@ export const useServiceOrders = (userId?: string) => {
   });
 
   const createServiceOrderMutation = useMutation({
-    mutationFn: async (data: CreateServiceOrderData & { user_id?: string }) => {
+    mutationFn: async (data: CreateServiceOrderData & { user_id: string }) => {
       const { data: serviceOrder, error } = await supabase
         .from('service_orders')
         .insert(data)
