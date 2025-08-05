@@ -1,3 +1,4 @@
+
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -20,6 +21,8 @@ export interface Proposal {
   template_id?: string;
   views?: number;
   proposal_number?: string;
+  payment_terms?: string;
+  total_amount?: number;
   clients?: {
     id: string;
     name: string;
@@ -55,6 +58,7 @@ export interface Proposal {
     phone?: string;
     avatar_url?: string;
   };
+  user_companies?: any;
 }
 
 export const useProposals = () => {
@@ -91,7 +95,7 @@ export const useProposals = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as Proposal[];
+      return data as unknown as Proposal[];
     },
   });
 };
@@ -100,7 +104,7 @@ export const useCreateProposal = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (proposalData: Omit<Proposal, 'id' | 'created_at' | 'updated_at'>) => {
+    mutationFn: async (proposalData: Partial<Proposal>) => {
       // Verificar autenticação antes de criar proposta
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -108,10 +112,13 @@ export const useCreateProposal = () => {
         throw new Error('Usuário não autenticado');
       }
 
-      // Garantir que o user_id seja sempre do usuário atual
+      // Garantir que o user_id seja sempre do usuário atual e adicionar campos necessários
       const secureProposalData = {
         ...proposalData,
-        user_id: user.id
+        user_id: user.id,
+        template_id: proposalData.template_id || null,
+        payment_terms: proposalData.payment_terms || '',
+        total_amount: proposalData.total_amount || 0,
       };
 
       // Verificar se o usuário pode criar propostas antes de tentar criar
@@ -337,7 +344,7 @@ export const useProposal = (id?: string) => {
         ...data,
         user_companies: userCompanyData,
         user_profile: profileData
-      } as Proposal;
+      } as unknown as Proposal;
 
       return completeProposal;
     },

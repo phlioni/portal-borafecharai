@@ -53,6 +53,10 @@ export default function OrdensDeServicoPage() {
     });
   };
 
+  const handleStatusChange = (id: string, status: 'pending_approval' | 'approved' | 'rescheduled' | 'completed' | 'canceled') => {
+    updateWorkOrderStatus({ id, status });
+  };
+
   return (
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
@@ -104,7 +108,7 @@ export default function OrdensDeServicoPage() {
         <TabsContent value="table" className="space-y-4">
           <WorkOrdersTable 
             orders={workOrders} 
-            onStatusChange={updateWorkOrderStatus}
+            onStatusChange={handleStatusChange}
             isUpdating={isUpdating}
           />
         </TabsContent>

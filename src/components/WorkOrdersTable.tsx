@@ -18,7 +18,7 @@ export function WorkOrdersTable({ orders, onStatusChange, isUpdating }: WorkOrde
   const getStatusVariant = (status: WorkOrder['status']) => {
     switch (status) {
       case 'approved': return 'default';
-      case 'completed': return 'success';
+      case 'completed': return 'secondary'; // Changed from 'success' to 'secondary'
       case 'pending_approval': return 'secondary';
       case 'canceled': return 'destructive';
       case 'rescheduled': return 'outline';
