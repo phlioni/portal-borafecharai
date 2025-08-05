@@ -6,13 +6,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import StandardProposalTemplate from '@/components/StandardProposalTemplate';
-import { Check, X, Download } from 'lucide-react';
+import { Check, X, Download, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
+import { ScheduleModal } from '@/components/ScheduleModal';
 
 const PropostaPublicaPage = () => {
   const { hash } = useParams();
   const [isAccepting, setIsAccepting] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
 
   const { data: proposal, isLoading, refetch } = useQuery({
     queryKey: ['public-proposal', hash],
@@ -254,6 +256,20 @@ const PropostaPublicaPage = () => {
                 <span className="xs:hidden">PDF</span>
               </Button>
 
+              {/* Botão de Agendamento - sempre visível para propostas aceitas */}
+              {proposal.status === 'aceita' && (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowScheduleModal(true)}
+                  className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 h-9 text-xs sm:text-sm px-3 sm:px-4"
+                  size="sm"
+                >
+                  <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span className="hidden xs:inline">Agendar Atendimento</span>
+                  <span className="xs:hidden">Agendar</span>
+                </Button>
+              )}
+
               {/* Botões de aceitar/rejeitar apenas se a proposta estiver enviada */}
               {proposal.status === 'enviada' && (
                 <>
@@ -296,6 +312,16 @@ const PropostaPublicaPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal de Agendamento */}
+      {proposal.clients && (
+        <ScheduleModal
+          proposalId={proposal.id}
+          clientId={proposal.clients.id}
+          open={showScheduleModal}
+          onOpenChange={setShowScheduleModal}
+        />
+      )}
     </div>
   );
 };

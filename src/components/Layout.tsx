@@ -11,7 +11,8 @@ import {
   MessageSquare,
   PlusCircle,
   Send,
-  Calculator
+  Calculator,
+  ClipboardList
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfiles } from '@/hooks/useProfiles';
@@ -73,6 +74,7 @@ const Layout = ({ children }: LayoutProps) => {
     { path: '/propostas', icon: FileText, label: 'Propostas' },
     // ...(canCreateProposal ? [{ path: '/nova-proposta', icon: PlusCircle, label: 'Nova Proposta' }] : []),
     { path: '/clientes', icon: Users, label: 'Clientes' },
+    { path: '/ordens-de-servico', icon: ClipboardList, label: 'Ordens de Serviço' },
     { path: '/modelos-orcamento', icon: Calculator, label: 'Modelos Orçamento' },
     { path: '/analytics', icon: BarChart3, label: 'Analytics' },
     { path: '/configuracoes', icon: Settings, label: 'Configurações' },
