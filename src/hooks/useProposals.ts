@@ -1,4 +1,5 @@
 
+
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -112,13 +113,29 @@ export const useCreateProposal = () => {
         throw new Error('Usuário não autenticado');
       }
 
+      // Extrair apenas os campos válidos para inserção na tabela proposals
+      const {
+        // Remover campos que não existem na tabela ou são calculados
+        user_companies,
+        user_profile,
+        companies,
+        clients,
+        proposal_budget_items,
+        created_at,
+        updated_at,
+        public_hash,
+        views,
+        proposal_number,
+        ...validProposalData
+      } = proposalData;
+
       // Garantir que o user_id seja sempre do usuário atual e adicionar campos necessários
       const secureProposalData = {
-        ...proposalData,
+        ...validProposalData,
         user_id: user.id,
-        template_id: proposalData.template_id || null,
+        template_id: proposalData.template_id || 'moderno',
         payment_terms: proposalData.payment_terms || '',
-        total_amount: proposalData.total_amount || 0,
+        title: proposalData.title || 'Nova Proposta', // Garantir que title não seja undefined
       };
 
       // Verificar se o usuário pode criar propostas antes de tentar criar
@@ -350,3 +367,4 @@ export const useProposal = (id?: string) => {
     },
   });
 };
+
