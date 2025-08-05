@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar as CalendarIcon, List, Loader2, Plus } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWorkOrders } from "@/hooks/useWorkOrders";
+import { useClients } from "@/hooks/useClients";
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -10,10 +11,20 @@ import { WorkOrdersTable } from "@/components/WorkOrdersTable";
 import { ScheduleModal } from "@/components/ScheduleModal";
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 export default function OrdensDeServicoPage() {
   const { workOrders, isLoading, error, updateWorkOrderStatus, isUpdating } = useWorkOrders();
+  const { clients } = useClients();
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState<string>("");
 
   if (isLoading) {
     return (
@@ -57,14 +68,43 @@ export default function OrdensDeServicoPage() {
     updateWorkOrderStatus({ id, status });
   };
 
+  const handleNewOrderClick = () => {
+    if (!selectedClientId) {
+      toast({
+        title: "Atenção",
+        description: "Por favor, selecione um cliente antes de criar uma ordem de serviço.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsScheduleModalOpen(true);
+  };
+
   return (
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Ordens de Serviço</h1>
-        <Button onClick={() => setIsScheduleModalOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nova Ordem
-        </Button>
+        <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-2">
+            <Label>Selecionar Cliente</Label>
+            <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Selecione um cliente" />
+              </SelectTrigger>
+              <SelectContent>
+                {clients.map((client) => (
+                  <SelectItem key={client.id} value={client.id}>
+                    {client.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button onClick={handleNewOrderClick}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Ordem
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="calendar" className="space-y-4">
@@ -114,11 +154,13 @@ export default function OrdensDeServicoPage() {
         </TabsContent>
       </Tabs>
 
-      <ScheduleModal
-        clientId="temp-client-id" // This should be dynamic based on your needs
-        open={isScheduleModalOpen}
-        onOpenChange={setIsScheduleModalOpen}
-      />
+      {selectedClientId && (
+        <ScheduleModal
+          clientId={selectedClientId}
+          open={isScheduleModalOpen}
+          onOpenChange={setIsScheduleModalOpen}
+        />
+      )}
     </div>
   );
 }
