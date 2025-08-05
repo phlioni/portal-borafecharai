@@ -28,6 +28,7 @@ import TestBusinessSegments from '@/pages/TestBusinessSegments';
 import GerenciamentoUsuariosPage from '@/pages/GerenciamentoUsuariosPage';
 import WhatsAppBotPage from '@/pages/WhatsAppBotPage';
 import ModelosOrcamentoPage from '@/pages/ModelosOrcamentoPage';
+import OrdensDeServicoPage from '@/pages/OrdensDeServicoPage';
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,7 @@ function App() {
                 <Route path="/chat-proposta" element={<ChatPropostaPage />} />
                 <Route path="/templates-personalizados" element={<TemplatesPersonalizadosPage />} />
                 <Route path="/modelos-orcamento" element={<ModelosOrcamentoPage />} />
+                <Route path="/ordens-de-servico" element={<OrdensDeServicoPage />} />
                 <Route path="/telegram-bot" element={<TelegramBotPage />} />
                 <Route path="/whatsapp-bot" element={<WhatsAppBotPage />} />
                 <Route path="/test-business" element={<TestBusinessSegments />} />
