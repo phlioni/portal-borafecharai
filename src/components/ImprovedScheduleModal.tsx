@@ -42,6 +42,7 @@ interface ServiceAvailability {
   start_time: string;
   end_time: string;
   is_available: boolean;
+  clients_per_day: number;
 }
 
 interface ServiceOrder {
@@ -115,28 +116,39 @@ export function ImprovedScheduleModal({ proposalId, clientId, userId, open, onOp
       return;
     }
 
-    // Gerar horários disponíveis
+    // Gerar horários disponíveis baseado na quantidade de clientes por dia
     const times: string[] = [];
     dayAvailability.forEach(slot => {
       const startHour = parseInt(slot.start_time.split(':')[0]);
       const startMinute = parseInt(slot.start_time.split(':')[1]);
       const endHour = parseInt(slot.end_time.split(':')[0]);
       const endMinute = parseInt(slot.end_time.split(':')[1]);
-
-      for (let hour = startHour; hour < endHour || (hour === endHour && startMinute < endMinute); hour++) {
-        for (let minute = (hour === startHour ? startMinute : 0); minute < 60; minute += 60) {
-          if (hour === endHour && minute >= endMinute) break;
-          
-          const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-          
-          // Verificar se não há agendamento neste horário
-          const isBooked = existingOrders.some(order => 
-            order.scheduled_date === dateStr && order.scheduled_time === timeStr + ':00'
-          );
-          
-          if (!isBooked) {
-            times.push(timeStr);
-          }
+      
+      // Calcular duração total em minutos
+      const totalMinutes = (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
+      const clientsPerDay = slot.clients_per_day || 1;
+      const slotDurationMinutes = Math.floor(totalMinutes / clientsPerDay);
+      
+      // Gerar janelas de tempo baseado na quantidade de clientes
+      for (let clientSlot = 0; clientSlot < clientsPerDay; clientSlot++) {
+        const slotStartMinutes = startHour * 60 + startMinute + (clientSlot * slotDurationMinutes);
+        const slotEndMinutes = slotStartMinutes + slotDurationMinutes;
+        
+        const slotStartHour = Math.floor(slotStartMinutes / 60);
+        const slotStartMin = slotStartMinutes % 60;
+        const slotEndHour = Math.floor(slotEndMinutes / 60);
+        const slotEndMin = slotEndMinutes % 60;
+        
+        const startTimeStr = `${slotStartHour.toString().padStart(2, '0')}:${slotStartMin.toString().padStart(2, '0')}`;
+        const endTimeStr = `${slotEndHour.toString().padStart(2, '0')}:${slotEndMin.toString().padStart(2, '0')}`;
+        
+        // Verificar se não há agendamento neste horário
+        const isBooked = existingOrders.some(order => 
+          order.scheduled_date === dateStr && order.scheduled_time === startTimeStr + ':00'
+        );
+        
+        if (!isBooked) {
+          times.push(`${startTimeStr}|${endTimeStr}`);
         }
       }
     });
@@ -170,12 +182,15 @@ export function ImprovedScheduleModal({ proposalId, clientId, userId, open, onOp
       return;
     }
 
+    // Extrair apenas o horário de início se for uma janela de tempo
+    const actualTime = selectedTime.includes('|') ? selectedTime.split('|')[0] : selectedTime;
+    
     const serviceOrderData: CreateServiceOrderData & { user_id: string } = {
       proposal_id: proposalId,
       client_id: clientId,
       user_id: userId,
       scheduled_date: format(selectedDate, 'yyyy-MM-dd'),
-      scheduled_time: selectedTime + ':00',
+      scheduled_time: actualTime + ':00',
       client_notes: data.client_notes,
     };
 
@@ -233,16 +248,20 @@ export function ImprovedScheduleModal({ proposalId, clientId, userId, open, onOp
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione um horário" />
                       </SelectTrigger>
-                      <SelectContent>
-                        {availableTimes.map((time) => (
-                          <SelectItem key={time} value={time}>
-                            <div className="flex items-center gap-2">
-                              <Clock className="h-4 w-4" />
-                              {time}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
+                       <SelectContent>
+                         {availableTimes.map((time) => {
+                           const [startTime, endTime] = time.split('|');
+                           const displayTime = endTime ? `${startTime} até ${endTime}` : startTime;
+                           return (
+                             <SelectItem key={time} value={startTime}>
+                               <div className="flex items-center gap-2">
+                                 <Clock className="h-4 w-4" />
+                                 {displayTime}
+                               </div>
+                             </SelectItem>
+                           );
+                         })}
+                       </SelectContent>
                     </Select>
                   ) : (
                     <div className="text-sm text-muted-foreground p-3 border rounded-md bg-muted/50">
@@ -258,7 +277,7 @@ export function ImprovedScheduleModal({ proposalId, clientId, userId, open, onOp
 
               {/* Endereço */}
               <div>
-                <Label htmlFor="address" className="flex items-center gap-2">
+                <Label htmlFor="address" className="flex items-center gap-2 mb-2">
                   <MapPin className="h-4 w-4" />
                   Endereço completo do atendimento
                 </Label>
