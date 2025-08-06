@@ -12,9 +12,10 @@ interface WorkOrdersTableProps {
   orders: WorkOrder[];
   onStatusChange: (id: string, status: WorkOrder['status']) => void;
   isUpdating: boolean;
+  onRowClick?: (order: WorkOrder) => void;
 }
 
-export function WorkOrdersTable({ orders, onStatusChange, isUpdating }: WorkOrdersTableProps) {
+export function WorkOrdersTable({ orders, onStatusChange, isUpdating, onRowClick }: WorkOrdersTableProps) {
   const getStatusVariant = (status: WorkOrder['status']) => {
     switch (status) {
       case 'approved': return 'default';
@@ -51,7 +52,11 @@ export function WorkOrdersTable({ orders, onStatusChange, isUpdating }: WorkOrde
         </TableHeader>
         <TableBody>
           {orders.map((order) => (
-            <TableRow key={order.id}>
+            <TableRow 
+              key={order.id} 
+              className={onRowClick ? "cursor-pointer hover:bg-muted/50" : ""}
+              onClick={() => onRowClick?.(order)}
+            >
               <TableCell className="font-mono text-xs">
                 {order.id.slice(0, 8)}...
               </TableCell>
@@ -67,7 +72,12 @@ export function WorkOrdersTable({ orders, onStatusChange, isUpdating }: WorkOrde
               <TableCell className="text-right">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0" disabled={isUpdating}>
+                    <Button 
+                      variant="ghost" 
+                      className="h-8 w-8 p-0" 
+                      disabled={isUpdating}
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>

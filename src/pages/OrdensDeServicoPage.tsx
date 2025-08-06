@@ -3,11 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Calendar as CalendarIcon, List, Loader2, Plus } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWorkOrders } from "@/hooks/useWorkOrders";
+import { useServiceOrders } from "@/hooks/useServiceOrders";
 import { useClients } from "@/hooks/useClients";
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { WorkOrdersTable } from "@/components/WorkOrdersTable";
+import { WorkOrderModal } from "@/components/WorkOrderModal";
 import { ScheduleModal } from "@/components/ScheduleModal";
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
@@ -22,9 +24,13 @@ import { Label } from "@/components/ui/label";
 
 export default function OrdensDeServicoPage() {
   const { workOrders, isLoading, error, updateWorkOrderStatus, isUpdating } = useWorkOrders();
+  const { serviceOrders, updateServiceOrder, isUpdating: isServiceUpdating } = useServiceOrders();
   const { data: clients = [], isLoading: clientsLoading } = useClients();
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const [orderType, setOrderType] = useState<'work_order' | 'service_order'>('work_order');
 
   if (isLoading || clientsLoading) {
     return (
@@ -43,29 +49,63 @@ export default function OrdensDeServicoPage() {
     );
   }
 
-  const calendarEvents = workOrders.map(order => ({
+  // Combinar work_orders e service_orders no calendário
+  const workOrderEvents = workOrders.map(order => ({
     title: `${order.address.substring(0, 25)}...`,
     start: order.scheduled_at,
-    id: order.id,
+    id: `work_${order.id}`,
     backgroundColor: order.status === 'approved' ? '#3b82f6' : 
                      order.status === 'completed' ? '#10b981' :
                      order.status === 'canceled' ? '#ef4444' : '#6b7280',
     borderColor: order.status === 'approved' ? '#3b82f6' : 
                  order.status === 'completed' ? '#10b981' :
                  order.status === 'canceled' ? '#ef4444' : '#6b7280',
-    extendedProps: order,
+    extendedProps: { ...order, type: 'work_order' },
   }));
+
+  const serviceOrderEvents = serviceOrders.map(order => ({
+    title: `Agendamento ${order.scheduled_time}`,
+    start: `${order.scheduled_date}T${order.scheduled_time}`,
+    id: `service_${order.id}`,
+    backgroundColor: order.status === 'confirmado' ? '#3b82f6' : 
+                     order.status === 'concluido' ? '#10b981' :
+                     order.status === 'cancelado' ? '#ef4444' : '#f59e0b',
+    borderColor: order.status === 'confirmado' ? '#3b82f6' : 
+                 order.status === 'concluido' ? '#10b981' :
+                 order.status === 'cancelado' ? '#ef4444' : '#f59e0b',
+    extendedProps: { ...order, type: 'service_order' },
+  }));
+
+  const calendarEvents = [...workOrderEvents, ...serviceOrderEvents];
 
   const handleEventClick = (info: any) => {
     const order = info.event.extendedProps;
-    toast({
-      title: `Ordem de Serviço`,
-      description: `Endereço: ${order.address}\nStatus: ${order.status}`,
-    });
+    setSelectedOrder(order);
+    setOrderType(order.type);
+    setIsOrderModalOpen(true);
   };
 
   const handleStatusChange = (id: string, status: 'pending_approval' | 'approved' | 'rescheduled' | 'completed' | 'canceled') => {
     updateWorkOrderStatus({ id, status });
+  };
+
+  const handleServiceOrderStatusChange = (id: string, status: 'agendado' | 'confirmado' | 'em_andamento' | 'concluido' | 'cancelado') => {
+    updateServiceOrder({ id, status });
+    
+    // Enviar email se status for 'confirmado'
+    if (status === 'confirmado') {
+      // Implementar chamada para edge function de envio de email
+      console.log('Enviando email de confirmação para o cliente');
+    }
+  };
+
+  const handleModalStatusChange = (id: string, status: any) => {
+    if (orderType === 'work_order') {
+      handleStatusChange(id, status);
+    } else {
+      handleServiceOrderStatusChange(id, status);
+    }
+    setIsOrderModalOpen(false);
   };
 
   const handleNewOrderClick = () => {
@@ -146,11 +186,21 @@ export default function OrdensDeServicoPage() {
         </TabsContent>
 
         <TabsContent value="table" className="space-y-4">
-          <WorkOrdersTable 
-            orders={workOrders} 
-            onStatusChange={handleStatusChange}
-            isUpdating={isUpdating}
-          />
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Ordens de Serviço</h3>
+              <WorkOrdersTable 
+                orders={workOrders} 
+                onStatusChange={handleStatusChange}
+                isUpdating={isUpdating}
+                onRowClick={(order) => {
+                  setSelectedOrder(order);
+                  setOrderType('work_order');
+                  setIsOrderModalOpen(true);
+                }}
+              />
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
 
@@ -161,6 +211,15 @@ export default function OrdensDeServicoPage() {
           onOpenChange={setIsScheduleModalOpen}
         />
       )}
+
+      <WorkOrderModal
+        order={selectedOrder}
+        open={isOrderModalOpen}
+        onOpenChange={setIsOrderModalOpen}
+        onStatusChange={handleModalStatusChange}
+        isUpdating={isUpdating || isServiceUpdating}
+        type={orderType}
+      />
     </div>
   );
 }
