@@ -185,9 +185,12 @@ export function WorkOrderModal({
             <div className="flex items-start gap-3">
               <Clock className="h-4 w-4 mt-1 text-muted-foreground" />
               <div>
-                <p className="font-medium text-sm">Horário</p>
+                <p className="font-medium text-sm">Janela de Horário</p>
                 <p className="text-sm text-muted-foreground">
-                  {scheduledTime}
+                  {isWorkOrder 
+                    ? scheduledTime
+                    : `${(order as ServiceOrder).scheduled_time} - Agendamento realizado`
+                  }
                 </p>
               </div>
             </div>

@@ -100,6 +100,28 @@ const PropostaPublicaPage = () => {
     retryDelay: 1000,
   });
 
+  // Verificar se já existe agendamento para esta proposta
+  const { data: existingServiceOrder } = useQuery({
+    queryKey: ['service-order-by-proposal', proposal?.id],
+    queryFn: async () => {
+      if (!proposal?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('service_orders')
+        .select('*')
+        .eq('proposal_id', proposal.id)
+        .maybeSingle();
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error('Erro ao buscar agendamento:', error);
+        return null;
+      }
+      
+      return data;
+    },
+    enabled: !!proposal?.id && proposal?.status === 'aceita'
+  });
+
   const handleAcceptProposal = async () => {
     if (!proposal) return;
 
@@ -256,18 +278,55 @@ const PropostaPublicaPage = () => {
                 <span className="xs:hidden">PDF</span>
               </Button>
 
-              {/* Botão de Agendamento - sempre visível para propostas aceitas */}
+              {/* Botão de Agendamento - condicional baseado no status */}
               {proposal.status === 'aceita' && (
-                <Button
-                  variant="outline"
-                  onClick={() => setShowScheduleModal(true)}
-                  className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 h-9 text-xs sm:text-sm px-3 sm:px-4"
-                  size="sm"
-                >
-                  <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                  <span className="hidden xs:inline">Agendar Atendimento</span>
-                  <span className="xs:hidden">Agendar</span>
-                </Button>
+                <>
+                  {existingServiceOrder ? (
+                    <div className="flex flex-col gap-2 sm:flex-row sm:gap-2">
+                      {existingServiceOrder.status === 'concluido' ? (
+                        <Button
+                          variant="outline"
+                          disabled={true}
+                          className="bg-gray-50 text-gray-500 border-gray-200 h-9 text-xs sm:text-sm px-3 sm:px-4 cursor-not-allowed"
+                          size="sm"
+                        >
+                          <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                          <span className="hidden xs:inline">Serviço Concluído</span>
+                          <span className="xs:hidden">Concluído</span>
+                        </Button>
+                      ) : (
+                        <>
+                          <div className="text-xs text-center text-gray-600 p-2 bg-gray-50 rounded border">
+                            <p className="font-medium">Agendado para:</p>
+                            <p>{new Date(existingServiceOrder.scheduled_date).toLocaleDateString('pt-BR')}</p>
+                            <p>às {existingServiceOrder.scheduled_time}</p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowScheduleModal(true)}
+                            className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 h-9 text-xs sm:text-sm px-3 sm:px-4"
+                            size="sm"
+                          >
+                            <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                            <span className="hidden xs:inline">Editar Agendamento</span>
+                            <span className="xs:hidden">Editar</span>
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowScheduleModal(true)}
+                      className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 h-9 text-xs sm:text-sm px-3 sm:px-4"
+                      size="sm"
+                    >
+                      <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                      <span className="hidden xs:inline">Agendar Atendimento</span>
+                      <span className="xs:hidden">Agendar</span>
+                    </Button>
+                  )}
+                </>
               )}
 
               {/* Botões de aceitar/rejeitar apenas se a proposta estiver enviada */}

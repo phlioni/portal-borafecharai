@@ -87,12 +87,22 @@ export default function OrdensDeServicoPage() {
     setIsOrderModalOpen(true);
   };
 
-  const handleStatusChange = (id: string, status: 'pending_approval' | 'approved' | 'rescheduled' | 'completed' | 'canceled') => {
+  const handleStatusChange = async (id: string, status: 'pending_approval' | 'approved' | 'rescheduled' | 'completed' | 'canceled') => {
     updateWorkOrderStatus({ id, status });
+    
+    // Fechar modal após mudança de status
+    setTimeout(() => {
+      setIsOrderModalOpen(false);
+    }, 500);
   };
 
   const handleServiceOrderStatusChange = async (id: string, status: 'agendado' | 'confirmado' | 'em_andamento' | 'concluido' | 'cancelado') => {
     updateServiceOrder({ id, status });
+    
+    // Fechar modal após mudança de status
+    setTimeout(() => {
+      setIsOrderModalOpen(false);
+    }, 500);
     
     // Enviar email se status for 'confirmado'
     if (status === 'confirmado') {
@@ -135,7 +145,6 @@ export default function OrdensDeServicoPage() {
     } else {
       handleServiceOrderStatusChange(id, status);
     }
-    setIsOrderModalOpen(false);
   };
 
   const handleNewOrderClick = () => {
