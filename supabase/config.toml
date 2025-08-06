@@ -92,6 +92,12 @@ verify_jwt = false
 [functions.telegram-notifications]
 verify_jwt = false
 
+[functions.telegram-work-order-notifier]
+verify_jwt = false
+
+[functions.work-order-email-notifier]
+verify_jwt = false
+
 # Configure o hook de envio de email para usar nossa edge function customizada
 [auth.hook.send_email]
 enabled = true

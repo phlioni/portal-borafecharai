@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -6,13 +5,16 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import StandardProposalTemplate from '@/components/StandardProposalTemplate';
-import { Check, X, Download } from 'lucide-react';
+import { Check, X, Download, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
+import { ScheduleModal } from '@/components/ScheduleModal';
+import { ImprovedScheduleModal } from '@/components/ImprovedScheduleModal';
 
 const PropostaPublicaPage = () => {
   const { hash } = useParams();
   const [isAccepting, setIsAccepting] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
 
   const { data: proposal, isLoading, refetch } = useQuery({
     queryKey: ['public-proposal', hash],
@@ -96,6 +98,28 @@ const PropostaPublicaPage = () => {
     enabled: !!hash,
     retry: 2,
     retryDelay: 1000,
+  });
+
+  // Verificar se já existe agendamento para esta proposta
+  const { data: existingServiceOrder } = useQuery({
+    queryKey: ['service-order-by-proposal', proposal?.id],
+    queryFn: async () => {
+      if (!proposal?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('service_orders')
+        .select('*')
+        .eq('proposal_id', proposal.id)
+        .maybeSingle();
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error('Erro ao buscar agendamento:', error);
+        return null;
+      }
+      
+      return data as any;
+    },
+    enabled: !!proposal?.id && proposal?.status === 'aceita'
   });
 
   const handleAcceptProposal = async () => {
@@ -254,6 +278,57 @@ const PropostaPublicaPage = () => {
                 <span className="xs:hidden">PDF</span>
               </Button>
 
+              {/* Botão de Agendamento - condicional baseado no status */}
+              {proposal.status === 'aceita' && (
+                <>
+                  {existingServiceOrder ? (
+                    <div className="flex flex-col gap-2 sm:flex-row sm:gap-2">
+                      {existingServiceOrder.status === 'finalizado' ? (
+                        <Button
+                          variant="outline"
+                          disabled={true}
+                          className="bg-gray-50 text-gray-500 border-gray-200 h-9 text-xs sm:text-sm px-3 sm:px-4 cursor-not-allowed"
+                          size="sm"
+                        >
+                          <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                          <span className="hidden xs:inline">Serviço Concluído</span>
+                          <span className="xs:hidden">Concluído</span>
+                        </Button>
+                      ) : (
+                        <>
+                          <div className="text-xs text-center text-gray-600 p-2 bg-gray-50 rounded border">
+                            <p className="font-medium">Agendado para:</p>
+                            <p>{new Date(existingServiceOrder.scheduled_date).toLocaleDateString('pt-BR')}</p>
+                            <p>às {existingServiceOrder.scheduled_time}</p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowScheduleModal(true)}
+                            className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 h-9 text-xs sm:text-sm px-3 sm:px-4"
+                            size="sm"
+                          >
+                            <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                            <span className="hidden xs:inline">Editar Agendamento</span>
+                            <span className="xs:hidden">Editar</span>
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowScheduleModal(true)}
+                      className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 h-9 text-xs sm:text-sm px-3 sm:px-4"
+                      size="sm"
+                    >
+                      <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                      <span className="hidden xs:inline">Agendar Atendimento</span>
+                      <span className="xs:hidden">Agendar</span>
+                    </Button>
+                  )}
+                </>
+              )}
+
               {/* Botões de aceitar/rejeitar apenas se a proposta estiver enviada */}
               {proposal.status === 'enviada' && (
                 <>
@@ -296,6 +371,18 @@ const PropostaPublicaPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal de Agendamento Melhorado */}
+      {proposal.clients && (
+        <ImprovedScheduleModal
+          proposalId={proposal.id}
+          clientId={proposal.clients.id}
+          userId={proposal.user_id}
+          open={showScheduleModal}
+          onOpenChange={setShowScheduleModal}
+          existingOrder={existingServiceOrder}
+        />
+      )}
     </div>
   );
 };

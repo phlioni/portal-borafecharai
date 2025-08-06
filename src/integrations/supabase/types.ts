@@ -14,6 +14,77 @@ export type Database = {
   }
   public: {
     Tables: {
+      budget_template_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: number
+          template_id: string
+          type: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: never
+          template_id: string
+          type?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: never
+          template_id?: string
+          type?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_template_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "budget_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_template_items_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      budget_templates: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_templates_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       business_segments: {
         Row: {
           created_at: string | null
@@ -371,6 +442,7 @@ export type Database = {
       proposals: {
         Row: {
           client_id: string | null
+          company_profile: Json | null
           created_at: string
           delivery_time: string | null
           detailed_description: string | null
@@ -386,12 +458,14 @@ export type Database = {
           title: string
           updated_at: string
           user_id: string
+          user_profile: Json | null
           validity_date: string | null
           value: number | null
           views: number | null
         }
         Insert: {
           client_id?: string | null
+          company_profile?: Json | null
           created_at?: string
           delivery_time?: string | null
           detailed_description?: string | null
@@ -407,12 +481,14 @@ export type Database = {
           title: string
           updated_at?: string
           user_id: string
+          user_profile?: Json | null
           validity_date?: string | null
           value?: number | null
           views?: number | null
         }
         Update: {
           client_id?: string | null
+          company_profile?: Json | null
           created_at?: string
           delivery_time?: string | null
           detailed_description?: string | null
@@ -428,6 +504,7 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+          user_profile?: Json | null
           validity_date?: string | null
           value?: number | null
           views?: number | null
@@ -438,6 +515,102 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_availability: {
+        Row: {
+          clients_per_day: number
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          is_available: boolean
+          start_time: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          clients_per_day?: number
+          created_at?: string
+          day_of_week: number
+          end_time: string
+          id?: string
+          is_available?: boolean
+          start_time: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          clients_per_day?: number
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          is_available?: boolean
+          start_time?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      service_orders: {
+        Row: {
+          client_id: string | null
+          client_notes: string | null
+          completed_at: string | null
+          created_at: string
+          id: string
+          proposal_id: string
+          provider_notes: string | null
+          scheduled_date: string
+          scheduled_time: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id?: string | null
+          client_notes?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          proposal_id: string
+          provider_notes?: string | null
+          scheduled_date: string
+          scheduled_time: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string | null
+          client_notes?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          proposal_id?: string
+          provider_notes?: string | null
+          scheduled_date?: string
+          scheduled_time?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_orders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_orders_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
             referencedColumns: ["id"]
           },
         ]
@@ -750,6 +923,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      work_orders: {
+        Row: {
+          address: string
+          client_id: string
+          created_at: string
+          id: string
+          proposal_id: string | null
+          scheduled_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address: string
+          client_id: string
+          created_at?: string
+          id?: string
+          proposal_id?: string | null
+          scheduled_at: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string
+          client_id?: string
+          created_at?: string
+          id?: string
+          proposal_id?: string | null
+          scheduled_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_orders_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
