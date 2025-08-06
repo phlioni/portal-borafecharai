@@ -89,13 +89,17 @@ export default function OrdensDeServicoPage() {
     updateWorkOrderStatus({ id, status });
   };
 
-  const handleServiceOrderStatusChange = (id: string, status: 'agendado' | 'confirmado' | 'em_andamento' | 'concluido' | 'cancelado') => {
+  const handleServiceOrderStatusChange = async (id: string, status: 'agendado' | 'confirmado' | 'em_andamento' | 'concluido' | 'cancelado') => {
     updateServiceOrder({ id, status });
     
     // Enviar email se status for 'confirmado'
     if (status === 'confirmado') {
-      // Implementar chamada para edge function de envio de email
-      console.log('Enviando email de confirmação para o cliente');
+      try {
+        // Implementar chamada para edge function de envio de email
+        console.log('Enviando email de confirmação para o cliente');
+      } catch (error) {
+        console.error('Erro ao enviar email:', error);
+      }
     }
   };
 

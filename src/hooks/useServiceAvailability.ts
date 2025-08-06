@@ -11,6 +11,7 @@ export interface ServiceAvailability {
   start_time: string;
   end_time: string;
   is_available: boolean;
+  clients_per_day: number;
   created_at: string;
   updated_at: string;
 }
@@ -20,6 +21,7 @@ export interface CreateAvailabilityData {
   start_time: string;
   end_time: string;
   is_available?: boolean;
+  clients_per_day?: number;
 }
 
 export const useServiceAvailability = () => {

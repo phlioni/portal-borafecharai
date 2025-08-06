@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Trash2, Plus, Clock } from 'lucide-react';
+import { Trash2, Plus, Clock, Users } from 'lucide-react';
 import { useServiceAvailability, CreateAvailabilityData } from '@/hooks/useServiceAvailability';
 import { toast } from '@/hooks/use-toast';
 
@@ -31,11 +31,12 @@ export function ServiceAvailabilityTab() {
     isDeleting 
   } = useServiceAvailability();
 
-  const [newAvailability, setNewAvailability] = useState<CreateAvailabilityData>({
+  const [newAvailability, setNewAvailability] = useState<CreateAvailabilityData & { clients_per_day: number }>({
     day_of_week: 1,
     start_time: '09:00',
     end_time: '18:00',
     is_available: true,
+    clients_per_day: 1,
   });
 
   const handleAddAvailability = () => {
@@ -55,6 +56,7 @@ export function ServiceAvailabilityTab() {
           start_time: '09:00',
           end_time: '18:00',
           is_available: true,
+          clients_per_day: 1,
         });
       },
     });
@@ -91,7 +93,7 @@ export function ServiceAvailabilityTab() {
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Formulário para adicionar nova disponibilidade */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg bg-muted/50">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border rounded-lg bg-muted/50">
             <div>
               <Label htmlFor="day">Dia da Semana</Label>
               <Select
@@ -140,6 +142,25 @@ export function ServiceAvailabilityTab() {
               />
             </div>
 
+            <div>
+              <Label htmlFor="clients_per_day">Clientes/Dia</Label>
+              <div className="flex items-center space-x-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="clients_per_day"
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={newAvailability.clients_per_day}
+                  onChange={(e) => setNewAvailability(prev => ({ 
+                    ...prev, 
+                    clients_per_day: parseInt(e.target.value) || 1 
+                  }))}
+                  className="w-20"
+                />
+              </div>
+            </div>
+
             <div className="flex items-end">
               <Button 
                 onClick={handleAddAvailability}
@@ -172,6 +193,10 @@ export function ServiceAvailabilityTab() {
                     </div>
                     <div className="text-sm text-muted-foreground">
                       {formatTime(item.start_time)} - {formatTime(item.end_time)}
+                    </div>
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      <Users className="h-3 w-3 mr-1" />
+                      {item.clients_per_day} cliente{item.clients_per_day > 1 ? 's' : ''}
                     </div>
                   </div>
 

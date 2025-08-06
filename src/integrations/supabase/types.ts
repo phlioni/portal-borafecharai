@@ -521,6 +521,7 @@ export type Database = {
       }
       service_availability: {
         Row: {
+          clients_per_day: number
           created_at: string
           day_of_week: number
           end_time: string
@@ -531,6 +532,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          clients_per_day?: number
           created_at?: string
           day_of_week: number
           end_time: string
@@ -541,6 +543,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          clients_per_day?: number
           created_at?: string
           day_of_week?: number
           end_time?: string
