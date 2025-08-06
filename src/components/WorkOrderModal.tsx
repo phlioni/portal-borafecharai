@@ -87,6 +87,8 @@ export function WorkOrderModal({
       case 'confirmado': return 'Confirmado';
       case 'em_andamento': return 'Em Andamento';
       case 'concluido': return 'Concluído';
+      case 'reagendado': return 'Reagendado';
+      case 'finalizado': return 'Finalizado';
       default: return status;
     }
   };
@@ -189,7 +191,7 @@ export function WorkOrderModal({
                 <p className="text-sm text-muted-foreground">
                   {isWorkOrder 
                     ? scheduledTime
-                    : `${(order as ServiceOrder).scheduled_time} - Agendamento realizado`
+                    : `Agendado para ${(order as ServiceOrder).scheduled_time}`
                   }
                 </p>
               </div>
@@ -300,23 +302,23 @@ export function WorkOrderModal({
               <>
                 {order.status === 'agendado' && (
                   <Button 
-                    onClick={() => onStatusChange(order.id, 'confirmado')}
+                    onClick={() => onStatusChange(order.id, 'reagendado')}
                     disabled={isUpdating}
                     className="w-full"
                   >
                     Aceitar Agendamento
                   </Button>
                 )}
-                {(order.status === 'confirmado' || order.status === 'em_andamento') && (
+                {(order.status === 'reagendado' || order.status === 'agendado') && (
                   <Button 
-                    onClick={() => onStatusChange(order.id, 'concluido')}
+                    onClick={() => onStatusChange(order.id, 'finalizado')}
                     disabled={isUpdating}
                     className="w-full"
                   >
                     Marcar como Concluído
                   </Button>
                 )}
-                {order.status !== 'cancelado' && order.status !== 'concluido' && (
+                {order.status !== 'cancelado' && order.status !== 'finalizado' && (
                   <Button 
                     variant="destructive"
                     onClick={() => onStatusChange(order.id, 'cancelado')}

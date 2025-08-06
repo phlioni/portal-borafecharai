@@ -34,6 +34,22 @@ interface ImprovedScheduleModalProps {
   userId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  existingOrder?: ServiceOrderFromHook | null;
+}
+
+interface ServiceOrderFromHook {
+  id: string;
+  user_id: string;
+  proposal_id: string;
+  client_id: string | null;
+  scheduled_date: string;
+  scheduled_time: string;
+  status: 'agendado' | 'reagendado' | 'finalizado' | 'cancelado';
+  client_notes: string | null;
+  provider_notes: string | null;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
 }
 
 interface ServiceAvailability {
@@ -55,12 +71,12 @@ const DAYS_OF_WEEK = [
   'quinta-feira', 'sexta-feira', 'sábado'
 ];
 
-export function ImprovedScheduleModal({ proposalId, clientId, userId, open, onOpenChange }: ImprovedScheduleModalProps) {
+export function ImprovedScheduleModal({ proposalId, clientId, userId, open, onOpenChange, existingOrder }: ImprovedScheduleModalProps) {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   
-  const { createServiceOrder, isCreating } = useServiceOrders();
+  const { createServiceOrder, updateServiceOrder, isCreating, isUpdating } = useServiceOrders();
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm<ScheduleForm>({
     resolver: zodResolver(scheduleSchema),
@@ -90,7 +106,7 @@ export function ImprovedScheduleModal({ proposalId, clientId, userId, open, onOp
         .from('service_orders')
         .select('scheduled_date, scheduled_time')
         .eq('user_id', userId)
-        .in('status', ['agendado', 'confirmado']);
+        .in('status', ['agendado', 'reagendado']);
       
       if (error) throw error;
       return data as ServiceOrder[];
@@ -172,6 +188,28 @@ export function ImprovedScheduleModal({ proposalId, clientId, userId, open, onOp
     return !getAvailableDays().includes(dayOfWeek);
   };
 
+  // Carregar dados existentes quando modal abrir
+  useEffect(() => {
+    if (existingOrder && open) {
+      const orderDate = new Date(existingOrder.scheduled_date + 'T00:00:00');
+      setSelectedDate(orderDate);
+      
+      // Extrair apenas a parte do horário (HH:mm) do time completo
+      const timeOnly = existingOrder.scheduled_time.substring(0, 5);
+      setSelectedTime(timeOnly);
+      
+      // Preencher o formulário
+      reset({
+        client_notes: existingOrder.client_notes || '',
+      });
+    } else if (!existingOrder && open) {
+      // Resetar quando não há order existente
+      reset();
+      setSelectedDate(undefined);
+      setSelectedTime('');
+    }
+  }, [existingOrder, open, reset]);
+
   const handleCreateServiceOrder = async (data: ScheduleForm) => {
     if (!selectedDate || !selectedTime) {
       toast({
@@ -185,23 +223,45 @@ export function ImprovedScheduleModal({ proposalId, clientId, userId, open, onOp
     // Extrair apenas o horário de início se for uma janela de tempo
     const actualTime = selectedTime.includes('|') ? selectedTime.split('|')[0] : selectedTime;
     
-    const serviceOrderData: CreateServiceOrderData & { user_id: string } = {
-      proposal_id: proposalId,
-      client_id: clientId,
-      user_id: userId,
-      scheduled_date: format(selectedDate, 'yyyy-MM-dd'),
-      scheduled_time: actualTime + ':00',
-      client_notes: data.client_notes,
-    };
+    if (existingOrder) {
+      // Atualizar agendamento existente
+      updateServiceOrder({
+        id: existingOrder.id,
+        scheduled_date: format(selectedDate, 'yyyy-MM-dd'),
+        scheduled_time: actualTime + ':00',
+        client_notes: data.client_notes,
+      }, {
+        onSuccess: () => {
+          reset();
+          setSelectedDate(undefined);
+          setSelectedTime('');
+          onOpenChange(false);
+          toast({
+            title: "Sucesso",
+            description: "Agendamento atualizado com sucesso!",
+          });
+        },
+      });
+    } else {
+      // Criar novo agendamento
+      const serviceOrderData: CreateServiceOrderData & { user_id: string } = {
+        proposal_id: proposalId,
+        client_id: clientId,
+        user_id: userId,
+        scheduled_date: format(selectedDate, 'yyyy-MM-dd'),
+        scheduled_time: actualTime + ':00',
+        client_notes: data.client_notes,
+      };
 
-    createServiceOrder(serviceOrderData, {
-      onSuccess: () => {
-        reset();
-        setSelectedDate(undefined);
-        setSelectedTime('');
-        onOpenChange(false);
-      },
-    });
+      createServiceOrder(serviceOrderData, {
+        onSuccess: () => {
+          reset();
+          setSelectedDate(undefined);
+          setSelectedTime('');
+          onOpenChange(false);
+        },
+      });
+    }
   };
 
   const getDayName = (dayOfWeek: number) => {
@@ -212,7 +272,7 @@ export function ImprovedScheduleModal({ proposalId, clientId, userId, open, onOp
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Agendar Atendimento</DialogTitle>
+          <DialogTitle>{existingOrder ? 'Editar Agendamento' : 'Agendar Atendimento'}</DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit(handleCreateServiceOrder)} className="space-y-6">
@@ -317,16 +377,16 @@ export function ImprovedScheduleModal({ proposalId, clientId, userId, open, onOp
               type="button" 
               variant="outline" 
               onClick={() => onOpenChange(false)}
-              disabled={isCreating}
+              disabled={isCreating || isUpdating}
             >
               Cancelar
             </Button>
             <Button 
               type="submit" 
-              disabled={isCreating || !selectedDate || !selectedTime || availableTimes.length === 0}
+              disabled={isCreating || isUpdating || !selectedDate || !selectedTime || (!existingOrder && availableTimes.length === 0)}
             >
-              {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Confirmar Agendamento
+              {(isCreating || isUpdating) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {existingOrder ? 'Atualizar Agendamento' : 'Confirmar Agendamento'}
             </Button>
           </DialogFooter>
         </form>

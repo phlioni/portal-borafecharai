@@ -283,7 +283,7 @@ const PropostaPublicaPage = () => {
                 <>
                   {existingServiceOrder ? (
                     <div className="flex flex-col gap-2 sm:flex-row sm:gap-2">
-                      {existingServiceOrder.status === 'concluido' ? (
+                      {existingServiceOrder.status === 'finalizado' ? (
                         <Button
                           variant="outline"
                           disabled={true}
@@ -380,6 +380,7 @@ const PropostaPublicaPage = () => {
           userId={proposal.user_id}
           open={showScheduleModal}
           onOpenChange={setShowScheduleModal}
+          existingOrder={existingServiceOrder}
         />
       )}
     </div>

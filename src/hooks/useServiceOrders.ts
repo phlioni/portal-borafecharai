@@ -11,7 +11,7 @@ export interface ServiceOrder {
   client_id: string | null;
   scheduled_date: string;
   scheduled_time: string;
-  status: 'agendado' | 'confirmado' | 'em_andamento' | 'concluido' | 'cancelado';
+  status: 'agendado' | 'reagendado' | 'finalizado' | 'cancelado';
   client_notes: string | null;
   provider_notes: string | null;
   created_at: string;
