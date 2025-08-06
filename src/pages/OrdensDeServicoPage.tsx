@@ -69,11 +69,11 @@ export default function OrdensDeServicoPage() {
     title: `Agendamento ${order.scheduled_time}`,
     start: `${order.scheduled_date}T${order.scheduled_time}`,
     id: `service_${order.id}`,
-    backgroundColor: order.status === 'confirmado' ? '#3b82f6' : 
-                     order.status === 'concluido' ? '#10b981' :
+    backgroundColor: order.status === 'reagendado' ? '#3b82f6' : 
+                     order.status === 'finalizado' ? '#10b981' :
                      order.status === 'cancelado' ? '#ef4444' : '#f59e0b',
-    borderColor: order.status === 'confirmado' ? '#3b82f6' : 
-                 order.status === 'concluido' ? '#10b981' :
+    borderColor: order.status === 'reagendado' ? '#3b82f6' : 
+                 order.status === 'finalizado' ? '#10b981' :
                  order.status === 'cancelado' ? '#ef4444' : '#f59e0b',
     extendedProps: { ...order, type: 'service_order' },
   }));
@@ -96,7 +96,7 @@ export default function OrdensDeServicoPage() {
     }, 500);
   };
 
-  const handleServiceOrderStatusChange = async (id: string, status: 'agendado' | 'confirmado' | 'em_andamento' | 'concluido' | 'cancelado') => {
+  const handleServiceOrderStatusChange = async (id: string, status: 'agendado' | 'reagendado' | 'finalizado' | 'cancelado') => {
     updateServiceOrder({ id, status });
     
     // Fechar modal após mudança de status
@@ -104,8 +104,8 @@ export default function OrdensDeServicoPage() {
       setIsOrderModalOpen(false);
     }, 500);
     
-    // Enviar email se status for 'confirmado'
-    if (status === 'confirmado') {
+    // Enviar email se status for 'reagendado'
+    if (status === 'reagendado') {
       try {
         const order = serviceOrders.find(o => o.id === id);
         if (order) {

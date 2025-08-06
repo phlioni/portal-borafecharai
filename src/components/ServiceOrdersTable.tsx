@@ -18,11 +18,10 @@ interface ServiceOrdersTableProps {
 export function ServiceOrdersTable({ orders, onStatusChange, isUpdating, onRowClick }: ServiceOrdersTableProps) {
   const getStatusVariant = (status: ServiceOrder['status']) => {
     switch (status) {
-      case 'confirmado': return 'default';
-      case 'concluido': return 'secondary';
-      case 'agendado': return 'secondary';
+      case 'agendado': return 'outline';
+      case 'reagendado': return 'default';
+      case 'finalizado': return 'secondary';
       case 'cancelado': return 'destructive';
-      case 'em_andamento': return 'outline';
       default: return 'outline';
     }
   };
@@ -30,9 +29,8 @@ export function ServiceOrdersTable({ orders, onStatusChange, isUpdating, onRowCl
   const getStatusLabel = (status: ServiceOrder['status']) => {
     switch (status) {
       case 'agendado': return 'Agendado';
-      case 'confirmado': return 'Confirmado';
-      case 'em_andamento': return 'Em Andamento';
-      case 'concluido': return 'Concluído';
+      case 'reagendado': return 'Reagendado';
+      case 'finalizado': return 'Finalizado';
       case 'cancelado': return 'Cancelado';
       default: return status;
     }
@@ -95,25 +93,25 @@ export function ServiceOrdersTable({ orders, onStatusChange, isUpdating, onRowCl
                       <DropdownMenuItem 
                         onClick={(e) => {
                           e.stopPropagation();
-                          onStatusChange(order.id, 'confirmado');
+                          onStatusChange(order.id, 'reagendado');
                         }}
                         disabled={isUpdating}
                       >
-                        Confirmar
+                        Aceitar
                       </DropdownMenuItem>
                     )}
-                    {(order.status === 'confirmado' || order.status === 'em_andamento') && (
+                    {order.status === 'reagendado' && (
                       <DropdownMenuItem 
                         onClick={(e) => {
                           e.stopPropagation();
-                          onStatusChange(order.id, 'concluido');
+                          onStatusChange(order.id, 'finalizado');
                         }}
                         disabled={isUpdating}
                       >
                         Concluir
                       </DropdownMenuItem>
                     )}
-                    {order.status !== 'cancelado' && order.status !== 'concluido' && (
+                    {order.status !== 'cancelado' && order.status !== 'finalizado' && (
                       <DropdownMenuItem 
                         onClick={(e) => {
                           e.stopPropagation();

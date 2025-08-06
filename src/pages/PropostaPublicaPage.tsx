@@ -117,7 +117,7 @@ const PropostaPublicaPage = () => {
         return null;
       }
       
-      return data;
+      return data as any;
     },
     enabled: !!proposal?.id && proposal?.status === 'aceita'
   });
