@@ -9,6 +9,7 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { WorkOrdersTable } from "@/components/WorkOrdersTable";
+import { ServiceOrdersTable } from "@/components/ServiceOrdersTable";
 import { WorkOrderModal } from "@/components/WorkOrderModal";
 import { ScheduleModal } from "@/components/ScheduleModal";
 import { useState } from "react";
@@ -21,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function OrdensDeServicoPage() {
   const { workOrders, isLoading, error, updateWorkOrderStatus, isUpdating } = useWorkOrders();
@@ -95,8 +97,32 @@ export default function OrdensDeServicoPage() {
     // Enviar email se status for 'confirmado'
     if (status === 'confirmado') {
       try {
-        // Implementar chamada para edge function de envio de email
-        console.log('Enviando email de confirmação para o cliente');
+        const order = serviceOrders.find(o => o.id === id);
+        if (order) {
+          const { error } = await supabase.functions.invoke('send-order-confirmation', {
+            body: {
+              orderId: id,
+              clientEmail: 'cliente@email.com', // Buscar email do cliente
+              providerName: 'Prestador de Serviços', // Buscar nome do prestador
+              scheduledDate: order.scheduled_date,
+              scheduledTime: order.scheduled_time
+            }
+          });
+
+          if (error) {
+            console.error('Erro ao enviar email:', error);
+            toast({
+              title: "Erro",
+              description: "Falha ao enviar e-mail de confirmação.",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Sucesso",
+              description: "E-mail de confirmação enviado ao cliente!",
+            });
+          }
+        }
       } catch (error) {
         console.error('Erro ao enviar email:', error);
       }
@@ -190,7 +216,7 @@ export default function OrdensDeServicoPage() {
         </TabsContent>
 
         <TabsContent value="table" className="space-y-4">
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
               <h3 className="text-lg font-semibold mb-2">Ordens de Serviço</h3>
               <WorkOrdersTable 
@@ -200,6 +226,20 @@ export default function OrdensDeServicoPage() {
                 onRowClick={(order) => {
                   setSelectedOrder(order);
                   setOrderType('work_order');
+                  setIsOrderModalOpen(true);
+                }}
+              />
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Agendamentos de Serviço</h3>
+              <ServiceOrdersTable 
+                orders={serviceOrders} 
+                onStatusChange={handleServiceOrderStatusChange}
+                isUpdating={isServiceUpdating}
+                onRowClick={(order) => {
+                  setSelectedOrder(order);
+                  setOrderType('service_order');
                   setIsOrderModalOpen(true);
                 }}
               />
