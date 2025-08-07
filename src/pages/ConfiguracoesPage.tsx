@@ -6,9 +6,13 @@ import CompanyTab from "@/components/CompanyTab";
 import EmailTemplateSettings from "@/components/EmailTemplateSettings";
 import WhatsAppBotSettings from "@/components/WhatsAppBotSettings";
 import { ServiceAvailabilityTab } from "@/components/ServiceAvailabilityTab";
-import { User, Building2, Mail, MessageCircle, Clock } from "lucide-react";
+import { User, Building2, Mail, MessageCircle, Clock, Shield } from "lucide-react";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
+import GerenciamentoUsuariosPage from "./GerenciamentoUsuariosPage";
 
 export default function ConfiguracoesPage() {
+  const { isAdmin } = useUserPermissions();
+  
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div>
@@ -21,7 +25,7 @@ export default function ConfiguracoesPage() {
       <Card>
         <CardContent className="p-0">
           <Tabs defaultValue="profile" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto p-1">
+            <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-2 md:grid-cols-6' : 'grid-cols-2 md:grid-cols-5'} h-auto p-1`}>
               <TabsTrigger value="profile" className="flex items-center gap-2 px-3 py-2">
                 <User className="h-4 w-4" />
                 <span className="hidden sm:inline">Perfil</span>
@@ -42,6 +46,12 @@ export default function ConfiguracoesPage() {
                 <MessageCircle className="h-4 w-4" />
                 <span className="hidden sm:inline">WhatsApp</span>
               </TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger value="admin" className="flex items-center gap-2 px-3 py-2">
+                  <Shield className="h-4 w-4" />
+                  <span className="hidden sm:inline">Admin</span>
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <div className="p-6">
@@ -64,6 +74,12 @@ export default function ConfiguracoesPage() {
               <TabsContent value="whatsapp" className="mt-0">
                 <WhatsAppBotSettings />
               </TabsContent>
+
+              {isAdmin && (
+                <TabsContent value="admin" className="mt-0">
+                  <GerenciamentoUsuariosPage />
+                </TabsContent>
+              )}
             </div>
           </Tabs>
         </CardContent>
