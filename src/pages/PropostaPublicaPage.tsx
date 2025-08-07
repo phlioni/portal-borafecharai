@@ -298,7 +298,7 @@ const PropostaPublicaPage = () => {
                         <>
                           <div className="text-xs text-center text-gray-600 p-2 bg-gray-50 rounded border">
                             <p className="font-medium">Agendado para:</p>
-                            <p>{new Date(existingServiceOrder.scheduled_date).toLocaleDateString('pt-BR')}</p>
+                            <p>{new Date(existingServiceOrder.scheduled_date + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
                             <p>às {existingServiceOrder.scheduled_time}</p>
                           </div>
                           <Button
