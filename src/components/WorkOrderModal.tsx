@@ -191,7 +191,10 @@ export function WorkOrderModal({
                 <p className="text-sm text-muted-foreground">
                   {isWorkOrder 
                     ? scheduledTime
-                    : `Agendado para ${(order as ServiceOrder).scheduled_time}`
+                    : `${formatTime((order as ServiceOrder).scheduled_time)} às ${formatTime(
+                        new Date(new Date(`2000-01-01T${(order as ServiceOrder).scheduled_time}`).getTime() + 
+                        (60 * 60 * 1000)).toTimeString().slice(0, 5)
+                      )}`
                   }
                 </p>
               </div>
