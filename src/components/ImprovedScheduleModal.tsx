@@ -270,21 +270,21 @@ export function ImprovedScheduleModal({ proposalId, clientId, userId, open, onOp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{existingOrder ? 'Editar Agendamento' : 'Agendar Atendimento'}</DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit(handleCreateServiceOrder)} className="space-y-6">
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Calendário */}
-            <div className="flex flex-col items-center space-y-4">
+            <div className="flex flex-col items-center space-y-4 md:order-1 order-2">
               <Label className="self-start">Escolha a data</Label>
               <Calendar
                 mode="single"
                 selected={selectedDate}
                 onSelect={setSelectedDate}
-                className={cn("rounded-md border pointer-events-auto")}
+                className={cn("rounded-md border pointer-events-auto w-full")}
                 disabled={isDateDisabled}
                 locale={ptBR}
               />
@@ -298,7 +298,7 @@ export function ImprovedScheduleModal({ proposalId, clientId, userId, open, onOp
             </div>
 
             {/* Horários e outros campos */}
-            <div className="space-y-4">
+            <div className="space-y-4 md:order-2 order-1">
               {/* Horários disponíveis */}
               <div>
                 <Label>Horários disponíveis</Label>
@@ -372,18 +372,20 @@ export function ImprovedScheduleModal({ proposalId, clientId, userId, open, onOp
             </div>
           )}
 
-          <DialogFooter>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
             <Button 
               type="button" 
               variant="outline" 
               onClick={() => onOpenChange(false)}
               disabled={isCreating || isUpdating}
+              className="w-full sm:w-auto"
             >
               Cancelar
             </Button>
             <Button 
               type="submit" 
               disabled={isCreating || isUpdating || !selectedDate || !selectedTime || (!existingOrder && availableTimes.length === 0)}
+              className="w-full sm:w-auto"
             >
               {(isCreating || isUpdating) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {existingOrder ? 'Atualizar Agendamento' : 'Confirmar Agendamento'}
