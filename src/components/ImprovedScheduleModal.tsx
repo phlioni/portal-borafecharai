@@ -32,7 +32,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, Clock, MapPin } from 'lucide-react';
-import { useServiceOrders, CreateServiceOrderData } from '@/hooks/useServiceOrders';
+import { useServiceOrders } from '@/hooks/useServiceOrders';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -72,7 +72,7 @@ interface ServiceOrderFromHook {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
-  address?: string | null; // Adicionado para consistência
+  address?: string | null;
 }
 
 interface ServiceAvailability {
@@ -125,7 +125,6 @@ export function ImprovedScheduleModal({
     resolver: zodResolver(scheduleSchema),
   });
 
-  // Buscar disponibilidade do usuário
   const { data: availability = [] } = useQuery({
     queryKey: ['userAvailability', userId],
     queryFn: async () => {
@@ -134,14 +133,12 @@ export function ImprovedScheduleModal({
         .select('*')
         .eq('user_id', userId)
         .eq('is_available', true);
-
       if (error) throw error;
       return data as ServiceAvailability[];
     },
     enabled: !!userId && open,
   });
 
-  // Buscar agendamentos existentes
   const { data: existingOrders = [] } = useQuery({
     queryKey: ['existingOrders', userId, selectedDate],
     queryFn: async () => {
@@ -152,104 +149,56 @@ export function ImprovedScheduleModal({
         .eq('user_id', userId)
         .eq('scheduled_date', format(selectedDate, 'yyyy-MM-dd'))
         .in('status', ['agendado', 'reagendado']);
-
       if (error) throw error;
       return data as ServiceOrder[];
     },
     enabled: !!userId && open && !!selectedDate,
   });
 
-  // Gerar horários disponíveis quando a data for selecionada
   useEffect(() => {
     if (!selectedDate || !availability.length) {
       setAvailableTimes([]);
       return;
     }
-
     const dayOfWeek = selectedDate.getDay();
-    const dateStr = format(selectedDate, 'yyyy-MM-dd');
-
-    // Filtrar disponibilidade para o dia da semana
     const dayAvailability = availability.filter(a => a.day_of_week === dayOfWeek);
-
     if (dayAvailability.length === 0) {
       setAvailableTimes([]);
       return;
     }
-
-    // Gerar horários disponíveis
     const times: string[] = [];
     dayAvailability.forEach(slot => {
       const startHour = parseInt(slot.start_time.split(':')[0]);
       const startMinute = parseInt(slot.start_time.split(':')[1]);
       const endHour = parseInt(slot.end_time.split(':')[0]);
       const endMinute = parseInt(slot.end_time.split(':')[1]);
-
-      const totalMinutes = (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
       const clientsPerDay = slot.clients_per_day || 1;
+      const totalMinutes = (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
+      const slotDurationMinutes = Math.floor(totalMinutes / clientsPerDay);
 
-      // Se for 0 ou 1 cliente, trata como um slot único.
-      if (clientsPerDay <= 1) {
-        const startTimeStr = `${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}`;
-        const endTimeStr = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
-        const timeValue = `${startTimeStr}|${endTimeStr}`;
-
-        const isBooked = existingOrders.some(order =>
-          order.scheduled_date === dateStr && order.scheduled_time.startsWith(startTimeStr)
-        );
-
+      for (let i = 0; i < clientsPerDay; i++) {
+        const slotStartTotalMinutes = startHour * 60 + startMinute + i * slotDurationMinutes;
+        const slotStartHour = Math.floor(slotStartTotalMinutes / 60);
+        const slotStartMin = slotStartTotalMinutes % 60;
+        const startTimeStr = `${slotStartHour.toString().padStart(2, '0')}:${slotStartMin.toString().padStart(2, '0')}`;
+        const isBooked = existingOrders.some(order => order.scheduled_time.startsWith(startTimeStr));
         if (!isBooked) {
-          times.push(timeValue);
-        }
-
-      } else {
-        const slotDurationMinutes = Math.floor(totalMinutes / clientsPerDay);
-
-        for (let i = 0; i < clientsPerDay; i++) {
-          const slotStartTotalMinutes = startHour * 60 + startMinute + i * slotDurationMinutes;
-
-          const slotStartHour = Math.floor(slotStartTotalMinutes / 60);
-          const slotStartMin = slotStartTotalMinutes % 60;
-
-          const startTimeStr = `${slotStartHour.toString().padStart(2, '0')}:${slotStartMin.toString().padStart(2, '0')}`;
-
-          const isBooked = existingOrders.some(order =>
-            order.scheduled_date === dateStr && order.scheduled_time.startsWith(startTimeStr)
-          );
-
-          if (!isBooked) {
-            times.push(startTimeStr);
-          }
+          times.push(startTimeStr);
         }
       }
     });
-
-    // Ordena os horários
-    const sortedTimes = times.sort((a, b) => {
-      const timeA = a.split('|')[0];
-      const timeB = b.split('|')[0];
-      return timeA.localeCompare(timeB);
-    });
-
-    setAvailableTimes(sortedTimes);
+    setAvailableTimes(times.sort());
     setSelectedTime('');
   }, [selectedDate, availability, existingOrders]);
 
-  // Filtrar datas disponíveis
-  const getAvailableDays = () => {
-    return [...new Set(availability.map(a => a.day_of_week))];
-  };
-
+  const getAvailableDays = () => [...new Set(availability.map(a => a.day_of_week))];
   const isDateDisabled = (date: Date) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (date < today) return true;
-
-    const dayOfWeek = date.getDay();
-    return !getAvailableDays().includes(dayOfWeek);
+    return !getAvailableDays().includes(date.getDay());
   };
 
-  // Carregar dados existentes
   useEffect(() => {
     if (open) {
       if (existingOrder) {
@@ -270,155 +219,74 @@ export function ImprovedScheduleModal({
 
   const handleServiceOrderSubmit = async (data: ScheduleForm) => {
     if (!selectedDate || !selectedTime) {
-      toast({
-        title: 'Erro',
-        description: 'Por favor, selecione uma data e horário.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Erro', description: 'Por favor, selecione uma data e horário.', variant: 'destructive' });
       return;
     }
-
-    const actualTime = selectedTime.split('|')[0] + ':00';
-
     const orderData = {
       scheduled_date: format(selectedDate, 'yyyy-MM-dd'),
-      scheduled_time: actualTime,
+      scheduled_time: `${selectedTime}:00`,
       address: data.address,
       client_notes: data.client_notes,
       status: existingOrder ? 'reagendado' : 'agendado',
     };
-
-    const mutationOptions = {
+    const options = {
       onSuccess: () => {
-        toast({
-          title: 'Sucesso!',
-          description: `Agendamento ${existingOrder ? 'atualizado' : 'confirmado'} com sucesso.`,
-        });
+        toast({ title: 'Sucesso!', description: `Agendamento ${existingOrder ? 'atualizado' : 'confirmado'}.` });
         onOpenChange(false);
+        // Adicione refetch das queries se necessário, para atualizar a UI em outras partes da aplicação
       },
       onError: (error: any) => {
-        toast({
-          title: 'Erro',
-          description:
-            error.message ||
-            `Não foi possível ${existingOrder ? 'atualizar' : 'criar'
-            } o agendamento.`,
-          variant: 'destructive',
-        });
+        toast({ title: 'Erro', description: error.message || 'Não foi possível salvar o agendamento.', variant: 'destructive' });
       },
     };
-
     if (existingOrder) {
-      updateServiceOrder({ id: existingOrder.id, ...orderData }, mutationOptions);
+      updateServiceOrder({ id: existingOrder.id, ...orderData }, options);
     } else {
-      createServiceOrder(
-        {
-          ...orderData,
-          proposal_id: proposalId,
-          client_id: clientId,
-          user_id: userId,
-        },
-        mutationOptions
-      );
+      createServiceOrder({ ...orderData, proposal_id: proposalId, client_id: clientId, user_id: userId }, options);
     }
   };
 
-  const getDayName = (dayOfWeek: number) => {
-    return DAYS_OF_WEEK[dayOfWeek];
-  };
-
   const FormContent = (
-    <form
-      id="schedule-form"
-      onSubmit={handleSubmit(handleServiceOrderSubmit)}
-      className="space-y-4 md:space-y-6 px-4 md:px-0"
-    >
+    <form id="schedule-form" onSubmit={handleSubmit(handleServiceOrderSubmit)} className="space-y-4 md:space-y-6 px-4 md:px-0">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         <div className="flex flex-col items-center space-y-2">
-          <Label className="self-start font-semibold">Escolha a data</Label>
-          <Calendar
-            mode="single"
-            selected={selectedDate}
-            onSelect={setSelectedDate}
-            className="rounded-md border w-full"
-            disabled={isDateDisabled}
-            locale={ptBR}
-          />
-          {availability.length > 0 && (
-            <div className="text-xs text-muted-foreground text-center pt-2">
-              <p className='font-medium'>Dias disponíveis:</p>
-              <p>{getAvailableDays().map(day => getDayName(day)).join(', ')}</p>
-            </div>
-          )}
+          <Label className="self-start font-semibold">1. Escolha a data</Label>
+          <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} className="rounded-md border w-full" disabled={isDateDisabled} locale={ptBR} />
         </div>
-
         <div className="space-y-4">
           <div>
-            <Label className="font-semibold">Horários disponíveis</Label>
+            <Label className="font-semibold">2. Horários disponíveis</Label>
             {!selectedDate ? (
-              <div className="text-sm text-muted-foreground p-3 border rounded-md bg-muted/50 mt-2">
-                Selecione uma data para ver os horários.
-              </div>
+              <div className="text-sm text-muted-foreground p-3 border rounded-md bg-muted/50 mt-2">Selecione uma data para ver os horários.</div>
             ) : availableTimes.length > 0 ? (
               <Select value={selectedTime} onValueChange={setSelectedTime}>
-                <SelectTrigger className="mt-2">
-                  <SelectValue placeholder="Selecione um horário" />
-                </SelectTrigger>
+                <SelectTrigger className="mt-2"><SelectValue placeholder="Selecione um horário" /></SelectTrigger>
                 <SelectContent>
-                  {availableTimes.map(time => {
-                    const [startTime, endTime] = time.split('|');
-                    const displayTime = endTime ? `${startTime} às ${endTime}` : startTime;
-                    const value = endTime ? time : startTime;
-                    return (
-                      <SelectItem key={time} value={value}>
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4" />
-                          {displayTime}
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
+                  {availableTimes.map(time => (
+                    <SelectItem key={time} value={time}>
+                      <div className="flex items-center gap-2"><Clock className="h-4 w-4" />{time}</div>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             ) : (
-              <div className="text-sm text-muted-foreground p-3 border rounded-md bg-muted/50 mt-2">
-                Nenhum horário disponível para esta data.
-              </div>
+              <div className="text-sm text-muted-foreground p-3 border rounded-md bg-muted/50 mt-2">Nenhum horário disponível para esta data.</div>
             )}
           </div>
-
           <div>
-            <Label htmlFor="address" className="flex items-center gap-2 font-semibold">
-              <MapPin className="h-4 w-4" />
-              Endereço completo do atendimento
-            </Label>
-            <Input
-              id="address"
-              placeholder="Ex: Rua das Flores, 123, Bairro, Cidade - SP"
-              {...register('address')}
-              className="mt-2"
-            />
-            {errors.address && (
-              <p className="text-destructive text-sm mt-1">{errors.address.message}</p>
-            )}
+            <Label htmlFor="address" className="flex items-center gap-2 font-semibold"><MapPin className="h-4 w-4" />3. Endereço do atendimento</Label>
+            <Input id="address" placeholder="Rua, número, bairro, cidade..." {...register('address')} className="mt-2" />
+            {errors.address && <p className="text-destructive text-sm mt-1">{errors.address.message}</p>}
           </div>
-
           <div>
             <Label htmlFor="client_notes" className='font-semibold'>Observações (opcional)</Label>
-            <Textarea
-              id="client_notes"
-              placeholder="Informações adicionais, como ponto de referência..."
-              className="min-h-[80px] mt-2"
-              {...register('client_notes')}
-            />
+            <Textarea id="client_notes" placeholder="Ponto de referência, informações adicionais..." className="min-h-[80px] mt-2" {...register('client_notes')} />
           </div>
         </div>
       </div>
-
       {availability.length === 0 && open && (
-        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-sm">
-          <p className="font-medium">Horários não configurados</p>
-          <p>O prestador de serviços ainda não configurou seus horários de atendimento.</p>
+        <div className="p-4 bg-yellow-50 border-yellow-200 rounded-lg text-yellow-800 text-sm">
+          <p className="font-medium">O prestador de serviços ainda não configurou seus horários de atendimento.</p>
         </div>
       )}
     </form>
@@ -430,24 +298,11 @@ export function ImprovedScheduleModal({
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[700px] max-w-[95vw]">
-          <DialogHeader>
-            <DialogTitle>{existingOrder ? 'Editar Agendamento' : 'Agendar Atendimento'}</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>{existingOrder ? 'Editar Agendamento' : 'Agendar Atendimento'}</DialogTitle></DialogHeader>
           {FormContent}
           <DialogFooter className="pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              form="schedule-form"
-              disabled={isSubmitting || !selectedDate || !selectedTime}
-            >
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancelar</Button>
+            <Button type="submit" form="schedule-form" disabled={isSubmitting || !selectedDate || !selectedTime}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {existingOrder ? 'Atualizar Agendamento' : 'Confirmar Agendamento'}
             </Button>
@@ -462,27 +317,15 @@ export function ImprovedScheduleModal({
       <DrawerContent>
         <DrawerHeader className="text-left">
           <DrawerTitle>{existingOrder ? 'Editar Agendamento' : 'Agendar Atendimento'}</DrawerTitle>
-          <DrawerDescription>
-            Preencha as informações abaixo para agendar o serviço.
-          </DrawerDescription>
+          <DrawerDescription>Preencha as informações abaixo para agendar o serviço.</DrawerDescription>
         </DrawerHeader>
-        <div className="overflow-y-auto max-h-[70vh]">
-          {FormContent}
-        </div>
+        <div className="overflow-y-auto max-h-[70vh]">{FormContent}</div>
         <DrawerFooter className="pt-4">
-          <Button
-            type="submit"
-            form="schedule-form"
-            disabled={isSubmitting || !selectedDate || !selectedTime}
-          >
+          <Button type="submit" form="schedule-form" disabled={isSubmitting || !selectedDate || !selectedTime}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {existingOrder ? 'Atualizar Agendamento' : 'Confirmar Agendamento'}
           </Button>
-          <DrawerClose asChild>
-            <Button variant="outline" disabled={isSubmitting}>
-              Cancelar
-            </Button>
-          </DrawerClose>
+          <DrawerClose asChild><Button variant="outline" disabled={isSubmitting}>Cancelar</Button></DrawerClose>
         </DrawerFooter>
       </DrawerContent>
     </Drawer>

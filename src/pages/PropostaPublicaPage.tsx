@@ -41,6 +41,10 @@ const PropostaPublicaPage = () => {
             unit_price,
             total_price,
             type
+          ),
+          service_orders (
+            *,
+            address
           )
         `)
         .eq('public_hash', hash)
@@ -100,27 +104,8 @@ const PropostaPublicaPage = () => {
     retryDelay: 1000,
   });
 
-  // Verificar se já existe agendamento para esta proposta
-  const { data: existingServiceOrder } = useQuery({
-    queryKey: ['service-order-by-proposal', proposal?.id],
-    queryFn: async () => {
-      if (!proposal?.id) return null;
-      
-      const { data, error } = await supabase
-        .from('service_orders')
-        .select('*')
-        .eq('proposal_id', proposal.id)
-        .maybeSingle();
-      
-      if (error && error.code !== 'PGRST116') {
-        console.error('Erro ao buscar agendamento:', error);
-        return null;
-      }
-      
-      return data as any;
-    },
-    enabled: !!proposal?.id && proposal?.status === 'aceita'
-  });
+  // Acessa o agendamento diretamente do resultado da proposta
+  const existingServiceOrder = proposal?.service_orders?.[0];
 
   const handleAcceptProposal = async () => {
     if (!proposal) return;
